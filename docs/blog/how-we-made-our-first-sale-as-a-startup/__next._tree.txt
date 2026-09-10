@@ -3,6 +3,6 @@
 :HL["/GigBlade/_next/static/chunks/0eqspdm2dt5_-.css","style"]
 :HL["/GigBlade/_next/static/media/797e433ab948586e-s.p.08e28id.o-okb.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/GigBlade/_next/static/media/caa3a2e1cccd8315-s.p.09~u27dqhyhd6.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-:HL["https://framerusercontent.com/images/PdKH3L6qwIPP0Ll5FMJidwnD5BM.webp","image"]
-:HL["https://framerusercontent.com/images/o0SAJx7y6ZV4zWVMqFqkwkX8zo.webp","image"]
+:HL["https://framerusercontent.com/GigBlade/images/PdKH3L6qwIPP0Ll5FMJidwnD5BM.webp","image"]
+:HL["https://framerusercontent.com/GigBlade/images/o0SAJx7y6ZV4zWVMqFqkwkX8zo.webp","image"]
 0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"(site)","param":null,"prefetchHints":0,"slots":{"children":{"name":"blog","param":null,"prefetchHints":0,"slots":{"children":{"name":"slug","param":{"type":"d","key":"how-we-made-our-first-sale-as-a-startup","siblings":null},"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}}}},"staleTime":300,"buildId":"a4vPFzxCZN40x0mma9JXM"}

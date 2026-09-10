@@ -348,7 +348,7 @@ They're scaling incredibly quickly as agents have taken off. At peak they send A
 <img
 	alt="The Firecrawl team, with their New York coffee shop, GitHub star growth, and San Francisco bus wrap"
 	className="aspect-[2/1] w-full object-contain object-center"
-	src="/images/blog/firecrawl-collage.png"
+	src="/GigBlade/images/blog/firecrawl-collage.png"
 />
 
 ### Before Autumn
@@ -357,7 +357,7 @@ Micah was a few weeks into a big billing rework because their existing engine wa
 
 <TestimonialQuote
 	avatarAlt="Micah Stairs"
-	avatarSrc="/images/blog/micah-stairs-dithered.png"
+	avatarSrc="/GigBlade/images/blog/micah-stairs-dithered.png"
 	name="Micah Stairs"
 	role="Head of Support Engineering, Firecrawl"
 >
@@ -389,7 +389,7 @@ The lift to run an experiment is reduced 10x. Through this process, the Firecraw
 <img
 	alt="Firecrawl's pricing calculator, sliding between tiers from Free to Custom"
 	className="mx-auto block w-4/5 rounded-xl border border-[#292929]"
-	src="/images/blog/firecrawl-pricing-slider.png"
+	src="/GigBlade/images/blog/firecrawl-pricing-slider.png"
 />
 
 ### Smart upgrades vs. auto top-ups
@@ -401,14 +401,14 @@ Someone on Micah's team suggested doing it differently, and they built what they
 <img
 	alt="Firecrawl's subscription confirmation modal, showing the Smart Upgrade toggle and its prorated cost"
 	className="mx-auto block w-4/5 rounded-xl border border-[#292929]"
-	src="/images/blog/firecrawl-smart-upgrade-modal.png"
+	src="/GigBlade/images/blog/firecrawl-smart-upgrade-modal.png"
 />
 
 After running this experiment for a few months, they actually returned to auto top-ups in August.
 
 <TestimonialQuote
 	avatarAlt="Micah Stairs"
-	avatarSrc="/images/blog/micah-stairs-dithered.png"
+	avatarSrc="/GigBlade/images/blog/micah-stairs-dithered.png"
 	name="Micah Stairs"
 	role="Head of Support Engineering, Firecrawl"
 >
@@ -437,7 +437,7 @@ They run searches until the free credits are gone, then keep going on their norm
 
 <TestimonialQuote
 	avatarAlt="Micah Stairs"
-	avatarSrc="/images/blog/micah-stairs-dithered.png"
+	avatarSrc="/GigBlade/images/blog/micah-stairs-dithered.png"
 	name="Micah Stairs"
 	role="Head of Support Engineering, Firecrawl"
 >
@@ -464,13 +464,13 @@ I wanted to share how we ended up eliminating these leaks because most of our fi
 2. Most of the leaks we found turned out to be Bun related. Our app runs on Bun v1.3.14, and these fixes were done before [v1.4](https://bun.com/blog/bun-v1.4) came out. We haven't migrated yet, but a huge part of Bun v1.4 is eliminating memory leaks, so that is probably a good first step if you find yourself encountering some of the leaks we're about to discuss
 3. Our app is a Hono server running on Bun, deployed on AWS ECS. To give you a baseline, the following graph shows our memory growth before any work was done:
 
-![Memory growth before any leak work](/images/blog/eliminating-memory-leaks-before.png)
+![Memory growth before any leak work](/GigBlade/images/blog/eliminating-memory-leaks-before.png)
 
 ### **Bun HTTP client leaks**
 
 The first thing we discovered was that Bun's HTTP client leaks. You can think of a fetch request like this:
 
-![How a fetch request moves from your code into the JS heap, then into Bun's native HTTP client](/images/blog/eliminating-memory-leaks-fetch-lifecycle.png)
+![How a fetch request moves from your code into the JS heap, then into Bun's native HTTP client](/GigBlade/images/blog/eliminating-memory-leaks-fetch-lifecycle.png)
 
 After doing a couple load tests and digging through Bun's issues ([oven-sh/bun#30415](https://github.com/oven-sh/bun/issues/30415), [oven-sh/bun#18488](https://github.com/oven-sh/bun/issues/18488)) we found out that Bun keeps some memory at the native layer even after the request completes, therefore introducing a memory leak (at the RSS level). Essentially, every time you make an outgoing fetch request, a little bit of memory gets held up. As you can imagine, the leak is made worse by the frequency of outgoing requests, and one place which we found to greatly exaggerate this leak was our logs.
 
@@ -488,7 +488,7 @@ Unlike our logs however, exporting traces in a sidecar would've involved much mo
 
 Finally, after making these changes, you can see in the memory graph below, the increase was much more gradual. Unfortunately, there was still a slope (indicating a leak elsewhere), so on with the scavenger hunt!
 
-![Memory chart after logging and OTel fixes](/images/blog/eliminating-memory-leaks-after-logging.png)
+![Memory chart after logging and OTel fixes](/GigBlade/images/blog/eliminating-memory-leaks-after-logging.png)
 
 ### Finding other sources of leaks
 
@@ -498,7 +498,7 @@ The other leaks took us quite a bit more digging, and were much more obscure tha
 
 Anyways, it turned out that leaving our server running without any requests still caused a memory leak!
 
-![Owen asking Capy whether the server still leaks with zero traffic](/images/blog/eliminating-memory-leaks-capy-zero-traffic.png)
+![Owen asking Capy whether the server still leaks with zero traffic](/GigBlade/images/blog/eliminating-memory-leaks-capy-zero-traffic.png)
 
 After a process of elimination, we realized that our edge config polling was causing huge memory leaks in our application. For context, an edge config is a JSON object that your server is able to read / update at runtime to quickly toggle certain behaviors (eg. if you want to change the rate limit for a particular user). We have maybe 10 - 20 different configs stored in S3 that are polled every 10 seconds.
 
@@ -522,7 +522,7 @@ const server = http.createServer((req, res) => {
 
 To figure this one out, we again used Capy. We asked it to run a plain Hono server (not our app) with the node adapter, send 100k requests through it and force garbage collection. We then ran a similar experiment, but this time using Bun.serve and saw the following results: about 34 MiB of RSS after 100k requests on the node adapter, versus 0.6 MiB on native `Bun.serve`.
 
-![Capy's 100k-request adapter experiment](/images/blog/eliminating-memory-leaks-adapter-100k.png)
+![Capy's 100k-request adapter experiment](/GigBlade/images/blog/eliminating-memory-leaks-adapter-100k.png)
 
 ### Recycling tasks
 
@@ -537,7 +537,7 @@ A couple of reminders if you end up implementing this yourself:
 
 Finally, after all this work was completed, this was Owen's response to the memory:
 
-![Healthy looking memory chart](/images/blog/eliminating-memory-leaks-healthy.png)
+![Healthy looking memory chart](/GigBlade/images/blog/eliminating-memory-leaks-healthy.png)
 
 Hopefully you found this helpful :)
 
@@ -554,7 +554,7 @@ When a business-model shift like this happens in a company's lifecycle, a lot un
 <img
 	alt="The Mintlify team"
 	className="aspect-[2/1] w-full rounded-xl border border-[#292929] object-cover object-center"
-	src="/images/blog/mintlify-team-photo.png"
+	src="/GigBlade/images/blog/mintlify-team-photo.png"
 />
 
 ### What was broken
@@ -568,7 +568,7 @@ These systems fell out of sync with each other frequently because these deals we
 
 <TestimonialQuote
 	avatarAlt="Kyle Finken"
-	avatarSrc="/images/blog/kyle-finken-dithered.png"
+	avatarSrc="/GigBlade/images/blog/kyle-finken-dithered.png"
 	name="Kyle Finken"
 	role="Engineering at Mintlify"
 >
@@ -641,7 +641,7 @@ They also completely dropped seat-based pricing. Charging per seat is a common w
 <img
 	alt="Mintlify's usage overview dashboard, showing credit usage by product over time"
 	className="mx-auto block w-4/5 rounded-xl border border-[#292929]"
-	src="/images/blog/mintlify-usage-overview-dark.png"
+	src="/GigBlade/images/blog/mintlify-usage-overview-dark.png"
 />
 
 With the tiers cleaned up and consistent, sales had a defined and explainable ladder to move customers up.
@@ -659,7 +659,7 @@ Instead of building this themselves, Mintlify worked with Autumn to put billing,
 
 <TestimonialQuote
 	avatarAlt="Kyle Finken"
-	avatarSrc="/images/blog/kyle-finken-dithered.png"
+	avatarSrc="/GigBlade/images/blog/kyle-finken-dithered.png"
 	name="Kyle Finken"
 	role="Engineering at Mintlify"
 >
@@ -752,7 +752,7 @@ The most common form of AI billing, however, is "quota-based": a form of usage-b
 
 Customers buy some amount of usage **upfront** (usually in the form of credits), use them up, then **hit a hard limit**. These limits are a piece of state in constant flux: plan changes, billing cycles, user controls, promotional grants and other business logic.
 
-![A collage of credit- and tier-based pricing pages from AI products](/images/blog/ai-billing-infrastructure-pricing-pages.png)
+![A collage of credit- and tier-based pricing pages from AI products](/GigBlade/images/blog/ai-billing-infrastructure-pricing-pages.png)
 
 ## What do you need?
 
@@ -952,11 +952,11 @@ Agents interact with applications very differently from humans. They don't see a
 
 For example, updating a plan in Autumn is a surprisingly complex workflow because each decision depends on the current state of your pricing model and there are many branches. A simplified version of the decision tree looks something like this:
 
-![Decision tree for updating a plan](/images/blog/building-an-api-for-agents-decision-tree.png)
+![Decision tree for updating a plan](/GigBlade/images/blog/building-an-api-for-agents-decision-tree.png)
 
 Traditionally, all of this logic has been encoded into a multi-step form in the UI that looks something like this:
 
-![Multi-step form for updating a plan](/images/blog/building-an-api-for-agents-multistep-form.png)
+![Multi-step form for updating a plan](/GigBlade/images/blog/building-an-api-for-agents-multistep-form.png)
 
 So now the question is: how do we design this for an agent? Or rather, what do these "flows" look like when encoding it into an API? For us, we did two things:
 
@@ -974,7 +974,7 @@ The second thing we changed was making these endpoints much broader than we usua
 
 Generally, good API design prefers smaller, resource-oriented APIs because it's intuitive for humans. Agents, however, work better when they have all the context up front, because they're able to reason over the pricing model in one pass, without having to "discover" it through a series of calls. We also get to save on latency :)
 
-![Condensing multiple endpoints into one](/images/blog/building-an-api-for-agents-condensed-flow.png)
+![Condensing multiple endpoints into one](/GigBlade/images/blog/building-an-api-for-agents-condensed-flow.png)
 
 Basically, `catalog.preview_update` and `catalog.update` compress what used to be a complex, multi-step dashboard workflow into a form factor that's much more accessible for agents. We've been testing this across our internal harness, and it's worked surprisingly well.
 
@@ -988,7 +988,7 @@ Another problem we ran into was modality sprawl. For any workflow, we had to sup
 
 Take the previous "update plan" flow for instance. That complex multi-step workflow needed to be built for each of these modalities.
 
-![Modality sprawl across dashboard, agent, and CLI](/images/blog/building-an-api-for-agents-modality-sprawl.png)
+![Modality sprawl across dashboard, agent, and CLI](/GigBlade/images/blog/building-an-api-for-agents-modality-sprawl.png)
 
 The issue with the way we originally built things was that each of these modalities owned parts of the logic for the workflow (like computing whether a plan can be versioned, and so on). And so whenever we added something new, such as variants, we found ourselves designing the same flow many times.
 
@@ -1000,7 +1000,7 @@ The last pattern we've found to be pretty helpful is pairing most write endpoint
 
 This originally had nothing to do with building for agents. In billing, users need to understand in full detail what the result of an action will be before committing to it: how much will be charged, which subscriptions will change, whether customers will be migrated, and so on. Since our users also needed to surface this information to their customers, these preview endpoints naturally became API-first. For example, here's the UI we show in our dashboard before you change a user's plan:
 
-![Preview of a plan change before committing](/images/blog/building-an-api-for-agents-preview-ui.png)
+![Preview of a plan change before committing](/GigBlade/images/blog/building-an-api-for-agents-preview-ui.png)
 
 Incidentally, this ended up translating surprisingly well to agents. When we built our Slack agent for provisioning invoices and enterprise contracts, most of the work around guardrails was already done. The agent simply called the preview endpoint, surfaced the results to the user, and only executed the write once everything had been confirmed.
 
@@ -1068,7 +1068,7 @@ The larger point here is that billing is really a set of relationships between y
 
 The next important thing to understand about billing is that it's hierarchical. The same piece of configuration can often be specific to a customer, a plan, or even global. By designing your system so that configuration can be applied at any of these levels while sharing the same underlying logic, you make pricing changes much cheaper and easier to manage.
 
-![Configuration applied at global, plan, and customer levels](/images/blog/billing-hierarchical-config-levels.png)
+![Configuration applied at global, plan, and customer levels](/GigBlade/images/blog/billing-hierarchical-config-levels.png)
 
 Let's look at an example. Imagine you have a `pro` plan that grants 100 credits per month. If you have a mix of sales-led and PLG customers, you probably end up creating custom contracts that grant arbitrary credit amounts. In that case, it might seem like a good idea to store the number of credits each customer receives directly on the customer row. However, let's say you now want to make a change to increase the number of credits this plan usually grants to 200/month. To do this you have to update every single one of your customers that's not on a custom plan. If you have a lot of these, that can get expensive — try raising it and watch the cost climb with your customer count:
 
@@ -1158,7 +1158,7 @@ This blog from [Unkey](https://www.unkey.com/blog/serverless-exit) was really he
 
 Surprisingly, we tried almost every provider we could find and none of them fit perfectly. We ultimately chose AWS ECS, managed through Flightcontrol, where we spun up an ECS service in us-west and us-east, then used Route53 to route requests based on region.
 
-![Route53 ECS regional routing](/images/blog/multi-region-route53-ecs-regional-routing.png)
+![Route53 ECS regional routing](/GigBlade/images/blog/multi-region-route53-ecs-regional-routing.png)
 
 To explain why we came to this decision, it’s worth walking through the other top contenders.
 
@@ -1166,7 +1166,7 @@ To explain why we came to this decision, it’s worth walking through the other 
 
 We were originally on Render so this seemed like the obvious choice. However, Render doesn’t natively support multi-region, so to set this up we had to manually create instances in each region. More annoyingly though, the only way to have a single domain route to different instances was to use Cloudflare’s load balancer.
 
-![Render Cloudflare load balancer](/images/blog/multi-region-render-cloudflare-load-balancer.png)
+![Render Cloudflare load balancer](/GigBlade/images/blog/multi-region-render-cloudflare-load-balancer.png)
 
 Ultimately, we chose AWS over Render because we found that Cloudflare's Load Balancer introduced additional latency compared to Route53, which resolved at the DNS layer. With Render, there were also multiple hops involved as Render itself uses Cloudflare in front of their services.
 
@@ -1177,11 +1177,11 @@ Railway was extremely compelling because they supported multi-region natively. T
 - Our database, cache, and other data stores wouldn’t be co-located with our server, unless we used Railway for those as well, which was too limiting for us
 - Most of our users were also hosted on AWS so their servers wouldn’t be as close to ours
 
-![Railway AWS data hop](/images/blog/multi-region-railway-aws-data-hop.png)
+![Railway AWS data hop](/GigBlade/images/blog/multi-region-railway-aws-data-hop.png)
 
 Ultimately, with both providers, the decision came down to latency. AWS consistently provided the lowest latencies in our benchmarks.
 
-![Provider p99 Checkly benchmark](/images/blog/multi-region-provider-p99-checkly-benchmark.svg)
+![Provider p99 Checkly benchmark](/GigBlade/images/blog/multi-region-provider-p99-checkly-benchmark.svg)
 
 That said, ECS came with a bunch of maintenance overhead, especially coming from Render. Even with Flightcontrol, we had to build an internal dashboard to build and deploy across regions at once. Moreover, application and load balancer logs were an absolute pain to set up. But today I’m very glad we made the tradeoff. Having lower-level control over our infra has been useful, and AI has made things much easier too.
 
@@ -1195,13 +1195,13 @@ For example, when you send a message to Cursor, they may deduct an estimated num
 
 We’d spin up a Postgres database in each region, completely isolated from each other, and let our users pick which region their data lives in, so it sits closest to their server. The catch, beyond running multiple databases, is that our user’s own customers might be spread across regions. For example, if they’re running Cloudflare Workers, pinning a whole account to one region doesn’t hold up.
 
-![Master database per region users](/images/blog/multi-region-master-db-per-region-users.png)
+![Master database per region users](/GigBlade/images/blog/multi-region-master-db-per-region-users.png)
 
 2. **A region per customer**
 
 Instead of pinning our user, we could pin a customer: our user’s user. Each customer is tied to a region, and all their reads and writes happen there. We'd keep a record mapping customers to regions, and route each request accordingly.
 
-![Region per customer](/images/blog/multi-region-region-per-customer.png)
+![Region per customer](/GigBlade/images/blog/multi-region-region-per-customer.png)
 
 Now trying to do this with Postgres sounded like a headache. Imagine trying to JOIN data across different databases. We could simplify this with a read/write cache in each region instead of fully separate Postgres databases, but we still ruled it out because of the routing layer. We'd need yet another cache for the customer-to-region mapping, itself replicated across regions, and getting every request to the right region felt like way too much overhead.
 
@@ -1283,7 +1283,7 @@ This works when credit usage is infrequent, maybe a couple of times per day. But
 
 Next, you decide you want to start giving out credit coupons, but these are slightly different to the ones users get each month: they don't reset. So now you need to figure out a way to distinguish between these balances in your events table and cache. The list of features that you can build around this goes on and on - rollovers, usage analytics, alerts, auto top ups. Before you know it, you're maintaining an entire system alongside your core product!
 
-![Credit balance cache and events table architecture](/images/blog/we-built-a-billing-company-but-didnt-replace-stripe-billing-cache.png)
+![Credit balance cache and events table architecture](/GigBlade/images/blog/we-built-a-billing-company-but-didnt-replace-stripe-billing-cache.png)
 
 *OpenAI published a good blog [here](https://openai.com/index/beyond-rate-limits/) on building a similar system in house.*
 
@@ -1674,7 +1674,7 @@ While we could've used the Slack API directly, if there's anything we've learnt 
 
 As for hosting the AI agent, we decided to go with [Mastra](https://mastra.ai/) because it abstracted away a lot of the lower level tools like memory, loading skills, MCP support, file system support, etc. It was actually fairly straightforward spinning up an agent with all the tools our local Claude Code would normally have. So our set up looks something like this today:
 
-![Autonomous support agent architecture](/images/blog/building-an-ai-agent-to-investigate-support-tickets-architecture.png)
+![Autonomous support agent architecture](/GigBlade/images/blog/building-an-ai-agent-to-investigate-support-tickets-architecture.png)
 
 To be honest though, this version of the agent has mostly been useful for straightforward investigations. Once an issue requires deeper iteration, we usually fall back to running investigations locally in Claude Code instead.
 
@@ -1753,7 +1753,7 @@ const addPremiumModelsScript = await script({
 
 We then compiled the knowledge of how to use this framework into a bunch of agent skills, and just like that, we found ourselves one-shotting these scripts with a single `/write-script` prompt to Claude Code. We made scripts both faster to write, and more robust too by building on the right abstractions. We now use this multiple times per week.
 
-![Internal scripting framework in action](/images/blog/coding-agents-and-abstractions-script.png)
+![Internal scripting framework in action](/GigBlade/images/blog/coding-agents-and-abstractions-script.png)
 
 Here's our full /write-script skill to give you an idea of the primitives we created:
 
@@ -2086,7 +2086,7 @@ All the previous issues we had were addressed and more. Connection pooling is no
 
 Planetscale has been so good that we barely have to think about our DB infra anymore. Post-migration, our favourite tool has to be the Insights page. At this point, it’s already saved us from several outages. We recently had an incident where our alerts were firing for elevated response times, and we quickly noticed our DB was at 100% CPU. Using insights, we were able to determine the query causing the issue within minutes and block that particular query in our app. If we hadn’t had the level of visibility PlanetScale provides, we would’ve likely had an outage.
 
-![PlanetScale query latency insights](/images/blog/planetscale-insights.png)
+![PlanetScale query latency insights](/GigBlade/images/blog/planetscale-insights.png)
 
 The anomalies page has also been an insane help. We recently onboarded a large customer whose huge scale revealed several holes in our schema. We were immediately able to notice this through the anomalies page showing that several queries were scanning a ton of rows and using more CPU than necessary, and we quickly added the necessary indexes to fix.
 
@@ -2176,7 +2176,7 @@ Similar to a video game where you hoard your items til the final boss, users wou
 
 With the new pricing model, users now have a bucket of usage credits that replenishes every 4 hours. You either use it or lose it, making you feel less guilty about consuming it. If your quota runs out, you simply wait a few hours before coming back.
 
-![](https://framerusercontent.com/images/kTES2qA50b4nRULRUX1JQLUspA.png)
+![](https://framerusercontent.com/GigBlade/images/kTES2qA50b4nRULRUX1JQLUspA.png)
 
 ### Prepaid credits > metered pricing
 
@@ -2200,7 +2200,7 @@ To get around this, some of the monthly quota is assigned to a monthly overage b
 
 The challenge with moving to this model was previously, users were able to by lifetime top-up messages, and we needed a way to still honor this purchase. As part of the migration, we converted these prepaid top-up messages into a standalone credit balance that lasts forever. This bucket of messages will be drawn from last in the waterfall.
 
-![](https://framerusercontent.com/images/e7xtV5kyN9erOK99cg6joWWmVTY.png)
+![](https://framerusercontent.com/GigBlade/images/e7xtV5kyN9erOK99cg6joWWmVTY.png)
 
 [OpenAI's billing system](https://openai.com/index/beyond-rate-limits/) for Codex and Sora works in a very similar way. The team also added a "premier" tier for $50, with 10x more usage, better suited for power users that were previously purchasing multiple top ups.
 
@@ -2223,7 +2223,7 @@ When a message is requested, an estimated number of credits for that message is 
 
 A secondary benefit of this system is that users can now use premium and basic models as they wish interchangeably.
 
-![](https://framerusercontent.com/images/cWI7p7DZOf1joAQDExcxGHsDM0.png)
+![](https://framerusercontent.com/GigBlade/images/cWI7p7DZOf1joAQDExcxGHsDM0.png)
 
 ### How Autumn helped
 
@@ -2401,7 +2401,7 @@ _Sidenote:_ If you ever try to make your npm component customisable via tailwind
 
 Also, If you ever forgot what jsx styles look like, here’s a snippet of what we had to write…
 
-![](https://framerusercontent.com/images/AfIf7siCuQZQhQWWGgBmQQjoyjw.png)
+![](https://framerusercontent.com/GigBlade/images/AfIf7siCuQZQhQWWGgBmQQjoyjw.png)
 
 We made one measly post on linkedin about it, decided it was unusable and shelved it.
 
@@ -2436,7 +2436,7 @@ This immediately felt like a more customizable and fluid DX, but had its own cha
     \- Does the upgrade require an input from users (eg, quantity of credits to purchase)
     
 
-![](https://framerusercontent.com/images/ncBPxNIGQkh4vZHzdi87FAweR0.png)
+![](https://framerusercontent.com/GigBlade/images/ncBPxNIGQkh4vZHzdi87FAweR0.png)
 
 With a React library, everything would be "completely processed", with no customizability. Initially this is the same approach we took with the shadcn registry, but users quickly told us they wanted to customize the text too. We switched to the "in-between" approach.
 
@@ -2471,7 +2471,7 @@ Our API will return a scenario (eg, upgrade, downgrade, add-on, free-trial etc),
 //..... etc
 ```
 
-![](https://framerusercontent.com/images/qQ6pvBXw6yquIFtUptD2lRggE.png)
+![](https://framerusercontent.com/GigBlade/images/qQ6pvBXw6yquIFtUptD2lRggE.png)
 
 However, the shadcn library turned out as a huge mess for several reasons:
 
@@ -2481,7 +2481,7 @@ We decided to launch our components as a shadcn package instead of plain React. 
 
 Unfortunately only half our users use shadcn, but the others wanted components and couldn't use them. More importantly, we were iterating quickly on the underlying API that controls the component content. Since the components weren't synced to our SDK, every update we made broke integrations. We should have kept it simple with React to start, then expanded to shadcn once stable.
 
-![](https://framerusercontent.com/images/8zVRLo7wQpddNJ8o4uRaDmom2BY.png)
+![](https://framerusercontent.com/GigBlade/images/8zVRLo7wQpddNJ8o4uRaDmom2BY.png)
 
 **Mistake 2**
 
@@ -2489,7 +2489,7 @@ We launched a separate open source pricing component library called [pricecn](pr
 
 Pricecn didn't take off. People liked generating pricing cards from JSON, but it's hard enough to promote one project, let alone two. Having Autumn components depend on pricecn ones was just a confusing experience for users, as each component came with several files in different folders.
 
-![](https://framerusercontent.com/images/B1eGaHr7YRlAxGzl1TNCz0n38A.png)
+![](https://framerusercontent.com/GigBlade/images/B1eGaHr7YRlAxGzl1TNCz0n38A.png)
 
 **Mistake 3**
 
@@ -2497,7 +2497,7 @@ We launched with 3 different styles: classic, clean and dev. I thought this woul
 
 Again, people liked the concept but it made maintenance hell. Every issue meant jumping into 3 component files, so we kept putting off fixes until it became unusable.
 
-![](https://framerusercontent.com/images/rWKl6Maa9Y596cIMNwJhUaAL6og.png)
+![](https://framerusercontent.com/GigBlade/images/rWKl6Maa9Y596cIMNwJhUaAL6og.png)
 
 **What we have now**
 
@@ -2514,7 +2514,7 @@ Maybe we're still trying too hard to be clever but here's the cool part: instead
 
 [https://github.com/useautumn/autumn-js/blob/main/package/scripts/sync-registry.ts](https://github.com/useautumn/autumn-js/blob/main/package/scripts/sync-registry.ts)
 
-![](https://framerusercontent.com/images/RsmW3zsJedW8xAhbTJljALEvylI.png)
+![](https://framerusercontent.com/GigBlade/images/RsmW3zsJedW8xAhbTJljALEvylI.png)
 
 To be honest we have no idea how that script works but it does. Thanks Claude Code!
 
@@ -2547,7 +2547,7 @@ We pivoted to make a bigger bet on a longer term strategy of becoming the next g
 
 Our retained users are growing ~11% week on week. It's a broad, bottoms-up GTM.
 
-![](https://framerusercontent.com/images/wzYESJZefwP8SvFkpzzgZoCtaw.png)
+![](https://framerusercontent.com/GigBlade/images/wzYESJZefwP8SvFkpzzgZoCtaw.png)
 
 The main channels we spend time on are:
 
@@ -2678,7 +2678,7 @@ In our previous architecture, interpretability was a mess. We had our branching 
 
 We realised that different branches could be run through the same function. For instance, add ons and new subscription products branches, while separate scenarios, can now both be routed to the same `addProduct` function (see step 5). However they can also be routed to `createCheckout` depending on the config params in the next step.
 
-![](https://framerusercontent.com/images/YcEatrdJWheMwGEWAyQB7Bw6hqY.png)
+![](https://framerusercontent.com/GigBlade/images/YcEatrdJWheMwGEWAyQB7Bw6hqY.png)
 
 ### Step 4: AttachConfig
 
@@ -2693,7 +2693,7 @@ For instance, we can control:
 -   whether any existing meter usage should carry over to the new product, or be reset
     
 
-![](https://framerusercontent.com/images/z4LFqNDl2GGJLBbvNjvfbec7UQ.png)
+![](https://framerusercontent.com/GigBlade/images/z4LFqNDl2GGJLBbvNjvfbec7UQ.png)
 
 ### Step 5: AttachFunction
 
@@ -2701,7 +2701,7 @@ The last step of the attach call is to determine which function to run, based on
 
 For instance, updating a custom product and upgrading to a new product technically can go through the same function, just with different configs (eg. proration behavior), and therefore can be routed to the same function — “UpdateProduct”
 
-![](https://framerusercontent.com/images/XJzahBCPpL01rgJQOvOD5k1hoc.png)
+![](https://framerusercontent.com/GigBlade/images/XJzahBCPpL01rgJQOvOD5k1hoc.png)
 
 Then within each attach function, we make all the relevant calls to Stripe to ensure the scenario occurs successfully.
 
@@ -2806,7 +2806,7 @@ _Sidenote:_ If you ever try to make your npm component customisable via tailwind
 
 Also, If you ever forgot what jsx styles look like, here’s a snippet of what we had to write…
 
-![](https://framerusercontent.com/images/AfIf7siCuQZQhQWWGgBmQQjoyjw.png)
+![](https://framerusercontent.com/GigBlade/images/AfIf7siCuQZQhQWWGgBmQQjoyjw.png)
 
 We made one measly post on linkedin about it, decided it was unusable and shelved it.
 
@@ -2842,7 +2842,7 @@ This immediately felt like a more customizable and fluid DX, but had its own cha
     \- Does the upgrade require an input from users (eg, quantity of credits to purchase)
     
 
-![](https://framerusercontent.com/images/ncBPxNIGQkh4vZHzdi87FAweR0.png)
+![](https://framerusercontent.com/GigBlade/images/ncBPxNIGQkh4vZHzdi87FAweR0.png)
 
 With a React library, everything would be "completely processed", with no customizability. Initially this is the same approach we took with the shadcn registry, but users quickly told us they wanted to customize the text too. We switched to the "in-between" approach.
 
@@ -2877,7 +2877,7 @@ Our API will return a scenario (eg, upgrade, downgrade, add-on, free-trial etc),
 //..... etc
 ```
 
-![](https://framerusercontent.com/images/qQ6pvBXw6yquIFtUptD2lRggE.png)
+![](https://framerusercontent.com/GigBlade/images/qQ6pvBXw6yquIFtUptD2lRggE.png)
 
 Ultimately, after having used it ourselves and watching our users, we’re pretty happy with this approach. Shadcn is as popular as it is for a reason, and we believe in the paradigm of owning your own components and everything inside them.
 
@@ -2939,7 +2939,7 @@ Over the last few days we rewrote the whole library. Instead of reinventing the 
 -   We hook into the existing auth system through this middleware, by providing an identify function where the user can decrypt their JWTs into the user\_id
     
 
-![](https://framerusercontent.com/images/yqrINW5SeAFvnhxywyOEHHBD710.png)
+![](https://framerusercontent.com/GigBlade/images/yqrINW5SeAFvnhxywyOEHHBD710.png)
 
 We're happier with this for now, although set up is slightly longer and possibly less "magical". It's a lot clearer what happens on the client, what happens on the server, and where to use each package.
 
@@ -3008,7 +3008,7 @@ Here’s how it worked:
 3.  Each server action first decrypts the customer ID then calls the Autumn API
     
 
-![](https://framerusercontent.com/images/lr6FGInFULdwXgxESSi825vE.png)
+![](https://framerusercontent.com/GigBlade/images/lr6FGInFULdwXgxESSi825vE.png)
 
 Essentially, we baked our own layer of auth into the server actions, and this is how our Next.js library works today. I haven't seen this approach by anyone else but essentially lets us fully handle secure payments, upgrades, downgrades, usage-based billing events — all from the frontend.
 
@@ -3032,7 +3032,7 @@ It was pretty simple. We saw there were some old companies in the space building
 
 We went on LinkedIn and reached out to about 100 operations leaders at early-stage fintechs (15-50 headcount). We got a bite from a small payment provider based in the UK. Here’s the message we used.
 
-![](https://framerusercontent.com/images/PdKH3L6qwIPP0Ll5FMJidwnD5BM.webp)
+![](https://framerusercontent.com/GigBlade/images/PdKH3L6qwIPP0Ll5FMJidwnD5BM.webp)
 
 **First call**
 
@@ -3056,7 +3056,7 @@ But after weeks of that same process, days of long and mind-numbing outreach, we
 
 With Autumn our approach was less sales-heavy from the start. We just wanted to talk to founders and see what their problems were. This time we had the YC community at our disposal, so emailed about 150 founders of product-led companies to chat about the tools they used. We knew we wanted to try building in that space, optimizing for a company we’d enjoy building as this is what we struggled with when building Recase.
 
-![](https://framerusercontent.com/images/o0SAJx7y6ZV4zWVMqFqkwkX8zo.webp)
+![](https://framerusercontent.com/GigBlade/images/o0SAJx7y6ZV4zWVMqFqkwkX8zo.webp)
 
 One fairly high-profile company responded and mentioned that billing was a nightmare for them. Their users paid for credits, and they wanted a system that could outsource all the credit balance and payment logic.
 
