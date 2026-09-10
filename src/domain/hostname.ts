@@ -43,6 +43,22 @@ export function isLocalNetworkHostname(hostname: string): boolean {
   );
 }
 
+const MARKETING_HOSTS = new Set([
+  "gigblade.com",
+  "www.gigblade.com",
+  "gigblade.vercel.app",
+]);
+
+/** Apex, www, and Vercel URLs serve the platform landing, not a tenant site. */
+export function isMarketingHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname);
+  if (MARKETING_HOSTS.has(normalized)) {
+    return true;
+  }
+
+  return normalized.endsWith(".vercel.app");
+}
+
 export function isValidPublicHostname(hostname: string): boolean {
   if (isLocalHostname(hostname)) {
     return false;

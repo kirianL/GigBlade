@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isLocalHostname, isLocalNetworkHostname, normalizeHostname } from "@/domain/hostname";
+import { isLocalHostname, isLocalNetworkHostname, isMarketingHostname, normalizeHostname } from "@/domain/hostname";
 import { getApp } from "@/lib/composition/app";
 import {
   TENANT_CANONICAL_HEADER,
@@ -13,7 +13,10 @@ export async function proxy(request: NextRequest) {
     request.headers.get("host") || request.nextUrl.hostname,
   );
 
-  if (isLocalNetworkHostname(hostname) && !isLocalHostname(hostname)) {
+  if (
+    (isLocalNetworkHostname(hostname) && !isLocalHostname(hostname)) ||
+    isMarketingHostname(hostname)
+  ) {
     return NextResponse.next();
   }
 

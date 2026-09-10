@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canResolveHostname,
   isLocalNetworkHostname,
+  isMarketingHostname,
   isValidPublicHostname,
   normalizeHostname,
 } from "@/domain/hostname";
@@ -46,6 +47,15 @@ describe("hostname", () => {
     expect(isLocalNetworkHostname("10.0.0.8")).toBe(true);
     expect(isLocalNetworkHostname("127.0.0.1")).toBe(true);
     expect(isLocalNetworkHostname("example.com")).toBe(false);
+  });
+
+  it("trata el host de Vercel y el dominio de marca como landing, no como tenant", () => {
+    expect(isMarketingHostname("gigblade.vercel.app")).toBe(true);
+    expect(isMarketingHostname("gigblade-git-main-kirian.vercel.app")).toBe(
+      true,
+    );
+    expect(isMarketingHostname("gigblade.com")).toBe(true);
+    expect(isMarketingHostname("dj.example.com")).toBe(false);
   });
 
   it("no crea routing para un dominio mal formado", () => {
