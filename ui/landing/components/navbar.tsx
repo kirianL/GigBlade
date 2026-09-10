@@ -60,6 +60,7 @@ const NavIconPixel = forwardRef<PixelHoverHandle, { Icon: PixelIconComponent }>(
 		useEffect(() => {
 			const el = iconRef.current;
 			if (!el) return;
+			if (window.matchMedia("(max-width: 1023px)").matches) return;
 			let cancelled = false;
 
 			getGsap().then((gsap) => {

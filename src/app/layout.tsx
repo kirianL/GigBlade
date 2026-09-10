@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
-import { IBM_Plex_Mono, Syne } from "next/font/google";
 
 import "../../ui/landing/app/globals.css";
 import "./globals.css";
@@ -18,17 +17,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
-});
-
-const display = Syne({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
 });
 
 const url = "https://gigblade.com";
@@ -110,8 +98,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={cn(
         geistSans.variable,
         geistMono.variable,
-        display.variable,
-        mono.variable,
         "h-full max-w-full overflow-x-hidden overscroll-x-none bg-black antialiased",
       )}
     >

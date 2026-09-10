@@ -148,11 +148,11 @@ export default function ElasticRecoil({ children }: LayoutProps) {
 	}, [liftAmount]);
 
 	return (
-		<div className="relative w-full overflow-hidden">
+		<div className="relative w-full overflow-x-hidden">
 			{showFooter && !isMobile && <AnimatedFooterImage />}
 			<motion.div
-				style={{ y }}
-				className="relative z-10 bg-black will-change-transform"
+				style={isMobile ? undefined : { y }}
+				className="relative z-10 bg-black md:will-change-transform"
 			>
 				{children}
 			</motion.div>

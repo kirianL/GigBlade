@@ -1,54 +1,22 @@
-import { motion } from "motion/react";
 import { featuredCustomerStories } from "@/app/constant";
 import { BracketCorners } from "./bracket-corners";
 import { StoryPanel } from "./story-panel";
-import { useMobileCarousel } from "./use-mobile-carousel";
 
 export function MobileCarousel() {
-	const { containerRef, x, activeIndex, goTo, onDragEnd } = useMobileCarousel(
-		featuredCustomerStories.length,
-	);
-
 	return (
-		<div className="lg:hidden mt-8 mb-12 overflow-hidden">
-			<motion.div
-				ref={containerRef}
-				className="flex gap-3 px-4 cursor-grab active:cursor-grabbing"
-				style={{ x }}
-				drag="x"
-				dragElastic={0.12}
-				dragMomentum={false}
-				onDragEnd={onDragEnd}
-			>
-				{["before", "main", "after"].map((copy) =>
-					featuredCustomerStories.map((story) => (
-						<div
-							aria-hidden={copy === "main" ? undefined : true}
-							key={`${copy}-${story.slug}`}
-							className="relative shrink-0 w-[86vw] h-[440px] overflow-hidden"
-						>
-							<div className="absolute inset-0 p-6 flex flex-col">
-								<StoryPanel story={story} />
-							</div>
-							<BracketCorners />
-						</div>
-					)),
-				)}
-			</motion.div>
-
-			<div className="flex justify-center gap-2 mt-5">
-				{featuredCustomerStories.map((story, index) => (
-					<button
+		<div className="lg:hidden mt-8 mb-12">
+			<div className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+				{featuredCustomerStories.map((story) => (
+					<article
 						key={story.slug}
-						type="button"
-						aria-label={`Go to ${story.name}`}
-						onClick={() => goTo(index)}
-						className="h-1.5 rounded-full transition-all duration-300"
-						style={{
-							width: index === activeIndex ? 20 : 6,
-							backgroundColor: index === activeIndex ? story.accent : "#3A3A3A",
-						}}
-					/>
+						className="relative min-h-[440px] w-[min(22rem,calc(100%-1.25rem))] shrink-0 snap-center overflow-hidden p-6"
+						style={{ backgroundColor: story.surface }}
+					>
+						<div className="relative z-10 flex h-full min-h-[392px] flex-col">
+							<StoryPanel story={story} />
+						</div>
+						<BracketCorners />
+					</article>
 				))}
 			</div>
 		</div>

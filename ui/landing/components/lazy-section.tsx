@@ -46,7 +46,11 @@ export default function LazySection({
 
 		// Warm up the rest of the page once the hero is idle, so nothing pops
 		// in while the user is already scrolling past it.
-		const warmUp = window.setTimeout(() => setMounted(true), 600 + order * 220);
+		const isMobile = window.matchMedia("(max-width: 1023px)").matches;
+		const warmUp = window.setTimeout(
+			() => setMounted(true),
+			isMobile ? 3500 + order * 700 : 600 + order * 220,
+		);
 
 		return () => {
 			observer.disconnect();

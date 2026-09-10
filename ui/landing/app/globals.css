@@ -387,7 +387,15 @@ body {
 .hero-root .hero-copy,
 .hero-root .hero-visual,
 .hero-root .hero-cta {
-	opacity: 0;
+	opacity: 1;
+}
+
+@media (min-width: 1024px) {
+	.hero-root .hero-copy,
+	.hero-root .hero-visual,
+	.hero-root .hero-cta {
+		opacity: 0;
+	}
 }
 
 [data-home-intro] .nav-intro {
