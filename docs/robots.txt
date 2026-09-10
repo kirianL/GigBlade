@@ -1,5 +1,0 @@
-User-Agent: *
-Allow: /
-
-Host: https://gigblade.com
-Sitemap: https://gigblade.com/sitemap.xml

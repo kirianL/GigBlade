@@ -18,9 +18,11 @@ export function errorResponse(error: unknown, requestId = createRequestId()) {
         };
 
   const status = error instanceof AppError ? error.status : 500;
+  const headers = new Headers({ "x-request-id": requestId });
 
-  return Response.json(body, {
-    status,
-    headers: { "x-request-id": requestId },
-  });
+  if (error instanceof AppError && error.retryAfterSeconds) {
+    headers.set("Retry-After", String(error.retryAfterSeconds));
+  }
+
+  return Response.json(body, { status, headers });
 }

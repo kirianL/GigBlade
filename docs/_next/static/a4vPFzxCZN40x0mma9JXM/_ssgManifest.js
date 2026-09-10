@@ -1,1 +1,0 @@
-self.__SSG_MANIFEST=new Set(["\u002Falog\u002F[slug]","\u002Fapi\u002Falog-md\u002F[slug]","\u002Fapi\u002Fblog-md\u002F[slug]","\u002Fblog\u002F[slug]","\u002Fblog\u002F[slug]\u002Fopengraph-image-fx5gi7"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

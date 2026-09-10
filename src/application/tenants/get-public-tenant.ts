@@ -1,37 +1,20 @@
 import { notFound } from "@/domain/errors";
-import type { PublicTenant, TenantContext } from "@/domain/tenant";
-import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
-
-type TenantRow = {
-  slug: string;
-  theme_config: Record<string, unknown>;
-  status: string;
-};
+import {
+  toPublicTenant,
+  type PublicTenant,
+  type TenantContext,
+} from "@/domain/tenant";
+import type { TenantRepository } from "@/application/ports/tenant-repository";
 
 export async function getPublicTenant(
+  tenants: TenantRepository,
   context: TenantContext,
 ): Promise<PublicTenant> {
-  const supabase = createSupabaseAdminClient();
+  const tenant = await tenants.findById(context.tenantId);
 
-  const { data, error } = await supabase
-    .from("tenants")
-    .select("slug, theme_config, status")
-    .eq("id", context.tenantId)
-    .maybeSingle();
-
-  if (error || !data) {
+  if (!tenant) {
     throw notFound("Tenant no encontrado");
   }
 
-  const tenant = data as TenantRow;
-
-  if (tenant.status !== "active") {
-    throw notFound("Tenant no disponible");
-  }
-
-  return {
-    slug: tenant.slug,
-    domain: context.canonicalHostname,
-    themeConfig: tenant.theme_config,
-  };
+  return toPublicTenant(tenant, context.canonicalHostname);
 }

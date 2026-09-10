@@ -2,13 +2,14 @@
 
 Documento de contexto técnico y contrato arquitectónico para asistentes de código. Debe revisarse antes de generar o modificar código.
 
-Estado: arquitectura objetivo para el MVP. No crear diseños ni componentes de UI hasta que se autorice explícitamente.
+Estado: arquitectura objetivo para el MVP. Landing pública y dashboard operativo ya están iniciados.
 
 ### Estado de implementación
 
-- Hecho: repositorio Git aislado en `DjProject`, `.env.example` alineado, capas base, `proxy.ts`, cliente admin de Supabase, migraciones SQL/RLS/Storage, endpoint `/api/tenant`.
-- Bloqueado sin credenciales: aplicar migraciones en un proyecto Supabase, leer Edge Config real, conectar Cloudflare y registrar un dominio de prueba.
-- Pendiente: API de bookings, Turnstile, rate limiting, MFA admin, flujo de provisión de dominios, panel.
+- Hecho: migraciones SQL sin bookings, dominio de tenant, fakes en memoria, adaptadores reales, `/api/tenant`, switch `APP_RUNTIME`, landing `/` y dashboard `/dashboard`.
+- Cableado: `getApp()` lee `APP_RUNTIME`. `memory` (default) usa fakes; `real` instancia `createRealApp()`.
+- Fuera de alcance ahora: persistir bookings o formularios de contacto.
+- Pendiente: MFA en dashboard, Edge Config, Cloudflare, Vercel Domains y aplicar migraciones.
 
 ## Principios no negociables
 
@@ -123,6 +124,8 @@ Si Edge Config falla, la respuesta es cerrada (`503`) y no se consulta Supabase 
 ## Variables de entorno
 
 ```text
+APP_RUNTIME=memory
+
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -143,6 +146,8 @@ CLOUDFLARE_ACCOUNT_ID=
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
 ```
+
+`APP_RUNTIME=memory` usa fakes. `APP_RUNTIME=real` instancia `createRealApp()`. El cambio se hace en `.env.local`, no en código.
 
 `CLOUDFLARE_ZONE_ID` no es global: cada dominio tiene su propio `zone_id`, almacenado en `tenant_domains`.
 
@@ -247,41 +252,10 @@ create table public.tenant_memberships (
 create index tenant_memberships_user_id_idx
   on public.tenant_memberships (user_id);
 
-create table public.bookings (
-  id uuid primary key default gen_random_uuid(),
-  tenant_id uuid not null references public.tenants(id) on delete cascade,
-  contact_name text not null,
-  contact_email text not null,
-  event_date date,
-  message text,
-  status text not null default 'new',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint bookings_name_length check (
-    char_length(contact_name) between 1 and 120
-  ),
-  constraint bookings_email_length check (
-    char_length(contact_email) between 3 and 320
-  ),
-  constraint bookings_message_length check (
-    message is null or char_length(message) <= 5000
-  ),
-  constraint bookings_status_valid check (
-    status in ('new', 'contacted', 'closed')
-  )
-);
-
-create index bookings_tenant_created_idx
-  on public.bookings (tenant_id, created_at desc);
-
-create index bookings_tenant_status_idx
-  on public.bookings (tenant_id, status);
-
 create table public.analytics_daily (
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   date date not null,
   visits integer not null default 0 check (visits >= 0),
-  bookings_count integer not null default 0 check (bookings_count >= 0),
   primary key (tenant_id, date)
 );
 
@@ -332,7 +306,6 @@ RLS se activa incluso en tablas a las que normalmente accede solo el servidor:
 alter table public.tenants enable row level security;
 alter table public.tenant_domains enable row level security;
 alter table public.tenant_memberships enable row level security;
-alter table public.bookings enable row level security;
 alter table public.analytics_daily enable row level security;
 alter table public.admins enable row level security;
 alter table public.domain_provisioning_operations enable row level security;
@@ -395,19 +368,6 @@ create policy tenant_domains_member_select
   to authenticated
   using (private.has_tenant_access(tenant_id));
 
-create policy bookings_tenant_select
-  on public.bookings
-  for select
-  to authenticated
-  using (private.has_tenant_access(tenant_id));
-
-create policy bookings_tenant_update
-  on public.bookings
-  for update
-  to authenticated
-  using (private.has_tenant_role(tenant_id, array['owner', 'editor']))
-  with check (private.has_tenant_role(tenant_id, array['owner', 'editor']));
-
 create policy analytics_tenant_select
   on public.analytics_daily
   for select
@@ -432,12 +392,7 @@ create policy admins_own_aal2_select
 
 No se concede escritura directa sobre `tenants`, `tenant_domains`, `tenant_memberships`, `admins` ni `domain_provisioning_operations`; sus mutaciones pasan por casos de uso servidor autorizados. No usar una política genérica `FOR ALL` cuando los permisos de lectura y escritura son distintos. La ausencia de una política es una denegación intencional, no una tarea pendiente.
 
-No existe política `INSERT` pública para `bookings`. El formulario público llama exclusivamente a `/api/bookings`; el handler:
-
-1. Resuelve el tenant desde el contexto interno creado por `proxy.ts`.
-2. Verifica Turnstile, schema, límites y rate limits.
-3. Descarta cualquier `tenant_id` recibido del cliente.
-4. Inserta con un cliente privilegiado exclusivamente servidor.
+La plataforma no almacena bookings en esta fase. Si se agrega más adelante, será una migración nueva, no una reescritura de estas tablas.
 
 `service_role` omite RLS. Por ello, cada método privilegiado recibe un objeto `TenantContext` construido por código confiable y añade `.eq("tenant_id", context.tenantId)` en lecturas, actualizaciones y borrados. Esto se valida con pruebas de aislamiento entre dos tenants.
 
@@ -458,14 +413,12 @@ Las colecciones usan plural de forma consistente:
 
 | Ruta | Método y función | Límites | Protección |
 |---|---|---|---|
-| `/api/bookings` | `POST` crear solicitud | IP + tenant | Turnstile, schema y límites |
+| `/api/tenant` | `GET` datos públicos del tenant | por hostname | contexto interno de `proxy.ts` |
 | `/api/uploads` | `POST` subir imagen | IP + usuario + tenant | sesión, MIME real y tamaño |
 | `/api/auth/*` | Supabase Auth | IP + usuario | límites de Supabase y Firewall |
 | `/api/admin/tenants` | CRUD administrativo | usuario + acción | sesión, rol y AAL2 |
 | `/api/domains/registrations` | `POST` iniciar alta | tenant + usuario | sesión, rol e idempotencia |
 | `/api/domains/[hostname]/status` | `GET` consultar estado | tenant + usuario | sesión y pertenencia |
-
-El contacto general se modela como booking sin `event_date`; no se mantiene una segunda ruta con semántica duplicada.
 
 ### Contrato común
 
@@ -488,7 +441,6 @@ No usar una única clave concatenada. Aplicar buckets independientes:
 
 Valores iniciales:
 
-- Booking: 5 por IP cada 10 minutos y 100 por tenant cada 10 minutos.
 - Upload: 20 por usuario por hora, 100 por tenant por hora y máximo 2 concurrentes por tenant.
 - Admin y dominios: límites por usuario, tenant y tipo de acción.
 
@@ -584,7 +536,7 @@ Los dominios registrados en Cloudflare usan sus nameservers y apuntan a Vercel m
 - [ ] Storage privado para originales y validación real de contenido
 - [ ] Idempotencia, timeouts y reconciliación en integraciones externas
 - [ ] Logs sin secretos ni PII sensible
-- [ ] Política de retención y borrado para bookings definida
+- [ ] Política de retención de datos de tenant definida
 - [ ] Alertas de expiración, renovación y fallos de dominio activas
 - [ ] Capacidad de Cloudflare Registrar por debajo del umbral operativo
 
@@ -626,7 +578,7 @@ Convenciones:
 
 ## Fuera de alcance
 
-- Diseños y componentes de UI.
+- Persistencia de bookings o formularios de contacto.
 - Correo electrónico transaccional.
 - Analytics en tiempo real o UI de analytics.
 - Facturación recurrente automática.

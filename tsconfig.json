@@ -23,9 +23,14 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/domain/*": ["./src/domain/*"],
+      "@/application/*": ["./src/application/*"],
+      "@/infrastructure/*": ["./src/infrastructure/*"],
+      "@/lib/composition/*": ["./src/lib/composition/*"],
+      "@/lib/tenant/*": ["./src/lib/tenant/*"],
+      "@/lib/env/*": ["./src/lib/env/*"],
+      "@/lib/http/*": ["./src/lib/http/*"],
+      "@/*": ["./ui/landing/*"]
     }
   },
   "include": [
@@ -36,6 +41,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "ui"
   ]
 }

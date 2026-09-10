@@ -1,7 +1,8 @@
+-- Políticas RLS del contrato MVP. Ausencia de política = denegación.
+
 alter table public.tenants enable row level security;
 alter table public.tenant_domains enable row level security;
 alter table public.tenant_memberships enable row level security;
-alter table public.bookings enable row level security;
 alter table public.analytics_daily enable row level security;
 alter table public.admins enable row level security;
 alter table public.domain_provisioning_operations enable row level security;
@@ -9,7 +10,6 @@ alter table public.domain_provisioning_operations enable row level security;
 revoke all on public.tenants from anon, authenticated;
 revoke all on public.tenant_domains from anon, authenticated;
 revoke all on public.tenant_memberships from anon, authenticated;
-revoke all on public.bookings from anon, authenticated;
 revoke all on public.analytics_daily from anon, authenticated;
 revoke all on public.admins from anon, authenticated;
 revoke all on public.domain_provisioning_operations from anon, authenticated;
@@ -17,7 +17,6 @@ revoke all on public.domain_provisioning_operations from anon, authenticated;
 grant select on public.tenants to authenticated;
 grant select on public.tenant_domains to authenticated;
 grant select on public.tenant_memberships to authenticated;
-grant select, update on public.bookings to authenticated;
 grant select on public.analytics_daily to authenticated;
 grant select on public.admins to authenticated;
 
@@ -74,19 +73,6 @@ create policy tenant_domains_member_select
   for select
   to authenticated
   using (private.has_tenant_access(tenant_id));
-
-create policy bookings_tenant_select
-  on public.bookings
-  for select
-  to authenticated
-  using (private.has_tenant_access(tenant_id));
-
-create policy bookings_tenant_update
-  on public.bookings
-  for update
-  to authenticated
-  using (private.has_tenant_role(tenant_id, array['owner', 'editor']))
-  with check (private.has_tenant_role(tenant_id, array['owner', 'editor']));
 
 create policy analytics_tenant_select
   on public.analytics_daily

@@ -1,3 +1,7 @@
+-- Contrato de esquema congelado para el MVP.
+-- No aplicar contra un proyecto real hasta el día de conexión.
+-- Cambios posteriores deben ser migraciones nuevas, no reescrituras.
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -103,46 +107,10 @@ create table public.tenant_memberships (
 create index tenant_memberships_user_id_idx
   on public.tenant_memberships (user_id);
 
-create table public.bookings (
-  id uuid primary key default gen_random_uuid(),
-  tenant_id uuid not null references public.tenants(id) on delete cascade,
-  contact_name text not null,
-  contact_email text not null,
-  event_date date,
-  message text,
-  status text not null default 'new',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint bookings_name_length check (
-    char_length(contact_name) between 1 and 120
-  ),
-  constraint bookings_email_length check (
-    char_length(contact_email) between 3 and 320
-  ),
-  constraint bookings_message_length check (
-    message is null or char_length(message) <= 5000
-  ),
-  constraint bookings_status_valid check (
-    status in ('new', 'contacted', 'closed')
-  )
-);
-
-create index bookings_tenant_created_idx
-  on public.bookings (tenant_id, created_at desc);
-
-create index bookings_tenant_status_idx
-  on public.bookings (tenant_id, status);
-
-create trigger bookings_set_updated_at
-  before update on public.bookings
-  for each row
-  execute function public.set_updated_at();
-
 create table public.analytics_daily (
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   date date not null,
   visits integer not null default 0 check (visits >= 0),
-  bookings_count integer not null default 0 check (bookings_count >= 0),
   primary key (tenant_id, date)
 );
 

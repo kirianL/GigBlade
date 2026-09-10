@@ -1,3 +1,5 @@
+-- Bucket privado. Las rutas deben empezar por tenant_id.
+
 insert into storage.buckets (id, name, public)
 values ('tenant-media', 'tenant-media', false)
 on conflict (id) do nothing;

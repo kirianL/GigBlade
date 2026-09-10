@@ -1,8 +1,6 @@
 import createMDX from "@next/mdx";
 
 const isProd = process.env.NODE_ENV === "production";
-const isPages = process.env.GITHUB_PAGES === "1";
-const pagesBasePath = process.env.PAGES_BASE_PATH || "/GigBlade";
 
 // This landing app lives at ui/landing inside GigBlade. Pin Turbopack to
 // this folder so Next does not treat the platform repo root as the workspace.
@@ -43,22 +41,14 @@ const nextConfig = {
   experimental: {
     viewTransition: true,
     optimizePackageImports: ["motion", "gsap", "@gsap/react"],
-    optimizeCss: isProd && !isPages,
+    optimizeCss: isProd,
   },
-  images: isPages
-    ? { unoptimized: true }
-    : {
-        formats: ["image/avif", "image/webp"],
-      },
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
 };
 
-if (isPages) {
-  nextConfig.output = "export";
-  nextConfig.trailingSlash = true;
-  nextConfig.basePath = pagesBasePath;
-  nextConfig.assetPrefix = `${pagesBasePath}/`;
-} else {
-  nextConfig.rewrites = async () => [
+nextConfig.rewrites = async () => [
     {
       source: "/alog/:slug.md",
       destination: "/api/alog-md/:slug",
@@ -152,7 +142,6 @@ if (isPages) {
       },
     ];
   };
-}
 
 const withMDX = createMDX({
   options: {

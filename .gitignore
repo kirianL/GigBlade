@@ -4,6 +4,7 @@
 # Next.js
 /.next
 /out
+/docs
 ui/landing/node_modules
 ui/landing/.next
 ui/landing/out
