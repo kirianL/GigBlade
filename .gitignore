@@ -4,6 +4,13 @@
 # Next.js
 /.next
 /out
+ui/landing/node_modules
+ui/landing/.next
+ui/landing/out
+
+# landing assets linked from ui/landing (do not edit ui/landing)
+/public
+/content
 
 # production
 /build

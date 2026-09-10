@@ -1,0 +1,54 @@
+# Publish the static landing to GitHub Pages for device testing.
+# Repo Settings → Pages → Source: GitHub Actions
+# URL: https://kirianl.github.io/GigBlade/
+
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/landing/package-lock.json
+      - name: Install landing deps
+        working-directory: ui/landing
+        run: npm install
+      - name: Export landing
+        working-directory: ui/landing
+        env:
+          GITHUB_PAGES: "1"
+          PAGES_BASE_PATH: /GigBlade
+        run: npx next build
+      - name: Add .nojekyll
+        run: touch ui/landing/out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ui/landing/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

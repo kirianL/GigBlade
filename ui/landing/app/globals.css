@@ -1,0 +1,699 @@
+/* @import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+} */
+
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "slot-text/style.css";
+
+/* High-refresh motion: compositor-only where possible, native rAF cadence. */
+@media (prefers-reduced-motion: no-preference) {
+	html {
+		--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	html.lenis,
+	html.lenis body {
+		height: auto;
+	}
+
+	.lenis.lenis-smooth {
+		scroll-behavior: auto !important;
+	}
+}
+
+.slot-text {
+	-webkit-font-smoothing: antialiased;
+	backface-visibility: hidden;
+}
+
+/* ==========================================================================
+   RAW TOKENS  —  single source of truth
+   ⚠️  All hex values marked "verify" are best-guesses from the screenshot.
+       Confirm against Figma before shipping.
+   ========================================================================== */
+
+:root {
+	/* --- Fonts ---------------------------------------------------------------- */
+	--font-geist-sans: "Geist", sans-serif; /* injected by next/font or CDN  */
+	--font-geist-mono: "Geist Mono", monospace;
+
+	/* --- Font weights --------------------------------------------------------- */
+	--font-weight-light: 300;
+	--font-weight-regular: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+
+	/* --- Type scale: Display (desktop) --------------------------------------- */
+	--text-display-1: 4.5rem; /* verify */
+	--leading-display-1: 1.1;
+	--text-display-2: 3.5rem; /* verify */
+	--leading-display-2: 1.1;
+	--text-display-3: 2.5rem; /* verify */
+	--leading-display-3: 1.15;
+	--text-display-4: 2rem; /* verify */
+	--leading-display-4: 1.2;
+	--text-display-5: 1.5rem; /* verify */
+	--leading-display-5: 1.25;
+
+	/* --- Type scale: Body ----------------------------------------------------- */
+	--text-body-18: 1.125rem;
+	--leading-body-18: 1.6;
+	--text-body-16: 1rem;
+	--leading-body-16: 1.6;
+	--text-body-14: 0.875rem;
+	--leading-body-14: 1.5;
+
+	/* --- Type scale: Label (Geist Mono) --------------------------------------- */
+	--text-label-32: 2rem;
+	--text-label-14: 0.875rem;
+	--leading-label: 1.4;
+
+	/* --- Surface / Neutral ---------------------------------------------------- */
+	--color-surface-primary: var(--color-brand);
+	--color-surface-950: #0f0f0f;
+	--color-surface-900: #1c1c1c; /* verify */
+	--color-surface-800: #2c2c2c; /* verify */
+	--color-surface-600: #3f3f3f;
+	--color-surface-200: #d1d1d1; /* verify */
+	--color-surface-100: #ececec; /* verify */
+
+	/* --- Brand (single source) ------------------------------------------------ */
+	--color-brand: #1a56d6;
+	--color-brand-hover: #1544b0;
+	--color-brand-accent: #5ba8ff;
+	--color-brand-glow: #7ebaff;
+	--color-brand-soft: #b8d9ff;
+	--color-brand-ink: #0a1f4a;
+	--color-brand-tint-1: #7ebaff;
+	--color-brand-tint-2: #e8f2ff;
+	--color-brand-tint-3: #b8d9ff;
+	--color-brand-tint-4: #5ba8ff;
+
+	/* Aliases — keep old utility names pointed at brand */
+	--color-pink-dark: var(--color-brand-hover);
+	--color-pink-base: var(--color-brand);
+	--color-pink-light: var(--color-brand-accent);
+	--color-pink-light-1: var(--color-brand-soft);
+	--color-blue-dark: var(--color-brand-hover);
+	--color-blue-base: var(--color-brand);
+	--color-blue-light: var(--color-brand-accent);
+	--color-blue-light-1: var(--color-brand-glow);
+	--color-purple-dark: var(--color-brand-accent);
+	--color-purple-base: var(--color-brand-accent);
+	--color-purple-light: var(--color-brand-glow);
+	--color-purple-light-1: var(--color-brand-soft);
+
+	/* --- Legacy Next.js scaffold (kept for compatibility) --------------------- */
+	--background: #000000;
+	--foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #000000;
+		--foreground: #ededed;
+	}
+}
+
+@media (max-width: 768px) {
+	:root {
+		--text-display-1: 3.5rem; /* verify */
+		--text-display-2: 2.5rem; /* verify */
+		--text-display-3: 2rem; /* verify */
+		--text-display-4: 1.5rem; /* verify */
+		--text-display-5: 1.25rem; /* verify */
+	}
+}
+
+/* ==========================================================================
+   TAILWIND v4 THEME  —  maps raw tokens → utility classes
+   Everything in @theme becomes a Tailwind utility automatically:
+     --color-*    →  bg-*, text-*, border-*, ring-*, fill-*, stroke-*
+     --font-*     →  font-*
+     --text-*     →  text-*  (when paired with a size value)
+     --leading-*  →  leading-*
+   ========================================================================== */
+
+@theme inline {
+	/* Background & foreground (Next.js scaffold) */
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+
+	/* Fonts */
+	--font-sans: var(--font-geist-sans);
+	--font-mono: var(--font-geist-mono);
+
+	/* Surface / Neutral */
+	--color-surface-primary: var(--color-surface-primary);
+	--color-surface-950: var(--color-surface-950);
+	--color-surface-900: var(--color-surface-900);
+	--color-surface-800: var(--color-surface-800);
+	--color-surface-600: var(--color-surface-600);
+	--color-surface-200: var(--color-surface-200);
+	--color-surface-100: var(--color-surface-100);
+
+	/* Brand */
+	--color-brand: var(--color-brand);
+	--color-brand-hover: var(--color-brand-hover);
+	--color-brand-accent: var(--color-brand-accent);
+	--color-brand-glow: var(--color-brand-glow);
+	--color-brand-soft: var(--color-brand-soft);
+	--color-brand-ink: var(--color-brand-ink);
+	--color-brand-tint-1: var(--color-brand-tint-1);
+	--color-brand-tint-2: var(--color-brand-tint-2);
+	--color-brand-tint-3: var(--color-brand-tint-3);
+	--color-brand-tint-4: var(--color-brand-tint-4);
+
+	/* Brand: Pink */
+	--color-pink-dark: var(--color-pink-dark);
+	--color-pink-base: var(--color-pink-base);
+	--color-pink-light: var(--color-pink-light);
+	--color-pink-light-1: var(--color-pink-light-1);
+
+	/* Brand: Blue */
+	--color-blue-dark: var(--color-blue-dark);
+	--color-blue-base: var(--color-blue-base);
+	--color-blue-light: var(--color-blue-light);
+	--color-blue-light-1: var(--color-blue-light-1);
+
+	/* Brand: Purple */
+	--color-purple-dark: var(--color-purple-dark);
+	--color-purple-base: var(--color-purple-base);
+	--color-purple-light: var(--color-purple-light);
+	--color-purple-light-1: var(--color-purple-light-1);
+
+	/* Type scale — Display */
+	--text-display-1: var(--text-display-1);
+	--text-display-2: var(--text-display-2);
+	--text-display-3: var(--text-display-3);
+	--text-display-4: var(--text-display-4);
+	--text-display-5: var(--text-display-5);
+
+	/* Type scale — Body */
+	--text-body-18: var(--text-body-18);
+	--text-body-16: var(--text-body-16);
+	--text-body-14: var(--text-body-14);
+
+	/* Type scale — Label */
+	--text-label-32: var(--text-label-32);
+	--text-label-14: var(--text-label-14);
+
+	/* Leading */
+	--leading-display-1: var(--leading-display-1);
+	--leading-display-2: var(--leading-display-2);
+	--leading-display-3: var(--leading-display-3);
+	--leading-display-4: var(--leading-display-4);
+	--leading-display-5: var(--leading-display-5);
+	--leading-body-18: var(--leading-body-18);
+	--leading-body-16: var(--leading-body-16);
+	--leading-body-14: var(--leading-body-14);
+	--leading-label: var(--leading-label);
+
+	/* Font weights */
+	--font-weight-light: var(--font-weight-light);
+	--font-weight-regular: var(--font-weight-regular);
+	--font-weight-medium: var(--font-weight-medium);
+	--font-weight-semibold: var(--font-weight-semibold);
+	--font-weight-bold: var(--font-weight-bold);
+}
+
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+body {
+	background: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-geist-sans);
+	overscroll-behavior-y: none;
+}
+
+.grid-overlay {
+	position: absolute;
+	inset: 0;
+	/* pointer-events: none; */
+}
+
+.grid-overlay::before,
+.grid-overlay::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: rgba(255, 255, 255, 0.04);
+}
+
+/* left floating line */
+.grid-overlay::before {
+	left: 3%;
+}
+
+/* right floating line */
+.grid-overlay::after {
+	right: 20%;
+}
+
+/* ==========================================================================
+   BLOG PROSE OVERRIDES  —  dark theme, matches landing-page tokens
+   ========================================================================== */
+
+.prose.prose-invert {
+	--tw-prose-body: rgba(255, 255, 255, 0.6);
+	--tw-prose-headings: #ffffff;
+	--tw-prose-lead: rgba(255, 255, 255, 0.7);
+	--tw-prose-links: var(--color-brand-glow);
+	--tw-prose-bold: #ffffff;
+	--tw-prose-counters: rgba(255, 255, 255, 0.6);
+	--tw-prose-bullets: rgba(255, 255, 255, 0.4);
+	--tw-prose-hr: #292929;
+	--tw-prose-quotes: rgba(255, 255, 255, 0.7);
+	--tw-prose-quote-borders: var(--color-brand-glow);
+	--tw-prose-code: #e0e0e0;
+	--tw-prose-pre-code: rgba(255, 255, 255, 0.6);
+	--tw-prose-pre-bg: #141414;
+	--tw-prose-th-borders: #292929;
+	--tw-prose-td-borders: #292929;
+	font-family: var(--font-geist-sans);
+	font-weight: 300;
+}
+
+.prose.prose-invert p {
+	font-size: 14px;
+	line-height: 1.7;
+	letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+	.prose.prose-invert p {
+		font-size: 16px;
+	}
+}
+
+.prose.prose-invert h2 {
+	font-weight: 400;
+	font-size: 22px;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+	margin-top: 2.5em;
+}
+
+@media (min-width: 768px) {
+	.prose.prose-invert h2 {
+		font-size: 28px;
+	}
+}
+
+.prose.prose-invert h3 {
+	font-weight: 400;
+	font-size: 18px;
+	letter-spacing: -0.02em;
+	line-height: 1.25;
+	margin-top: 2em;
+}
+
+@media (min-width: 768px) {
+	.prose.prose-invert h3 {
+		font-size: 22px;
+	}
+}
+
+.prose.prose-invert strong {
+	color: #ffffff;
+	font-weight: 400;
+}
+
+.prose.prose-invert li {
+	font-size: 14px;
+	line-height: 1.7;
+	letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+	.prose.prose-invert li {
+		font-size: 16px;
+	}
+}
+
+.prose.prose-invert li::marker {
+	color: rgba(255, 255, 255, 0.4);
+}
+
+.prose.prose-invert a {
+	text-decoration-color: rgba(149, 100, 255, 0.4);
+	transition:
+		color 0.3s,
+		text-decoration-color 0.3s;
+}
+
+.prose.prose-invert a:hover {
+	color: var(--color-brand-soft);
+	text-decoration-color: var(--color-brand-soft);
+}
+
+/* ==========================================================================
+   PAGE ENTER  —  reading order: copy, then media/CTAs (CSS <lg, GSAP lg+)
+   ========================================================================== */
+
+:root {
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.hero-root .hero-copy,
+.hero-root .hero-visual,
+.hero-root .hero-cta {
+	opacity: 0;
+}
+
+[data-home-intro] .nav-intro {
+	opacity: 0;
+}
+
+[data-home-intro] .nav-intro.is-ready {
+	opacity: 1;
+	transition: opacity 0.4s var(--ease-out);
+}
+
+@keyframes section-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 10px, 0);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+.section-enter {
+	animation: section-in 0.45s var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.section-enter {
+		animation: none;
+	}
+}
+
+@keyframes page-enter {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 12px, 0);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+@media (max-width: 1023px) {
+	.hero-root.is-ready .hero-copy,
+	.hero-root.is-ready .hero-visual,
+	.hero-root.is-ready .hero-cta {
+		animation: page-enter 0.62s var(--ease-out) both;
+		animation-delay: calc(var(--enter, 0) * 80ms);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-root .hero-copy,
+	.hero-root .hero-visual,
+	.hero-root .hero-cta,
+	[data-home-intro] .nav-intro {
+		opacity: 1;
+		transform: none;
+		animation: none;
+		transition: none;
+	}
+}
+
+/* ==========================================================================
+   WISHLIST FORM
+   ========================================================================== */
+
+@keyframes wishlist-field-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 8px, 0);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+@keyframes wishlist-shake {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	25% {
+		transform: translateX(-4px);
+	}
+	75% {
+		transform: translateX(4px);
+	}
+}
+
+.wishlist-stack > * {
+	animation: wishlist-field-in 280ms var(--ease-out) both;
+}
+
+.wishlist-stack > *:nth-child(1) {
+	animation-delay: 0ms;
+}
+.wishlist-stack > *:nth-child(2) {
+	animation-delay: 40ms;
+}
+.wishlist-stack > *:nth-child(3) {
+	animation-delay: 80ms;
+}
+.wishlist-stack > *:nth-child(4) {
+	animation-delay: 120ms;
+}
+
+.wishlist-press {
+	transition: transform 160ms var(--ease-out);
+}
+
+.wishlist-press:active {
+	transform: scale(0.97);
+}
+
+.wishlist-invalid {
+	animation: wishlist-shake 280ms var(--ease-out);
+}
+
+.wishlist-stack input[type="date"] {
+	color-scheme: dark;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.wishlist-chip:not([aria-pressed="true"]):hover {
+		background-color: #141414;
+	}
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	.wishlist-dock {
+		background: #0f0f0f;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wishlist-stack > * {
+		animation: none;
+	}
+
+	.wishlist-invalid {
+		animation: none;
+	}
+
+	.wishlist-press,
+	.wishlist-press:active {
+		transition: none;
+		transform: none;
+	}
+}
+
+/* ==========================================================================
+   FULL-SCREEN ACCESS FLOW
+   ========================================================================== */
+
+.access-press {
+	cursor: pointer;
+	transition-timing-function: var(--ease-out);
+}
+
+.access-primary {
+	overflow: visible;
+}
+
+.access-primary:disabled {
+	cursor: wait;
+}
+
+.access-press:active {
+	transform: scale(0.97);
+}
+
+.access-logo-mark,
+.access-back-icon,
+.access-next-icon {
+	display: block;
+	transition: transform 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.access-logo:hover .access-logo-mark {
+		transform: translate3d(0, -1px, 0);
+	}
+
+	.access-back:hover .access-back-icon {
+		transform: translate3d(-3px, 0, 0);
+	}
+
+	.access-primary:hover .access-next-icon {
+		transform: translate3d(3px, 0, 0);
+	}
+
+	.access-country:hover {
+		border-bottom-color: rgba(255, 255, 255, 0.35);
+	}
+}
+
+@keyframes access-success-float {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0) rotate(-0.35deg);
+	}
+	50% {
+		transform: translate3d(0, -4px, 0) rotate(0.35deg);
+	}
+}
+
+@keyframes access-error-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.access-error-copy {
+	animation: access-error-in 160ms var(--ease-out);
+}
+
+.access-success-art {
+	transform-origin: 50% 72%;
+	animation: access-success-float 5.6s ease-in-out 1.4s infinite;
+}
+
+/* ==========================================================================
+   ROUTE TRANSITIONS  —  whole-page dissolve, no per-element reveals
+   ========================================================================== */
+
+.site-nav {
+	view-transition-name: site-nav;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.route-shell {
+		animation: route-dissolve 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	::view-transition-old(root) {
+		animation: vt-fade-out 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	::view-transition-new(root) {
+		animation: vt-fade-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	::view-transition-group(site-nav) {
+		animation-duration: 0.42s;
+		animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+	}
+}
+
+html:active-view-transition .route-shell {
+	animation: none;
+}
+
+@keyframes route-dissolve {
+	from {
+		opacity: 0.2;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes vt-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.route-shell {
+		animation: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.access-press,
+	.access-press:active {
+		transform: none;
+		transition-duration: 0ms;
+	}
+
+	.access-logo-mark,
+	.access-back-icon,
+	.access-next-icon {
+		transform: none;
+		transition-duration: 0ms;
+	}
+
+	.access-success-art {
+		animation: none;
+	}
+
+	.access-error-copy {
+		animation: none;
+	}
+}

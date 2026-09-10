@@ -1,0 +1,126 @@
+import { faqData } from "@/app/constant";
+import type { BlogPostSummary } from "@/lib/blogUtils";
+
+export const SITE_URL = "https://gigblade.com";
+const ORG_NAME = "GigBlade";
+const LOGO_URL = `${SITE_URL}/icon-192.png`;
+const SAME_AS: string[] = [];
+
+export function absoluteUrl(path: string) {
+	return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
+
+// Strip markdown artifacts so schema text is plain prose for crawlers/LLMs.
+function toPlainText(value: string) {
+	return value
+		.replace(/`/g, "")
+		.replace(/\s*\n+\s*/g, " ")
+		.trim();
+}
+
+export function organizationSchema() {
+	return {
+		"@context": "https://schema.org",
+		"@type": "Organization",
+		"@id": `${SITE_URL}/#organization`,
+		name: ORG_NAME,
+		url: SITE_URL,
+		logo: LOGO_URL,
+		description:
+			"Plataforma de presencia digital para DJs: página propia, dominio, hosting y formulario de booking, sin ocuparse de la infraestructura.",
+		sameAs: SAME_AS,
+	};
+}
+
+export function websiteSchema() {
+	return {
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"@id": `${SITE_URL}/#website`,
+		name: ORG_NAME,
+		alternateName: "GigBlade",
+		url: SITE_URL,
+		publisher: { "@id": `${SITE_URL}/#organization` },
+	};
+}
+
+export function softwareApplicationSchema() {
+	return {
+		"@context": "https://schema.org",
+		"@type": "SoftwareApplication",
+		name: ORG_NAME,
+		applicationCategory: "BusinessApplication",
+		operatingSystem: "Web",
+		url: SITE_URL,
+		description:
+			"Presencia digital para DJs. Página con dominio propio, plantillas para eventos y booking formal, todo incluido.",
+		offers: { "@type": "Offer", price: "65", priceCurrency: "USD" },
+		publisher: { "@id": `${SITE_URL}/#organization` },
+	};
+}
+
+export function faqPageSchema() {
+	return {
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: faqData.map((faq) => ({
+			"@type": "Question",
+			name: faq.question,
+			acceptedAnswer: { "@type": "Answer", text: toPlainText(faq.answer) },
+		})),
+	};
+}
+
+export function blogPostingSchema(post: BlogPostSummary) {
+	const postUrl = `${SITE_URL}/blog/${post.slug}`;
+	return {
+		"@context": "https://schema.org",
+		"@type": "BlogPosting",
+		"@id": `${postUrl}/#article`,
+		headline: post.title,
+		description: toPlainText(post.description),
+		url: postUrl,
+		mainEntityOfPage: postUrl,
+		...(post.image ? { image: absoluteUrl(post.image) } : {}),
+		...(post.date ? { datePublished: post.date, dateModified: post.date } : {}),
+		author: { "@type": "Organization", name: post.author },
+		publisher: { "@id": `${SITE_URL}/#organization` },
+	};
+}
+
+export function techArticleSchema(doc: {
+	slug: string;
+	title: string;
+	description: string;
+	date: string | null;
+	updated: string | null;
+	author: string;
+}) {
+	const url = `${SITE_URL}/alog/${doc.slug}`;
+	return {
+		"@context": "https://schema.org",
+		"@type": "TechArticle",
+		"@id": `${url}/#article`,
+		headline: doc.title,
+		description: toPlainText(doc.description),
+		url,
+		mainEntityOfPage: url,
+		...(doc.date ? { datePublished: doc.date } : {}),
+		...(doc.updated ? { dateModified: doc.updated } : {}),
+		author: { "@type": "Organization", name: doc.author },
+		publisher: { "@id": `${SITE_URL}/#organization` },
+	};
+}
+
+export function breadcrumbSchema(items: Array<{ name: string; path: string }>) {
+	return {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			item: absoluteUrl(item.path),
+		})),
+	};
+}
