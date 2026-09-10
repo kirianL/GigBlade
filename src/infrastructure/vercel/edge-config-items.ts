@@ -11,22 +11,22 @@ type EdgeConfigItem = {
 export async function patchEdgeConfigItems(items: EdgeConfigItem[]) {
   const env = getServerEnv();
 
-  if (!env.VERCEL_API_TOKEN || !env.EDGE_CONFIG_ID) {
-    throw new Error("Faltan VERCEL_API_TOKEN o EDGE_CONFIG_ID");
+  if (!env.PLATFORM_VERCEL_TOKEN || !env.EDGE_CONFIG_ID) {
+    throw new Error("Faltan PLATFORM_VERCEL_TOKEN o EDGE_CONFIG_ID");
   }
 
   const url = new URL(
     `https://api.vercel.com/v1/edge-config/${env.EDGE_CONFIG_ID}/items`,
   );
 
-  if (env.VERCEL_TEAM_ID) {
-    url.searchParams.set("teamId", env.VERCEL_TEAM_ID);
+  if (env.PLATFORM_VERCEL_TEAM_ID) {
+    url.searchParams.set("teamId", env.PLATFORM_VERCEL_TEAM_ID);
   }
 
   const response = await fetch(url, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${env.VERCEL_API_TOKEN}`,
+      Authorization: `Bearer ${env.PLATFORM_VERCEL_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ items }),

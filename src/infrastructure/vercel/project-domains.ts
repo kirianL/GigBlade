@@ -21,7 +21,7 @@ export class VercelProjectDomains implements ProjectDomains {
 function requireVercelConfig() {
   const env = getServerEnv();
 
-  if (!env.VERCEL_API_TOKEN || !env.VERCEL_PROJECT_ID) {
-    throw new Error("Faltan VERCEL_API_TOKEN o VERCEL_PROJECT_ID");
+  if (!env.PLATFORM_VERCEL_TOKEN || !env.PLATFORM_VERCEL_PROJECT_ID) {
+    throw new Error("Faltan PLATFORM_VERCEL_TOKEN o PLATFORM_VERCEL_PROJECT_ID");
   }
 }
