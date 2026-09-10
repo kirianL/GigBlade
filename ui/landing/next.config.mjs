@@ -39,7 +39,6 @@ const nextConfig = {
     root: monorepoRoot,
   },
   experimental: {
-    viewTransition: true,
     optimizePackageImports: ["motion", "gsap", "@gsap/react"],
     optimizeCss: isProd,
   },

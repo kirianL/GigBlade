@@ -34,9 +34,6 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
-  experimental: {
-    viewTransition: true,
-  },
   turbopack: {
     resolveAlias: {
       "@/domain": "./src/domain",
