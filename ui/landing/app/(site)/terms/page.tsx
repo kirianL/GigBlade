@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
 	title: "Terms of Service",
 	description:
-		"Autumn's Terms of Service covering use of our billing infrastructure, APIs, and SDKs.",
+		"Términos de GigBlade para el uso de la página de DJ, el dominio y el formulario de booking.",
 	alternates: { canonical: "/terms" },
 };
 
@@ -28,7 +28,7 @@ export default function TermsOfService() {
 					<div className="hidden w-1/8 border-r border-[#292929] md:block lg:w-1/6" />
 					<div className="flex-1 px-4 py-12 pb-32 font-sans text-[16px] leading-[1.6] font-light tracking-[-2%] text-white sm:px-8 md:py-16">
 						<p className="mb-10">
-							Autumn (Rebase, Inc.)
+							GigBlade
 							<br />
 							Effective Date: {TERMS_EFFECTIVE_DATE}
 						</p>

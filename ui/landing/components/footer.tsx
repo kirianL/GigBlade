@@ -161,6 +161,23 @@ export default function Footer() {
 										</span>
 									</span>
 								</AppLink>
+								<div className="w-[5px] h-[5px] bg-[#FFFFFF]" />
+								<AppLink
+									href="/acceso"
+									className="group/strip flex items-center text-[14px] tracking-[-2%] transition-colors duration-300"
+								>
+									<span className="relative">
+										<span className="text-[#FFFFFF99] group-hover/strip:text-[#ffffff] transition-colors duration-300 text-[12px] md:text-[14px]">
+											ACCESO
+										</span>
+										<span
+											className="absolute inset-y-0 left-0 w-full origin-left scale-x-0 group-hover/strip:scale-x-100 group-active/strip:scale-x-100 overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] bg-white text-black font-normal pointer-events-none flex items-center"
+											aria-hidden="true"
+										>
+											<span className="whitespace-nowrap">ACCESO</span>
+										</span>
+									</span>
+								</AppLink>
 							</div>
 						</div>
 

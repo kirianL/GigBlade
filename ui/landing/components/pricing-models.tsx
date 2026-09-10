@@ -125,13 +125,18 @@ export default function PricingModels() {
 							return (
 								<li
 									key={item.id}
-									onClick={() => setActiveTab(item)}
-									data-slot-hover-root
 									className={cn(
-										"flex cursor-pointer flex-col border-b border-[#292929] transition-colors last:border-b-0 lg:border-none",
+										"flex flex-col border-b border-[#292929] last:border-b-0 lg:border-none",
 										isActive && "bg-[#0f0f0f] lg:bg-transparent",
 									)}
 								>
+									<button
+										type="button"
+										onClick={() => setActiveTab(item)}
+										aria-pressed={isActive}
+										data-slot-hover-root
+										className="w-full bg-transparent text-left"
+									>
 									<div
 										className={cn(
 											"flex items-center gap-2 px-4 py-5 font-sans text-[20px] leading-none tracking-[-5%] lg:px-[14px] lg:py-2 lg:text-[20px] lg:leading-[20px]",
@@ -165,6 +170,7 @@ export default function PricingModels() {
 											}}
 										/>
 									</div>
+									</button>
 
 									<AnimatePresence>
 										{isActive && (

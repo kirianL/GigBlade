@@ -83,17 +83,17 @@ export default function NotFound() {
 						/>
 
 						<h1 className="mb-3 font-sans text-[48px] leading-[1.1] font-normal tracking-[-3%] text-white md:text-[64px]">
-							Page not found
+							Página no encontrada
 						</h1>
 
 						<p className="mb-8 text-center text-[15px] font-light tracking-[-1%] text-[#FFFFFF99] md:text-[18px]">
-							The page you are looking for doesn&apos;t exist or has been moved.
+							La página que buscás no existe o se movió.
 						</p>
 
 						<AppLink href="/">
 							<button className="group relative flex h-[48px] w-[200px] items-stretch justify-between border border-brand bg-brand transition-colors duration-300 hover:bg-brand-hover md:h-[54px] md:w-[210px]">
 								<span className="flex items-center pl-6 font-sans text-[14px] tracking-[-1%] text-white md:text-[15px]">
-									Back to home
+									Volver al inicio
 								</span>
 								<div className="m-1 flex w-[36px] shrink-0 items-center justify-center bg-white text-brand transition-colors duration-300 md:m-1.5 md:w-[40px]">
 									<IconArrowRightSmall className="h-4 w-4" />

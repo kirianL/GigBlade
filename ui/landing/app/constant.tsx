@@ -1216,7 +1216,7 @@ export const faqData = [
 		id: 3,
 		question: "¿Es seguro mi contenido y mis datos?",
 		answer:
-			"Sí. Corrés sobre el mismo motor que protege a todos los DJs: rate limiting, formularios protegidos y datos aislados por tenant.\n\nUn DJ solo no podría armar ese estándar por su cuenta a este costo. Vos no tenés que entender cómo está hecho.",
+			"Sí. Corrés sobre el mismo motor que protege a todos los DJs: formularios protegidos, límite de solicitudes abusivas y tus datos separados de los de otros artistas.\n\nUn DJ solo no podría armar ese estándar por su cuenta a este costo. Vos no tenés que entender cómo está hecho.",
 	},
 	{
 		id: 4,
@@ -1368,7 +1368,7 @@ export type CustomerStory = {
 export const customerStoriesData: CustomerStory[] = [
 	{
 		slug: "mintlify",
-		name: "Mintlify",
+		name: "Nox",
 		href: "/#temas",
 		linkLabel: "Ver temas para clubes",
 		logo: "/images/logos/mintlify_logo.svg.svg",
@@ -1393,7 +1393,7 @@ export const customerStoriesData: CustomerStory[] = [
 	},
 	{
 		slug: "firecrawl",
-		name: "Firecrawl",
+		name: "Marco",
 		href: "/wishlist",
 		linkLabel: "Ver el canal de booking",
 		logo: "/images/logos/Firecrawl.svg.svg",
@@ -1421,7 +1421,7 @@ export const customerStoriesData: CustomerStory[] = [
 	},
 	{
 		slug: "browser-use",
-		name: "Browser Use",
+		name: "Luna",
 		logo: "/images/logos/Browser use.svg",
 		iconLogo: "/images/logos/icons/browser-use.svg",
 		logoClassName: "scale-85",
@@ -1445,7 +1445,7 @@ export const customerStoriesData: CustomerStory[] = [
 	},
 	{
 		slug: "t3-chat",
-		name: "T3.chat",
+		name: "Residente",
 		href: "/pricing",
 		linkLabel: "Ver el plan todo incluido",
 		logo: "/images/logos/T3_svg.svg",

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
-import { scrollToHash } from "@/lib/smooth-scroll";
+import { scrollToHashWhenReady } from "@/lib/smooth-scroll";
 import Hero from "./hero";
 import LazySection from "./lazy-section";
 import SectionDivider from "./section-divider";
@@ -22,21 +22,10 @@ const ProductionScale = dynamic(() => import("./production-scale"));
 const FAQ = dynamic(() => import("./faq"));
 const Footer = dynamic(() => import("./footer"));
 
-function scrollToLocationHash() {
-	const hash = window.location.hash;
-	if (!hash) return;
-	scrollToHash(hash);
-}
-
 export default function HomeSections() {
 	useEffect(() => {
 		if (!window.location.hash) return;
-		const timers = [
-			setTimeout(scrollToLocationHash, 100),
-			setTimeout(scrollToLocationHash, 500),
-			setTimeout(scrollToLocationHash, 1200),
-		];
-		return () => timers.forEach(clearTimeout);
+		scrollToHashWhenReady(window.location.hash);
 	}, []);
 
 	return (

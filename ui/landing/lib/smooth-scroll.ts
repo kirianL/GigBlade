@@ -21,6 +21,25 @@ export function scrollPageToTop() {
 	window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+export function scrollToHashWhenReady(hash: string, timeoutMs = 4000) {
+	const id = hash.startsWith("#") ? hash : `#${hash}`;
+	if (document.querySelector(id)) {
+		scrollToHash(id);
+		return;
+	}
+
+	const started = Date.now();
+	const tick = () => {
+		if (document.querySelector(id)) {
+			scrollToHash(id);
+			return;
+		}
+		if (Date.now() - started > timeoutMs) return;
+		window.requestAnimationFrame(tick);
+	};
+	window.requestAnimationFrame(tick);
+}
+
 export function scrollToHash(hash: string, offset = -80) {
 	const id = hash.startsWith("#") ? hash : `#${hash}`;
 	const el = document.querySelector<HTMLElement>(id);

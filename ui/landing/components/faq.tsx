@@ -53,11 +53,13 @@ export default function FAQ() {
 						const isOpen = openId === faq.id;
 
 						return (
-							<div
+							<button
 								key={faq.id}
+								type="button"
 								onClick={() => toggleAccordion(faq.id)}
+								aria-expanded={isOpen}
 								className={cn(
-									"group relative flex w-full cursor-pointer flex-col justify-center border-b border-[#292929] transition-colors duration-300 last:border-b-0",
+									"group relative flex w-full cursor-pointer flex-col justify-center border-b border-[#292929] bg-transparent text-left transition-colors duration-300 last:border-b-0",
 									!isOpen && "hover:bg-[#080808]",
 								)}
 							>
@@ -71,7 +73,7 @@ export default function FAQ() {
 
 									<img
 										src="/images/pricing/FAQ/faqbg.svg"
-										alt="faq background"
+										alt=""
 										loading="lazy"
 										className="absolute right-0 top-0 h-[400px] w-full border-none object-contain object-top-right opacity-50 hue-rotate-[200deg] saturate-150 md:h-full md:object-cover md:object-right"
 									/>
@@ -80,7 +82,7 @@ export default function FAQ() {
 
 								<div className="relative z-10 px-4.5 md:px-4 lg:px-[20px] py-[30px]">
 									<div className="flex items-center justify-between gap-4">
-										<h3
+										<span
 											className={cn(
 												"text-base tracking-[-2%] transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:text-[18px]",
 												isOpen
@@ -89,7 +91,7 @@ export default function FAQ() {
 											)}
 										>
 											{faq.question}
-										</h3>
+										</span>
 										<div className="shrink-0 overflow-hidden">
 											<AnimatedPlusMinus
 												isOpen={isOpen}
@@ -133,7 +135,7 @@ export default function FAQ() {
 										</div>
 									</div>
 								</div>
-							</div>
+							</button>
 						);
 					})}
 

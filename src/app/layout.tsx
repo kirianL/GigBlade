@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../../ui/landing/app/globals.css";
 import "./globals.css";
 import RouteTransition from "@/components/route-transition";
+import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const url = "https://gigblade.com";
+const url = getSiteUrl();
 
 export const metadata: Metadata = {
   title: {

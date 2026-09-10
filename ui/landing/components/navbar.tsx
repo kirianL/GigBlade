@@ -22,7 +22,7 @@ import {
 	MenuGridIcon,
 } from "@/app/constant";
 import { getGsap } from "@/lib/lazyGsap";
-import { getLenis, scrollToHash } from "@/lib/smooth-scroll";
+import { getLenis, scrollToHash, scrollToHashWhenReady } from "@/lib/smooth-scroll";
 import SlotLabel from "./slot-label";
 import type {
 	PageStyle,
@@ -163,9 +163,16 @@ export default function Navbar({
 	const barRef = useRef<HTMLDivElement | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [introReady, setIntroReady] = useState(false);
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
 
 	useEffect(() => {
 		const id = requestAnimationFrame(() => setIntroReady(true));
+		setIsLoggedIn(
+			document.cookie
+				.split("; ")
+				.find((row) => row.startsWith("logged_in_hint="))
+				?.split("=")[1] === "1",
+		);
 		return () => cancelAnimationFrame(id);
 	}, []);
 
@@ -265,7 +272,7 @@ export default function Navbar({
 							className="relative"
 						>
 							<AppLink
-								href="/dashboard"
+								href={isLoggedIn ? "/dashboard" : "/acceso"}
 								data-slot-hover-root
 								className="relative inline-flex cursor-pointer items-center gap-2 overflow-hidden whitespace-nowrap bg-brand px-4 py-3.5 text-white transition-colors duration-300 hover:bg-brand-hover active:bg-brand-hover"
 								onMouseEnter={() => dashboardIconRef.current?.restart()}
@@ -328,12 +335,9 @@ export default function Navbar({
 												const hash = item.href.startsWith("/#")
 													? item.href.slice(1)
 													: item.href;
-												const el = document.querySelector(hash);
 												setMenuOpen(false);
-												if (el) {
-													e.preventDefault();
-													scrollToHash(hash);
-												}
+												e.preventDefault();
+												scrollToHashWhenReady(hash);
 											}
 										: () => setMenuOpen(false)
 								}

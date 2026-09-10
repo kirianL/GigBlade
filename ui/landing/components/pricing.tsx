@@ -49,7 +49,7 @@ const plans: Plan[] = [
 			{ label: "Mismo aislamiento por DJ" },
 		],
 		buttonText: "Hablemos",
-		href: "/#faq",
+		href: "/acceso",
 	},
 ];
 
