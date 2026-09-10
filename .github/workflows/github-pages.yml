@@ -1,12 +1,10 @@
-# Publish the static landing to GitHub Pages for device testing.
-# Repo Settings → Pages → Source: GitHub Actions
+# Optional Actions deploy. Disabled on push because the GitHub account
+# currently cannot run Actions (billing lock). Pages is served from /docs.
 # URL: https://kirianl.github.io/GigBlade/
 
 name: GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
