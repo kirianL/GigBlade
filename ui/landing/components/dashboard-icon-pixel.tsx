@@ -44,8 +44,8 @@ export const DashboardIconPixel = forwardRef<
 			});
 
 			gsap.set(pixels, {
-				opacity: 0.15,
-				scale: 0.8,
+				opacity: 1,
+				scale: 1,
 				transformOrigin: "left bottom",
 				fill: "currentColor",
 			});

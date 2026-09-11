@@ -11,13 +11,17 @@ import { cn } from "@/lib/utils";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: "swap",
+  display: "optional",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  display: "swap",
+  display: "optional",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const url = getSiteUrl();

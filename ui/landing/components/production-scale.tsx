@@ -3,7 +3,6 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Image from "next/image";
 import { useRef } from "react";
 import SlotLabel from "./slot-label";
 
@@ -131,13 +130,12 @@ export default function ProductionScale() {
 						>
 							<div className="flex flex-col gap-1 min-w-[95px] lg:min-w-auto shrink-0">
 								<div className="flex items-center gap-1.5 lg:gap-2">
-									<Image
+									<img
 										src={card.icon}
 										width={18}
 										height={18}
-										alt={card.label}
+										alt=""
 										className="h-[14px] w-[14px] lg:h-[18px] lg:w-[18px]"
-										sizes="18px"
 									/>
 									<span className="ps-metric text-xl lg:text-2xl font-medium tracking-[-5%] text-brand-ink">
 										<SlotLabel text={card.metric} playOnView />
@@ -153,13 +151,12 @@ export default function ProductionScale() {
 							</p>
 
 							{card.clipart && (
-								<Image
+								<img
 									src="/images/production/clipart.svg"
 									width={12}
 									height={12}
-									alt="clipart"
+									alt=""
 									className="absolute right-0 bottom-0 max-lg:h-[8px] max-lg:w-[8px]"
-									sizes="12px"
 								/>
 							)}
 						</div>

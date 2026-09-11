@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
 	getLenis,
 	scrollPageToTop,
@@ -14,24 +14,35 @@ export default function AppScroll() {
 	const pathname = usePathname();
 	const first = useRef(true);
 
-	useLayoutEffect(() => {
-		document.documentElement.toggleAttribute("data-home-intro", pathname === "/");
-	}, [pathname]);
-
 	useEffect(() => {
 		let stop: (() => void) | undefined;
 		let cancelled = false;
+		let idleId = 0;
 
-		startSmoothScroll().then((cleanup) => {
-			if (cancelled) {
-				cleanup();
-				return;
-			}
-			stop = cleanup;
-		});
+		const start = () => {
+			if (cancelled) return;
+			startSmoothScroll().then((cleanup) => {
+				if (cancelled) {
+					cleanup();
+					return;
+				}
+				stop = cleanup;
+			});
+		};
+
+		if (typeof window.requestIdleCallback === "function") {
+			idleId = window.requestIdleCallback(start, { timeout: 1800 });
+		} else {
+			idleId = window.setTimeout(start, 1) as unknown as number;
+		}
 
 		return () => {
 			cancelled = true;
+			if (typeof window.cancelIdleCallback === "function") {
+				window.cancelIdleCallback(idleId);
+			} else {
+				window.clearTimeout(idleId);
+			}
 			stop?.();
 		};
 	}, []);

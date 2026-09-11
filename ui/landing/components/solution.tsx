@@ -1,4 +1,4 @@
-import Image from "next/image";
+import type { ReactNode } from "react";
 
 const pageRows = [
 	{ label: "DOMINIO PROPIO", active: true },
@@ -8,11 +8,63 @@ const pageRows = [
 	{ label: "HOSTING Y SEGURIDAD", active: false },
 ];
 
+function Connector() {
+	return (
+		<div
+			className="h-8 w-px bg-brand-accent/45 lg:h-px lg:w-16 lg:bg-transparent lg:border-t lg:border-dashed lg:border-brand-accent/60"
+			aria-hidden="true"
+		/>
+	);
+}
+
+function Glyph({ children }: { children: ReactNode }) {
+	return (
+		<div className="relative h-40 w-40 shrink-0 border border-brand-accent bg-[#0F081F] md:h-[200px] md:w-[200px]">
+			<div
+				className="pointer-events-none absolute inset-[14px] border border-brand-accent/45"
+				aria-hidden="true"
+			/>
+			<div
+				className="pointer-events-none absolute inset-[14px] bg-[radial-gradient(circle_at_32%_22%,rgba(126,186,255,0.38),transparent_64%)]"
+				aria-hidden="true"
+			/>
+			<div className="relative z-10 flex h-full w-full items-center justify-center">
+				{children}
+			</div>
+		</div>
+	);
+}
+
+function Node({
+	label,
+	badge,
+	children,
+}: {
+	label: string;
+	badge?: string;
+	children: ReactNode;
+}) {
+	return (
+		<div className="flex flex-col items-center gap-3">
+			<p className="font-mono text-[10px] tracking-[0.18em] text-[#FFFFFF66]">
+				{label}
+			</p>
+			{children}
+			{badge ? (
+				<span className="border border-[#292929] bg-[#141414] px-3 py-1.5 font-mono text-[10px] tracking-[0.16em] text-[#FFFFFF99]">
+					{badge}
+				</span>
+			) : null}
+		</div>
+	);
+}
+
 export default function Solution() {
 	return (
-		<section className="relative w-full bg-[#000000] overflow-hidden pt-24">
+		<section className="relative w-full overflow-hidden bg-[#000000] pt-16 md:pt-24">
 			<div
-				className="absolute inset-0 z-0 pointer-events-none"
+				className="pointer-events-none absolute inset-0 z-0"
+				aria-hidden="true"
 				style={{
 					backgroundImage:
 						"linear-gradient(to right, rgba(128,128,128,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(128,128,128,0.07) 1px, transparent 1px)",
@@ -24,13 +76,13 @@ export default function Solution() {
 				}}
 			/>
 
-			<div className="relative z-10 max-w-[1400px] mx-auto px-4 flex flex-col items-center">
-				<div className="text-center mb-16 lg:mb-4 flex flex-col items-center">
-					<h2 className="text-[30px] leading-[30px] md:text-[40px] md:leading-[40px] font-normal tracking-tight mb-6">
+			<div className="relative z-10 mx-auto flex max-w-[1400px] flex-col items-center px-4">
+				<div className="mb-10 flex flex-col items-center text-center lg:mb-4">
+					<h2 className="mb-6 text-[30px] leading-[30px] font-normal tracking-tight md:text-[40px] md:leading-[40px]">
 						<span className="text-[#A3A3A3]">Tu página, </span>
 						<span className="text-white">en un solo motor</span>
 					</h2>
-					<p className="text-[#A3A3A3] text-[14px] md:text-[16px] sm:text-base max-w-2xl mx-auto font-light leading-[20px] tracking-[-2%]">
+					<p className="max-w-2xl text-[14px] leading-[20px] font-light tracking-[-2%] text-[#A3A3A3] md:text-[16px] sm:text-base">
 						Elegís plan y dominio, una plantilla del catálogo y tu contenido.
 						<br className="hidden sm:block" />
 						GigBlade administra el resto.{" "}
@@ -40,42 +92,22 @@ export default function Solution() {
 					</p>
 				</div>
 
-				<div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-[1fr_auto_1.15fr_auto_1fr] items-center gap-6 lg:gap-2 pb-20 pt-6">
-					<div className="flex flex-col items-center gap-3">
-						<p className="font-mono text-[10px] tracking-[0.18em] text-[#FFFFFF66]">
-							TU CONTENIDO
-						</p>
-						<div className="relative w-[160px] h-[160px] md:w-[200px] md:h-[200px]">
-							<Image
-								src="/images/solutions/app.svg"
-								alt=""
-								fill
-								className="object-contain"
-							/>
-							<span className="absolute left-1/2 top-1/2 flex h-[56%] w-[56%] -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-brand-ink font-sans text-[28px] md:text-[34px] tracking-[-4%] text-brand-glow">
+				<div
+					className="grid w-full max-w-[1100px] grid-cols-1 items-center justify-items-center gap-0 pb-16 pt-2 lg:grid-cols-[1fr_auto_1.15fr_auto_1fr] lg:gap-2 lg:pb-20 lg:pt-6"
+					aria-hidden="true"
+				>
+					<Node label="TU CONTENIDO" badge="MIX">
+						<Glyph>
+							<span className="font-sans text-[28px] tracking-[-4%] text-brand-glow md:text-[34px]">
 								SET
 							</span>
-						</div>
-						<span className="border border-[#292929] bg-[#141414] px-3 py-1.5 font-mono text-[10px] tracking-[0.16em] text-[#FFFFFF99]">
-							MIX
-						</span>
-					</div>
+						</Glyph>
+					</Node>
 
-					<div className="hidden lg:flex items-center justify-center">
-						<Image
-							src="/images/solutions/dashedline-app.svg"
-							alt=""
-							width={80}
-							height={14}
-							className="h-auto w-20"
-						/>
-					</div>
+					<Connector />
 
-					<div className="flex flex-col items-center gap-3 w-full">
-						<p className="font-mono text-[10px] tracking-[0.18em] text-[#FFFFFF66]">
-							TU PÁGINA
-						</p>
-						<div className="w-full max-w-[320px] border border-brand-accent bg-brand-ink overflow-hidden">
+					<Node label="TU PÁGINA">
+						<div className="w-full max-w-[320px] overflow-hidden border border-brand-accent bg-brand-ink">
 							<div className="flex items-center gap-2 border-b border-brand-accent px-4 py-3">
 								<span className="h-2 w-2 bg-brand-glow" />
 								<span className="font-mono text-[12px] tracking-[0.16em] text-white">
@@ -86,7 +118,7 @@ export default function Solution() {
 								{pageRows.map((row) => (
 									<li
 										key={row.label}
-										className={`border-b border-brand-ink last:border-b-0 px-4 py-3 font-mono text-[11px] tracking-[0.08em] ${
+										className={`border-b border-brand-ink px-4 py-3 font-mono text-[11px] tracking-[0.08em] last:border-b-0 ${
 											row.active
 												? "bg-brand-glow/15 text-white"
 												: "text-[#FFFFFF66]"
@@ -98,37 +130,17 @@ export default function Solution() {
 								))}
 							</ul>
 						</div>
-					</div>
+					</Node>
 
-					<div className="hidden lg:flex items-center justify-center">
-						<Image
-							src="/images/solutions/dashedline-stripe.svg"
-							alt=""
-							width={80}
-							height={14}
-							className="h-auto w-20"
-						/>
-					</div>
+					<Connector />
 
-					<div className="flex flex-col items-center gap-3">
-						<p className="font-mono text-[10px] tracking-[0.18em] text-[#FFFFFF66]">
-							LA PLATAFORMA
-						</p>
-						<div className="relative w-[160px] h-[160px] md:w-[200px] md:h-[200px]">
-							<Image
-								src="/images/solutions/stripe.svg"
-								alt=""
-								fill
-								className="object-contain"
-							/>
-							<span className="absolute left-1/2 top-1/2 flex h-[56%] w-[56%] -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-brand-ink font-sans text-[16px] md:text-[18px] tracking-[0.12em] text-brand-glow">
+					<Node label="LA PLATAFORMA" badge="LISTO">
+						<Glyph>
+							<span className="font-sans text-[16px] tracking-[0.12em] text-brand-glow md:text-[18px]">
 								HOST
 							</span>
-						</div>
-						<span className="border border-[#292929] bg-[#141414] px-3 py-1.5 font-mono text-[10px] tracking-[0.16em] text-[#FFFFFF99]">
-							LISTO
-						</span>
-					</div>
+						</Glyph>
+					</Node>
 				</div>
 			</div>
 		</section>

@@ -40,10 +40,16 @@ export default function SlotLabel({
 	textRef.current = text;
 	optionsRef.current = options;
 
-	useEffect(() => {
+	const ensure = () => {
 		const el = ref.current;
-		if (!el) return;
-		ctrl.current = slotText(el, textRef.current, optionsRef.current);
+		if (!el) return null;
+		if (!ctrl.current) {
+			ctrl.current = slotText(el, textRef.current, optionsRef.current);
+		}
+		return ctrl.current;
+	};
+
+	useEffect(() => {
 		return () => {
 			ctrl.current?.destroy();
 			ctrl.current = null;
@@ -51,7 +57,9 @@ export default function SlotLabel({
 	}, []);
 
 	useEffect(() => {
-		ctrl.current?.set(text, optionsRef.current);
+		if (!ctrl.current) return;
+		if (ctrl.current.value === text) return;
+		ctrl.current.set(text, optionsRef.current);
 	}, [text]);
 
 	useEffect(() => {
@@ -59,10 +67,18 @@ export default function SlotLabel({
 		const el = ref.current;
 		if (!el) return;
 
+		let primed = false;
 		const io = new IntersectionObserver(
 			([entry]) => {
+				if (!primed) {
+					primed = true;
+					if (entry.isIntersecting || entry.intersectionRatio > 0) {
+						io.disconnect();
+					}
+					return;
+				}
 				if (!entry.isIntersecting) return;
-				ctrl.current?.set(textRef.current, {
+				ensure()?.set(textRef.current, {
 					...optionsRef.current,
 					skipUnchanged: false,
 					direction: "down",
@@ -84,7 +100,7 @@ export default function SlotLabel({
 		const root = el.closest("[data-slot-hover-root]") ?? el;
 
 		const enter = () => {
-			ctrl.current?.set(textRef.current, {
+			ensure()?.set(textRef.current, {
 				skipUnchanged: false,
 				interrupt: true,
 				direction: "down",
@@ -114,5 +130,13 @@ export default function SlotLabel({
 		};
 	}, [hover, hoverTint]);
 
-	return <span ref={ref} className={`origin-left transform-gpu ${className ?? ""}`} />;
+	return (
+		<span
+			ref={ref}
+			className={`origin-left transform-gpu ${className ?? ""}`}
+			suppressHydrationWarning
+		>
+			{text}
+		</span>
+	);
 }

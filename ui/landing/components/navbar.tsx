@@ -81,8 +81,8 @@ const NavIconPixel = forwardRef<PixelHoverHandle, { Icon: PixelIconComponent }>(
 				});
 
 				gsap.set(pixels, {
-					opacity: 0.15,
-					scale: 0.8,
+					opacity: 1,
+					scale: 1,
 					transformOrigin: "left bottom",
 					fill: "currentColor",
 				});
@@ -162,18 +162,15 @@ export default function Navbar({
 	const dashboardIconRef = useRef<PixelHoverHandle | null>(null);
 	const barRef = useRef<HTMLDivElement | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
-	const [introReady, setIntroReady] = useState(false);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 
 	useEffect(() => {
-		const id = requestAnimationFrame(() => setIntroReady(true));
 		setIsLoggedIn(
 			document.cookie
 				.split("; ")
 				.find((row) => row.startsWith("logged_in_hint="))
 				?.split("=")[1] === "1",
 		);
-		return () => cancelAnimationFrame(id);
 	}, []);
 
 	useEffect(() => {
@@ -240,18 +237,14 @@ export default function Navbar({
 			>
 				<div className="pointer-events-none absolute top-0 bottom-0 left-4 md:left-(--page-pad) border-l border-[#292929]" />
 				<div className="pointer-events-none absolute top-0 bottom-0 right-4 md:right-(--page-pad) border-r border-[#292929]" />
-				<nav
-					className={cn(
-						"nav-root nav-intro flex h-14 items-center justify-between bg-[#0F0F0F] px-3 font-mono text-xs uppercase md:px-1",
-						introReady && "is-ready",
-					)}
-				>
+				<nav className="nav-root flex h-14 items-center justify-between bg-[#0F0F0F] px-3 font-mono text-xs uppercase md:px-1">
 					<AppLink href="/" className="shrink-0">
 						<Image
 							src="/images/navbar/autumnlogo.svg"
 							width={114}
 							height={28}
 							alt="GigBlade"
+							unoptimized
 							priority
 							className="nav-logo ml-1 block h-auto w-[90px] sm:w-[110px] lg:w-[114px]"
 							sizes="114px"

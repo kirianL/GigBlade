@@ -8,14 +8,14 @@ export default function ElasticRecoil({ children }: LayoutProps) {
 	const liftAmount = useMotionValue(0);
 
 	const [showFooter, setShowFooter] = useState(false);
-	const [isMobile, setIsMobile] = useState(false);
-	const isMobileRef = useRef(false);
+	const [isDesktop, setIsDesktop] = useState(false);
+	const isMobileRef = useRef(true);
 
 	useEffect(() => {
 		const check = () => {
-			const mobile = window.innerWidth < 768;
-			setIsMobile(mobile);
-			isMobileRef.current = mobile;
+			const desktop = window.innerWidth >= 768;
+			setIsDesktop(desktop);
+			isMobileRef.current = !desktop;
 		};
 		check();
 		window.addEventListener("resize", check);
@@ -32,9 +32,9 @@ export default function ElasticRecoil({ children }: LayoutProps) {
 	const mobileSpring = { stiffness: 700, damping: 55, mass: 0.28 };
 	const animatedLift = useSpring(
 		liftAmount,
-		isMobile ? mobileSpring : desktopSpring,
+		isDesktop ? desktopSpring : mobileSpring,
 	);
-	const cappedMax = isMobile ? -420 : -580;
+	const cappedMax = isDesktop ? -580 : -420;
 	const y = useTransform(animatedLift, [0, 400], [0, cappedMax]);
 
 	useEffect(() => {
@@ -149,9 +149,9 @@ export default function ElasticRecoil({ children }: LayoutProps) {
 
 	return (
 		<div className="relative w-full overflow-x-hidden">
-			{showFooter && !isMobile && <AnimatedFooterImage />}
+			{showFooter && isDesktop && <AnimatedFooterImage />}
 			<motion.div
-				style={isMobile ? undefined : { y }}
+				style={isDesktop ? { y } : undefined}
 				className="relative z-10 bg-black md:will-change-transform"
 			>
 				{children}

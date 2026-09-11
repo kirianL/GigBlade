@@ -3,24 +3,40 @@
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { scrollToHashWhenReady } from "@/lib/smooth-scroll";
+import CustomerStories from "./customer-stories";
 import Hero from "./hero";
 import LazySection from "./lazy-section";
+import Problem from "./problem";
 import SectionDivider from "./section-divider";
+import Solution from "./solution";
 
-// All below-fold sections are code-split into separate lazy chunks so the
-// initial JS bundle only contains the hero. Framer-motion, GSAP ScrollTrigger,
-// and lottie-web are pulled into these chunks rather than the main bundle.
-// LazySection gates each component behind an IntersectionObserver so chunks
-// and their heavy assets (Lottie JSON, ScrollTrigger) only download as the
-// user scrolls toward them rather than all at once on page load.
-const CustomerStories = dynamic(() => import("./customer-stories"));
-const Problem = dynamic(() => import("./problem"));
-const Solution = dynamic(() => import("./solution"));
-const PricingModels = dynamic(() => import("./pricing-models"));
-const Features = dynamic(() => import("./features"));
-const ProductionScale = dynamic(() => import("./production-scale"));
-const FAQ = dynamic(() => import("./faq"));
-const Footer = dynamic(() => import("./footer"));
+function SectionReserve({ height }: { height: number }) {
+	return (
+		<div
+			className="bg-black"
+			style={{ minHeight: height }}
+			aria-hidden="true"
+		/>
+	);
+}
+
+// Near-fold sections ship with the hero so mobile HTML is complete on first
+// paint. Heavier below-fold JS (GSAP, motion, videos) stays code-split.
+const PricingModels = dynamic(() => import("./pricing-models"), {
+	loading: () => <SectionReserve height={520} />,
+});
+const Features = dynamic(() => import("./features"), {
+	loading: () => <SectionReserve height={720} />,
+});
+const ProductionScale = dynamic(() => import("./production-scale"), {
+	loading: () => <SectionReserve height={480} />,
+});
+const FAQ = dynamic(() => import("./faq"), {
+	loading: () => <SectionReserve height={420} />,
+});
+const Footer = dynamic(() => import("./footer"), {
+	loading: () => <SectionReserve height={600} />,
+});
 
 export default function HomeSections() {
 	useEffect(() => {
@@ -32,35 +48,35 @@ export default function HomeSections() {
 		<>
 			<Hero />
 
-			<LazySection eager>
+			<LazySection>
 				<SectionDivider title="EJEMPLOS" />
 				<CustomerStories />
 			</LazySection>
-			<LazySection order={1}>
+			<LazySection>
 				<SectionDivider title="EL PROBLEMA" />
 				<Problem />
 			</LazySection>
-			<LazySection order={2}>
+			<LazySection>
 				<SectionDivider title="CÓMO FUNCIONA" />
 				<Solution />
 			</LazySection>
-			<LazySection order={3}>
+			<LazySection>
 				<SectionDivider title="TEMAS Y PLAN" />
 				<PricingModels />
 			</LazySection>
-			<LazySection order={4}>
+			<LazySection>
 				<SectionDivider title="QUÉ INCLUYE" />
 				<Features />
 			</LazySection>
-			<LazySection order={5}>
+			<LazySection>
 				<SectionDivider title="TODO INCLUIDO" />
 				<ProductionScale />
 			</LazySection>
-			<LazySection order={6}>
+			<LazySection>
 				<SectionDivider title="FAQ" />
 				<FAQ />
 			</LazySection>
-			<LazySection order={7} reserve={600}>
+			<LazySection>
 				<Footer />
 			</LazySection>
 		</>

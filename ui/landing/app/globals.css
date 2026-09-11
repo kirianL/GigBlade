@@ -466,38 +466,12 @@ body {
 	text-decoration-color: var(--color-brand-soft);
 }
 
-/* ==========================================================================
-   PAGE ENTER  —  reading order: copy, then media/CTAs (CSS <lg, GSAP lg+)
-   ========================================================================== */
-
 :root {
 	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-.hero-root .hero-copy,
-.hero-root .hero-visual,
-.hero-root .hero-cta {
-	opacity: 1;
-}
-
-@media (min-width: 1024px) {
-	.hero-root .hero-copy,
-	.hero-root .hero-visual,
-	.hero-root .hero-cta {
-		opacity: 0;
-	}
-}
-
-[data-home-intro] .nav-intro {
-	opacity: 0;
-}
-
-[data-home-intro] .nav-intro.is-ready {
-	opacity: 1;
-	transition: opacity 0.4s var(--ease-out);
-}
-
-@keyframes section-in {
+@keyframes hero-enter-move {
 	from {
 		opacity: 0;
 		transform: translate3d(0, 10px, 0);
@@ -508,45 +482,44 @@ body {
 	}
 }
 
-.section-enter {
-	animation: section-in 0.45s var(--ease-out) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.section-enter {
-		animation: none;
-	}
-}
-
-@keyframes page-enter {
+@keyframes hero-enter-soft {
 	from {
 		opacity: 0;
-		transform: translate3d(0, 12px, 0);
+		transform: translate3d(0, 10px, 0);
+		filter: blur(5px);
 	}
 	to {
 		opacity: 1;
 		transform: translate3d(0, 0, 0);
+		filter: blur(0);
 	}
 }
 
-@media (max-width: 1023px) {
-	.hero-root.is-ready .hero-copy,
-	.hero-root.is-ready .hero-visual,
-	.hero-root.is-ready .hero-cta {
-		animation: page-enter 0.62s var(--ease-out) both;
-		animation-delay: calc(var(--enter, 0) * 80ms);
+@keyframes hero-enter-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.hero-enter {
+		animation: hero-enter-move 0.56s var(--ease-out) both;
+		animation-delay: calc(var(--enter, 0) * 60ms);
+	}
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+	.hero-enter {
+		animation-name: hero-enter-soft;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.hero-root .hero-copy,
-	.hero-root .hero-visual,
-	.hero-root .hero-cta,
-	[data-home-intro] .nav-intro {
-		opacity: 1;
-		transform: none;
-		animation: none;
-		transition: none;
+	.hero-enter {
+		animation: hero-enter-fade 0.2s ease both;
 	}
 }
 
@@ -724,10 +697,6 @@ body {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-	.route-shell {
-		animation: route-dissolve 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-	}
-
 	::view-transition-old(root) {
 		animation: vt-fade-out 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 	}
@@ -742,19 +711,6 @@ body {
 	}
 }
 
-html:active-view-transition .route-shell {
-	animation: none;
-}
-
-@keyframes route-dissolve {
-	from {
-		opacity: 0.2;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
 @keyframes vt-fade-out {
 	to {
 		opacity: 0;
@@ -764,12 +720,6 @@ html:active-view-transition .route-shell {
 @keyframes vt-fade-in {
 	from {
 		opacity: 0;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.route-shell {
-		animation: none;
 	}
 }
 

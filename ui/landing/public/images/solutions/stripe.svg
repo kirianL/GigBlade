@@ -13,17 +13,9 @@
 <path fill-rule="evenodd" clip-rule="evenodd" d="M92.0511 93.1818L91.6866 91.5397H86.767V110.956H92.461V97.7974C93.8048 96.0887 96.0825 96.3994 96.7885 96.6435V91.5397C96.0597 91.2734 93.3949 90.7853 92.0511 93.1818Z" fill="#7EBAFF"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M80.663 86.7245L75.1056 87.8783L75.0828 105.653C75.0828 108.937 77.611 111.356 80.9818 111.356C82.8495 111.356 84.2161 111.023 84.9677 110.623V106.119C84.2388 106.407 80.6402 107.428 80.6402 104.144V96.2662H84.9677V91.5397H80.6402L80.663 86.7245Z" fill="#7EBAFF"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M65.2663 97.176C65.2663 96.3106 65.9951 95.9778 67.2023 95.9778C68.9332 95.9778 71.1198 96.4881 72.8507 97.3979V92.1832C70.9603 91.451 69.0927 91.1625 67.2023 91.1625C62.5787 91.1625 59.5039 93.5147 59.5039 97.4423C59.5039 103.567 68.1589 102.59 68.1589 105.231C68.1589 106.252 67.2478 106.585 65.9723 106.585C64.0819 106.585 61.6676 105.83 59.7544 104.809V110.091C61.8726 110.978 64.0136 111.356 65.9723 111.356C70.7098 111.356 73.9668 109.07 73.9668 105.098C73.944 98.4853 65.2663 99.6613 65.2663 97.176Z" fill="#7EBAFF"/>
-<g filter="url(#filter0_f_4213_20568)" style="mix-blend-mode:plus-lighter">
-<circle cx="79.9915" cy="58.0962" r="72.2571" fill="#7EBAFF"/>
-</g>
 </g>
 <rect x="35.7" y="35.7" width="129.6" height="129.6" stroke="#7EBAFF" stroke-width="1.6"/>
 <defs>
-<filter id="filter0_f_4213_20568" x="-207.266" y="-229.161" width="574.514" height="574.514" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
-<feGaussianBlur stdDeviation="107.5" result="effect1_foregroundBlur_4213_20568"/>
-</filter>
 <clipPath id="clip0_4213_20568">
 <rect x="36.5" y="36.5" width="128" height="128" fill="white"/>
 </clipPath>
