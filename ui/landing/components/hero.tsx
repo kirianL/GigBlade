@@ -6,6 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { CTALines, IconCTADocs, IconCTAStart } from "@/app/constant";
 import { getGsap } from "@/lib/lazyGsap";
 import SlotLabel from "./slot-label";
+import { useFineHover } from "@/lib/use-fine-hover";
+import { AuroraBackground } from "@/components/background-gradient/aurora-background";
+import { AuroraFrame } from "@/components/background-gradient/aurora-frame";
 
 const getLoggedInHintCookie = () => {
 	if (typeof window === "undefined") return null;
@@ -20,9 +23,8 @@ const getLoggedInHintCookie = () => {
 export default function Hero() {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	// Gate the xl-only hero video behind a viewport check so mobile never
-	// downloads the looping webm that `hidden xl:block` would still fetch.
 	const [isXl, setIsXl] = useState(false);
+	const canHover = useFineHover();
 
 	// Read the hint cookie after mount to avoid SSR/CSR hydration mismatch.
 	useEffect(() => {
@@ -147,26 +149,17 @@ export default function Hero() {
 						</div>
 					</div>
 					{/*
-					  Keep the wrapper itself in the SSR HTML with `hidden xl:block`
-					  so desktop gets the correct half-width hero layout from the
-					  first paint. The video is client-gated on `isXl` so mobile
-					  never downloads it.
+					  Aurora background visual element (replaces legacy webm video).
 					*/}
 					<div
-						className="hero-visual relative w-[50vw] max-w-[720px] min-h-[525px] p-16 py-0 mx-auto hidden xl:block"
+						className="hero-visual pointer-events-none relative hidden min-h-[525px] w-[50vw] max-w-[720px] overflow-hidden border-l border-[#292929] xl:pointer-events-auto xl:block"
 						style={{ ["--enter" as string]: 1 }}
 					>
 						{isXl && (
-							<div className="absolute inset-0 z-0 pointer-events-none">
-								<video
-									src="/images/pricing-models/pricingbg.webm"
-									autoPlay
-									loop
-									muted
-									playsInline
-									className="absolute inset-0 w-full h-full object-cover mix-blend-screen opacity-100"
-								/>
-							</div>
+							<>
+								<AuroraBackground className="absolute inset-0 h-full w-full" />
+								<AuroraFrame />
+							</>
 						)}
 					</div>
 				</div>
@@ -182,12 +175,10 @@ export default function Hero() {
 						>
 							<motion.div
 								initial="initial"
-								whileHover="hover"
-								whileTap="hover"
+								whileHover={canHover ? "hover" : undefined}
 								className="relative"
 							>
-								{/* Adjusted px-3 for mobile, md:px-4 for desktop */}
-								<div className="relative overflow-hidden flex items-center gap-1.5 md:gap-2.5 cursor-pointer justify-between py-2 px-3 md:px-4 md:py-3.5 md:w-50 font-sans bg-brand hover:bg-brand-hover transition-colors duration-300" data-slot-hover-root>
+								<div className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden bg-brand px-3 py-2 font-sans transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-brand-hover active:bg-brand-hover" data-slot-hover-root>
 									<CTALines />
 									<SlotLabel
 										text={isLoggedIn ? "Panel" : "Creá tu página"}
@@ -211,11 +202,10 @@ export default function Hero() {
 						<AppLink href="/#ejemplos">
 							<motion.div
 								initial="initial"
-								whileHover="hover"
-								whileTap="hover"
+								whileHover={canHover ? "hover" : undefined}
 								className="relative"
 							>
-								<div className="relative overflow-hidden flex items-center gap-1.5 md:gap-2.5 border-r border-[#292929] text-white cursor-pointer justify-between py-2 px-3 md:px-4 md:py-3.5 md:w-50 font-sans bg-[#0F0F0F] hover:bg-[#FFFFFF1F] transition-colors duration-300" data-slot-hover-root>
+								<div className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden border-r border-[#292929] bg-[#0F0F0F] px-3 py-2 font-sans text-white transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-[#FFFFFF1F] active:bg-[#FFFFFF1F]" data-slot-hover-root>
 									<CTALines />
 									<SlotLabel
 										text="Ver ejemplos"

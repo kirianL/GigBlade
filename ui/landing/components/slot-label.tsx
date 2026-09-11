@@ -79,6 +79,8 @@ export default function SlotLabel({
 		if (!hover) return;
 		const el = ref.current;
 		if (!el) return;
+
+		const media = window.matchMedia("(hover: hover) and (pointer: fine)");
 		const root = el.closest("[data-slot-hover-root]") ?? el;
 
 		const enter = () => {
@@ -90,9 +92,25 @@ export default function SlotLabel({
 			});
 		};
 
-		root.addEventListener("mouseenter", enter);
-		return () => {
+		const bind = () => {
+			if (!media.matches) return;
+			root.addEventListener("mouseenter", enter);
+		};
+
+		const unbind = () => {
 			root.removeEventListener("mouseenter", enter);
+		};
+
+		const onChange = () => {
+			unbind();
+			bind();
+		};
+
+		bind();
+		media.addEventListener("change", onChange);
+		return () => {
+			unbind();
+			media.removeEventListener("change", onChange);
 		};
 	}, [hover, hoverTint]);
 

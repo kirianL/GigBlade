@@ -240,6 +240,68 @@ body {
 	--font-weight-medium: var(--font-weight-medium);
 	--font-weight-semibold: var(--font-weight-semibold);
 	--font-weight-bold: var(--font-weight-bold);
+
+	/* Animations */
+	--animate-aurora: aurora 60s linear infinite;
+	--animate-aurora-fast: aurora 20s linear infinite;
+
+	@keyframes aurora {
+		from {
+			background-position:
+				50% 50%,
+				50% 50%;
+		}
+		to {
+			background-position:
+				350% 50%,
+				350% 50%;
+		}
+	}
+
+	@keyframes aurora-blob-1 {
+		0%, 100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		33% {
+			transform: translate3d(30px, -50px, 0) scale(1.15);
+		}
+		66% {
+			transform: translate3d(-20px, 20px, 0) scale(0.9);
+		}
+	}
+
+	@keyframes aurora-blob-2 {
+		0%, 100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		33% {
+			transform: translate3d(-35px, 40px, 0) scale(1.1);
+		}
+		66% {
+			transform: translate3d(25px, -30px, 0) scale(0.95);
+		}
+	}
+
+	@keyframes aurora-blob-3 {
+		0%, 100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		33% {
+			transform: translate3d(40px, 30px, 0) scale(0.9);
+		}
+		66% {
+			transform: translate3d(-30px, -40px, 0) scale(1.2);
+		}
+	}
+
+	@keyframes aurora-blob-4 {
+		0%, 100% {
+			transform: translate3d(0, 0, 0) scale(1);
+		}
+		50% {
+			transform: translate3d(-25px, 35px, 0) scale(1.12);
+		}
+	}
 }
 
 /* ==========================================================================
@@ -251,6 +313,34 @@ body {
 	color: var(--foreground);
 	font-family: var(--font-geist-sans);
 	overscroll-behavior-y: none;
+}
+
+/* Hero visual: hover motion only on desktop pointers, never on touch. */
+.aurora-blobs,
+.aurora-frame-lines {
+	transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.hero-visual:hover .aurora-blobs {
+		transform: scale(1.07) translate3d(-16px, -10px, 0);
+	}
+
+	.hero-visual:hover .aurora-frame-lines {
+		transform: translate3d(-14px, 0, 0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.aurora-blobs,
+	.aurora-frame-lines {
+		transition: none;
+	}
+
+	.hero-visual:hover .aurora-blobs,
+	.hero-visual:hover .aurora-frame-lines {
+		transform: none;
+	}
 }
 
 .grid-overlay {
