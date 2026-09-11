@@ -536,9 +536,11 @@ body {
 	transform: scale(0.97);
 }
 
-.home-section {
-	content-visibility: auto;
-	contain-intrinsic-size: auto 520px;
+@media (min-width: 1024px) {
+	.home-section {
+		content-visibility: auto;
+		contain-intrinsic-size: auto 520px;
+	}
 }
 
 /* ==========================================================================

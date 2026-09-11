@@ -1,16 +1,12 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
-import SlotLabel from "./slot-label";
+import dynamic from "next/dynamic";
+import { useMediaQuery } from "@/lib/use-media-query";
 
-// ScrollTrigger touches `window` on import, so defer plugin registration to
-// the client. Doing this at module scope breaks SSR.
-if (typeof window !== "undefined") {
-	gsap.registerPlugin(ScrollTrigger);
-}
+const ProductionScaleMotion = dynamic(
+	() => import("./production-scale-motion"),
+	{ ssr: false },
+);
 
 const cards = [
 	{
@@ -51,118 +47,82 @@ const cards = [
 	},
 ];
 
-export default function ProductionScale() {
-	const containerRef = useRef<HTMLDivElement | null>(null);
-
-	useGSAP(
-		() => {
-			// Skip the entrance animation on non-desktop viewports, or when
-			// hydration landed well after first paint. The cards are server-
-			// rendered visible; hiding them via `gsap.set({ opacity: 0 })`
-			// after the user may have already scrolled to/past the section
-			// would cause a visible flash.
-			if (window.matchMedia("(max-width: 1023px)").matches) {
-				return;
-			}
-
-			const isMobile = window.innerWidth < 768;
-			const cardY = isMobile ? 16 : 30;
-
-			gsap.set(".ps-card", { opacity: 0, y: cardY, scale: 0.985, force3D: true });
-
-			const tl = gsap.timeline({
-				scrollTrigger: {
-					trigger: ".ps-section",
-					start: "top 75%",
-					once: true,
-				},
-				defaults: { overwrite: "auto", force3D: true },
-			});
-
-			const cardEls = gsap.utils.toArray<HTMLElement>(".ps-card");
-			cardEls.forEach((card, i) => {
-				tl.to(
-					card,
-					{
-						opacity: 1,
-						y: 0,
-						scale: 1,
-						duration: 0.78,
-						ease: "expo.out",
-					},
-					0.22 + i * 0.1,
-				);
-			});
-		},
-		{ scope: containerRef },
-	);
-
+function ProductionCards() {
 	return (
-		<div ref={containerRef} className="overflow-hidden">
-			<section className="ps-section flex flex-col lg:flex-row items-start justify-between py-12 lg:py-16 gap-12 lg:gap-0 bg-[#0F0F0F]">
-				<div className="flex px-4 xl:pl-22.5 lg:pr-0 flex-col my-auto gap-4 lg:gap-6 pt-2 w-full lg:w-auto">
-					<div className="leading-none lg:leading-10">
-						<p className="text-[#FFFFFF99] tracking-[-4%] text-[30px] lg:text-[40px] font-normal">
-							Estás en
-						</p>
-						<h2 className="text-white tracking-[-4%] text-[30px] lg:text-[40px] font-normal mt-1 lg:mt-0">
-							buenas manos
-						</h2>
-					</div>
-					<p className="text-[#FFFFFF99] font-light text-[16px] lg:text-sm lg:w-sm leading-[20px] lg:leading-5">
-						Un motor compartido, el mismo estándar de seguridad para cada DJ.{" "}
-						<span className="text-white">
-							Vos te ocupás de tu set
-							<br className="hidden lg:block" /> y de tu imagen. Lo técnico
-							queda de este lado.
-						</span>
+		<section className="ps-section flex flex-col items-start justify-between gap-12 bg-[#0F0F0F] py-12 lg:flex-row lg:gap-0 lg:py-16">
+			<div className="my-auto flex w-full flex-col gap-4 px-4 pt-2 lg:w-auto lg:gap-6 xl:pl-22.5 lg:pr-0">
+				<div className="leading-none lg:leading-10">
+					<p className="text-[30px] font-normal tracking-[-4%] text-[#FFFFFF99] lg:text-[40px]">
+						Estás en
 					</p>
+					<h2 className="mt-1 text-[30px] font-normal tracking-[-4%] text-white lg:mt-0 lg:text-[40px]">
+						buenas manos
+					</h2>
 				</div>
+				<p className="text-[16px] leading-[20px] font-light text-[#FFFFFF99] lg:w-sm lg:text-sm lg:leading-5">
+					Un motor compartido, el mismo estándar de seguridad para cada DJ.{" "}
+					<span className="text-white">
+						Vos te ocupás de tu set
+						<br className="hidden lg:block" /> y de tu imagen. Lo técnico queda
+						de este lado.
+					</span>
+				</p>
+			</div>
 
-				<div className="flex flex-col items-end gap-3 lg:gap-4 w-full pl-6 lg:pl-0 lg:w-[50%] [--card-step:24px] lg:[--card-step:52px]">
-					{cards.map((card, i) => (
-						<div
-							key={card.metric}
-							className={`ps-card relative flex items-center justify-between pl-4 pr-3 py-4 lg:pl-6 lg:pr-10 lg:py-3.5 gap-2 lg:gap-6 ${card.tint}`}
-							style={{
-								width: `calc(100% - (var(--card-step) * ${i}))`,
-							}}
-						>
-							<div className="flex flex-col gap-1 min-w-[95px] lg:min-w-auto shrink-0">
-								<div className="flex items-center gap-1.5 lg:gap-2">
-									<img
-										src={card.icon}
-										width={18}
-										height={18}
-										alt=""
-										className="h-[14px] w-[14px] lg:h-[18px] lg:w-[18px]"
-									/>
-									<span className="ps-metric text-xl lg:text-2xl font-medium tracking-[-5%] text-brand-ink">
-										<SlotLabel text={card.metric} playOnView />
-									</span>
-								</div>
-								<span className="text-[11px] lg:text-[14px] leading-[1] lg:leading-4.5 tracking-[-2%] font-normal text-brand-ink/60">
-									{card.label}
+			<div className="flex w-full flex-col items-end gap-3 pl-6 lg:w-[50%] lg:gap-4 lg:pl-0 [--card-step:24px] lg:[--card-step:52px]">
+				{cards.map((card, i) => (
+					<div
+						key={card.metric}
+						className={`ps-card relative flex items-center justify-between gap-2 py-4 pr-3 pl-4 lg:gap-6 lg:py-3.5 lg:pr-10 lg:pl-6 ${card.tint}`}
+						style={{
+							width: `calc(100% - (var(--card-step) * ${i}))`,
+						}}
+					>
+						<div className="flex min-w-[95px] shrink-0 flex-col gap-1 lg:min-w-auto">
+							<div className="flex items-center gap-1.5 lg:gap-2">
+								<img
+									src={card.icon}
+									width={18}
+									height={18}
+									alt=""
+									className="h-[14px] w-[14px] lg:h-[18px] lg:w-[18px]"
+								/>
+								<span className="ps-metric text-xl font-medium tracking-[-5%] text-brand-ink lg:text-2xl">
+									{card.metric}
 								</span>
 							</div>
-
-							<p className="text-[10.5px] lg:text-[14px] text-brand-ink/80 font-normal leading-[1.3] lg:leading-4.5 tracking-[0] lg:tracking-[-2%] flex-1 lg:flex-none lg:w-66 lg:shrink-0 text-left">
-								{card.description}
-							</p>
-
-							{card.clipart && (
-								<img
-									src="/images/production/clipart.svg"
-									width={12}
-									height={12}
-									alt=""
-									className="absolute right-0 bottom-0 max-lg:h-[8px] max-lg:w-[8px]"
-								/>
-							)}
+							<span className="text-[11px] leading-[1] font-normal tracking-[-2%] text-brand-ink/60 lg:text-[14px] lg:leading-4.5">
+								{card.label}
+							</span>
 						</div>
-					))}
-				</div>
-			</section>
-		</div>
+
+						<p className="flex-1 text-left text-[10.5px] leading-[1.3] font-normal tracking-[0] text-brand-ink/80 lg:w-66 lg:flex-none lg:shrink-0 lg:text-[14px] lg:leading-4.5 lg:tracking-[-2%]">
+							{card.description}
+						</p>
+
+						{card.clipart && (
+							<img
+								src="/images/production/clipart.svg"
+								width={12}
+								height={12}
+								alt=""
+								className="absolute right-0 bottom-0 max-lg:h-[8px] max-lg:w-[8px]"
+							/>
+						)}
+					</div>
+				))}
+			</div>
+		</section>
 	);
+}
+
+export default function ProductionScale() {
+	const isLg = useMediaQuery("(min-width: 1024px)");
+	const cardsView = <ProductionCards />;
+
+	if (isLg) {
+		return <ProductionScaleMotion>{cardsView}</ProductionScaleMotion>;
+	}
+
+	return <div className="overflow-hidden">{cardsView}</div>;
 }

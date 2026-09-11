@@ -1,64 +1,32 @@
-"use client";
-
-import dynamic from "next/dynamic";
-import { useEffect } from "react";
-import { scrollToHashWhenReady } from "@/lib/smooth-scroll";
-import LazySection from "./lazy-section";
+import FAQ from "./faq";
+import Features from "./features";
+import Footer from "./footer";
+import PricingModels from "./pricing-models";
+import ProductionScale from "./production-scale";
 import SectionDivider from "./section-divider";
 
-function SectionReserve({ height }: { height: number }) {
-	return (
-		<div
-			className="bg-black"
-			style={{ minHeight: height }}
-			aria-hidden="true"
-		/>
-	);
-}
-
-const PricingModels = dynamic(() => import("./pricing-models"), {
-	loading: () => <SectionReserve height={520} />,
-});
-const Features = dynamic(() => import("./features"), {
-	loading: () => <SectionReserve height={720} />,
-});
-const ProductionScale = dynamic(() => import("./production-scale"), {
-	loading: () => <SectionReserve height={480} />,
-});
-const FAQ = dynamic(() => import("./faq"), {
-	loading: () => <SectionReserve height={420} />,
-});
-const Footer = dynamic(() => import("./footer"), {
-	loading: () => <SectionReserve height={600} />,
-});
-
 export default function HomeBelowFold() {
-	useEffect(() => {
-		if (!window.location.hash) return;
-		scrollToHashWhenReady(window.location.hash);
-	}, []);
-
 	return (
 		<>
-			<LazySection reserve={560} hash="temas">
+			<div className="home-section">
 				<SectionDivider title="TEMAS Y PLAN" />
 				<PricingModels />
-			</LazySection>
-			<LazySection reserve={760}>
+			</div>
+			<div className="home-section">
 				<SectionDivider title="QUÉ INCLUYE" />
 				<Features />
-			</LazySection>
-			<LazySection reserve={520}>
+			</div>
+			<div className="home-section">
 				<SectionDivider title="TODO INCLUIDO" />
 				<ProductionScale />
-			</LazySection>
-			<LazySection reserve={460} hash="faq">
+			</div>
+			<div className="home-section">
 				<SectionDivider title="FAQ" />
 				<FAQ />
-			</LazySection>
-			<LazySection reserve={640}>
+			</div>
+			<div className="home-section">
 				<Footer />
-			</LazySection>
+			</div>
 		</>
 	);
 }
