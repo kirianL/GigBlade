@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { MobileCarousel } from "./mobile-carousel";
 import { StoryHeading } from "./story-heading";
 
@@ -13,6 +14,8 @@ const DesktopAccordion = dynamic(
 );
 
 export default function CustomerStories() {
+	const isLg = useMediaQuery("(min-width: 1024px)");
+
 	return (
 		<section
 			id="ejemplos"
@@ -23,7 +26,7 @@ export default function CustomerStories() {
 				<MobileCarousel />
 			</div>
 			<div className="hidden min-h-[420px] lg:block">
-				<DesktopAccordion />
+				{isLg && <DesktopAccordion />}
 			</div>
 		</section>
 	);

@@ -1,20 +1,64 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type LazySectionProps = {
 	children: ReactNode;
-	/** Kept so existing call sites type-check; sections now render in the HTML. */
 	eager?: boolean;
 	reserve?: number;
 	order?: number;
+	hash?: string;
 };
 
-/**
- * Below-the-fold wrapper. Content stays in the SSR HTML so mobile never sees
- * an empty black hole while a chunk or timeout catches up. JS for each
- * section is still code-split via `next/dynamic` in home-sections.
- */
-export default function LazySection({ children }: LazySectionProps) {
-	return <div className="home-section">{children}</div>;
+export default function LazySection({
+	children,
+	eager = false,
+	reserve = 420,
+	hash,
+}: LazySectionProps) {
+	const ref = useRef<HTMLDivElement>(null);
+	const [mounted, setMounted] = useState(eager);
+
+	useEffect(() => {
+		if (mounted) return;
+
+		if (hash) {
+			const current = window.location.hash.replace(/^#/, "");
+			if (current && current === hash.replace(/^#/, "")) {
+				setMounted(true);
+				return;
+			}
+		}
+
+		const el = ref.current;
+		if (!el) return;
+
+		if (!("IntersectionObserver" in window)) {
+			setMounted(true);
+			return;
+		}
+
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting) {
+					setMounted(true);
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: "400px 0px", threshold: 0 },
+		);
+		observer.observe(el);
+
+		return () => observer.disconnect();
+	}, [hash, mounted]);
+
+	return (
+		<div
+			ref={ref}
+			className="home-section"
+			style={mounted ? undefined : { minHeight: reserve }}
+		>
+			{mounted ? children : null}
+		</div>
+	);
 }

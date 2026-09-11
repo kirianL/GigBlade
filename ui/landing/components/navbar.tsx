@@ -23,6 +23,7 @@ import {
 } from "@/app/constant";
 import { getGsap } from "@/lib/lazyGsap";
 import { getLenis, scrollToHash, scrollToHashWhenReady } from "@/lib/smooth-scroll";
+import { useMediaQuery } from "@/lib/use-media-query";
 import SlotLabel from "./slot-label";
 import type {
 	PageStyle,
@@ -163,6 +164,7 @@ export default function Navbar({
 	const barRef = useRef<HTMLDivElement | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const isLg = useMediaQuery("(min-width: 1024px)");
 
 	useEffect(() => {
 		setIsLoggedIn(
@@ -252,40 +254,43 @@ export default function Navbar({
 					</AppLink>
 
 					<div className="hidden items-center gap-8 lg:flex">
-						{NAV_LINKS.map((item) => (
-							<NavLinkItem key={item.label} item={item} />
-						))}
+						{isLg &&
+							NAV_LINKS.map((item) => (
+								<NavLinkItem key={item.label} item={item} />
+							))}
 					</div>
 
 					<div className="nav-dashboard hidden lg:block">
-						<motion.div
-							initial="initial"
-							whileHover="hover"
-							whileTap={{ scale: 0.97 }}
-							className="relative"
-						>
-							<AppLink
-								href={isLoggedIn ? "/dashboard" : "/acceso"}
-								data-slot-hover-root
-								className="relative inline-flex cursor-pointer items-center gap-2 overflow-hidden whitespace-nowrap bg-brand px-4 py-3.5 text-white transition-colors duration-300 hover:bg-brand-hover active:bg-brand-hover"
-								onMouseEnter={() => dashboardIconRef.current?.restart()}
-								onMouseLeave={() => dashboardIconRef.current?.reverse()}
+						{isLg && (
+							<motion.div
+								initial="initial"
+								whileHover="hover"
+								whileTap={{ scale: 0.97 }}
+								className="relative"
 							>
-								<CTALines />
-								<div className="relative z-10 flex items-center gap-2">
-									<DashboardIconPixel
-										Icon={IconDashboard}
-										ref={dashboardIconRef}
-									/>
-									<SlotLabel
-										text="Panel"
-										hover
-										hoverTint={false}
-										className="font-sans font-medium tracking-tight"
-									/>
-								</div>
-							</AppLink>
-						</motion.div>
+								<AppLink
+									href={isLoggedIn ? "/dashboard" : "/acceso"}
+									data-slot-hover-root
+									className="relative inline-flex cursor-pointer items-center gap-2 overflow-hidden whitespace-nowrap bg-brand px-4 py-3.5 text-white transition-colors duration-300 hover:bg-brand-hover active:bg-brand-hover"
+									onMouseEnter={() => dashboardIconRef.current?.restart()}
+									onMouseLeave={() => dashboardIconRef.current?.reverse()}
+								>
+									<CTALines />
+									<div className="relative z-10 flex items-center gap-2">
+										<DashboardIconPixel
+											Icon={IconDashboard}
+											ref={dashboardIconRef}
+										/>
+										<SlotLabel
+											text="Panel"
+											hover
+											hoverTint={false}
+											className="font-sans font-medium tracking-tight"
+										/>
+									</div>
+								</AppLink>
+							</motion.div>
+						)}
 					</div>
 
 					<button

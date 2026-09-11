@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import HomeSections from "@/components/home-sections";
+import HomeAboveFold from "@/components/home-sections";
+import HomeBelowFold from "@/components/home-below-fold";
 import JsonLd from "@/components/json-ld";
+import Problem from "@/components/problem";
+import SectionDivider from "@/components/section-divider";
+import Solution from "@/components/solution";
 import {
 	faqPageSchema,
 	organizationSchema,
@@ -30,7 +34,16 @@ export default function Home() {
 				<div className="hidden w-full border-t border-[#292929] md:block" />
 				<div className="hidden w-full border-t border-[#292929] md:block" />
 			</div>
-			<HomeSections />
+			<HomeAboveFold />
+			<div className="home-section">
+				<SectionDivider title="EL PROBLEMA" />
+				<Problem />
+			</div>
+			<div className="home-section">
+				<SectionDivider title="CÓMO FUNCIONA" />
+				<Solution />
+			</div>
+			<HomeBelowFold />
 			<div className="mt-10.5 hidden w-full flex-col gap-2.5 md:flex">
 				<div className="w-full border-t border-[#292929]" />
 				<div className="w-full border-t border-[#292929]" />

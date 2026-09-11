@@ -1,4 +1,4 @@
-import { ProblemBgSvg } from "../app/constant";
+import Image from "next/image";
 
 export default function Problem() {
 	return (
@@ -61,7 +61,17 @@ export default function Problem() {
 						))}
 					</div>
 
-					<ProblemBgSvg />
+					<div className="hidden h-auto w-full cursor-pointer transition-all duration-300 hover:brightness-125 hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] md:block">
+						<Image
+							src="/images/problems/problembg.png"
+							alt="Problem Background"
+							width={621}
+							height={223}
+							sizes="(max-width: 1280px) 100vw, 720px"
+							loading="lazy"
+							className="h-auto w-full"
+						/>
+					</div>
 				</div>
 			</div>
 		</section>

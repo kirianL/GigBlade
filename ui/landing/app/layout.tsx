@@ -97,13 +97,13 @@ export default function RootLayout({ children }: LayoutProps) {
 			className={cn(
 				geistSans.variable,
 				geistMono.variable,
-				"h-full max-w-full overflow-x-hidden overscroll-x-none bg-black antialiased",
+				"h-full max-w-full overscroll-x-none bg-black antialiased",
 			)}
 		>
 			<head>
 				<Reb2b />
 			</head>
-			<body className="flex min-h-full max-w-full flex-col overflow-x-hidden overscroll-x-none">
+			<body className="flex min-h-full max-w-full flex-col overscroll-x-none">
 				<RouteTransition>{children}</RouteTransition>
 			</body>
 		</html>

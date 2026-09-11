@@ -8,13 +8,16 @@ import {
 	scrollToHash,
 	startSmoothScroll,
 } from "@/lib/smooth-scroll";
-import "lenis/dist/lenis.css";
 
 export default function AppScroll() {
 	const pathname = usePathname();
 	const first = useRef(true);
 
 	useEffect(() => {
+		if (window.matchMedia("(max-width: 1023px)").matches) {
+			return;
+		}
+
 		let stop: (() => void) | undefined;
 		let cancelled = false;
 		let idleId = 0;

@@ -103,10 +103,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={cn(
         geistSans.variable,
         geistMono.variable,
-        "h-full max-w-full overflow-x-hidden overscroll-x-none bg-black antialiased",
+        "h-full max-w-full overscroll-x-none bg-black antialiased",
       )}
     >
-      <body className="flex min-h-full max-w-full flex-col overflow-x-hidden overscroll-x-none">
+      <body className="flex min-h-full max-w-full flex-col overscroll-x-none">
         <RouteTransition>{children}</RouteTransition>
       </body>
     </html>

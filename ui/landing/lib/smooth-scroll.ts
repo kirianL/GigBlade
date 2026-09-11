@@ -64,6 +64,8 @@ export async function startSmoothScroll() {
 		return () => undefined;
 	}
 
+	void import("lenis/dist/lenis.css");
+
 	const [{ default: Lenis }, gsap, { ScrollTrigger }] = await Promise.all([
 		import("lenis"),
 		getGsap(),

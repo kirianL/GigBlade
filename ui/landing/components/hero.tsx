@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "motion/react";
-import AppLink from "./app-link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import AppLink from "./app-link";
 import { CTALines, IconCTADocs, IconCTAStart } from "@/app/constant";
 import SlotLabel from "./slot-label";
-import { useFineHover } from "@/lib/use-fine-hover";
-import { AuroraBackground } from "@/components/background-gradient/aurora-background";
-import { AuroraFrame } from "@/components/background-gradient/aurora-frame";
+import { useMediaQuery } from "@/lib/use-media-query";
+
+const HeroAurora = dynamic(() => import("./hero-aurora"), { ssr: false });
 
 const getLoggedInHintCookie = () => {
 	if (typeof window === "undefined") return null;
@@ -21,7 +21,7 @@ const getLoggedInHintCookie = () => {
 
 export default function Hero() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const canHover = useFineHover();
+	const isXl = useMediaQuery("(min-width: 1280px)");
 
 	// Read the hint cookie after mount to avoid SSR/CSR hydration mismatch.
 	useEffect(() => {
@@ -62,8 +62,7 @@ export default function Hero() {
 						className="hero-enter pointer-events-none relative hidden min-h-[525px] w-[50vw] max-w-[720px] overflow-hidden border-l border-[#292929] xl:pointer-events-auto xl:block"
 						style={{ ["--enter" as string]: 1 }}
 					>
-						<AuroraBackground className="absolute inset-0 h-full w-full" />
-						<AuroraFrame />
+						{isXl && <HeroAurora />}
 					</div>
 				</div>
 				<div className="border-t border-[#292929]" />
@@ -73,11 +72,7 @@ export default function Hero() {
 				>
 					<div className="w-full md:w-fit md:flex-shrink-0">
 						<AppLink href={isLoggedIn ? "/dashboard" : "/acceso"}>
-							<motion.div
-								initial="initial"
-								whileHover={canHover ? "hover" : undefined}
-								className="relative"
-							>
+							<div className="hero-cta-press relative">
 								<div
 									className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden bg-brand px-3 py-2 font-sans transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-brand-hover active:bg-brand-hover"
 									data-slot-hover-root
@@ -93,17 +88,13 @@ export default function Hero() {
 										<IconCTAStart />
 									</span>
 								</div>
-							</motion.div>
+							</div>
 						</AppLink>
 					</div>
 
 					<div className="w-full md:w-fit md:flex-shrink-0">
 						<AppLink href="/#ejemplos">
-							<motion.div
-								initial="initial"
-								whileHover={canHover ? "hover" : undefined}
-								className="relative"
-							>
+							<div className="hero-cta-press relative">
 								<div
 									className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden border-r border-[#292929] bg-[#0F0F0F] px-3 py-2 font-sans text-white transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-[#FFFFFF1F] active:bg-[#FFFFFF1F]"
 									data-slot-hover-root
@@ -118,7 +109,7 @@ export default function Hero() {
 										<IconCTADocs />
 									</span>
 								</div>
-							</motion.div>
+							</div>
 						</AppLink>
 					</div>
 

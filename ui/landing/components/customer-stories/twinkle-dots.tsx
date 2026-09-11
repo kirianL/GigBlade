@@ -43,7 +43,7 @@ export function TwinkleDots() {
 						opacity: 0.18;
 					}
 				}
-				@media (prefers-reduced-motion: reduce) {
+				@media (max-width: 1023px), (prefers-reduced-motion: reduce) {
 					.cs-twinkle-a,
 					.cs-twinkle-b {
 						animation: none;

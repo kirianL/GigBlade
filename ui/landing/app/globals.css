@@ -312,7 +312,12 @@ body {
 	background: var(--background);
 	color: var(--foreground);
 	font-family: var(--font-geist-sans);
-	overscroll-behavior-y: none;
+}
+
+@media (min-width: 1024px) {
+	body {
+		overscroll-behavior-y: none;
+	}
 }
 
 /* Hero visual: hover motion only on desktop pointers, never on touch. */
@@ -521,6 +526,19 @@ body {
 	.hero-enter {
 		animation: hero-enter-fade 0.2s ease both;
 	}
+}
+
+.hero-cta-press {
+	transition: transform 160ms var(--ease-out);
+}
+
+.hero-cta-press:active {
+	transform: scale(0.97);
+}
+
+.home-section {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 520px;
 }
 
 /* ==========================================================================
