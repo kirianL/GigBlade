@@ -34,13 +34,6 @@ async function loadGoogleFont(family: string, weight: number) {
 	return fetch(match[1]).then((r) => r.arrayBuffer());
 }
 
-async function logoDataUri() {
-	const file = await readFile(
-		path.join(process.cwd(), "public/images/navbar/autumnlogo.svg"),
-	);
-	return `data:image/svg+xml;base64,${file.toString("base64")}`;
-}
-
 async function bgDataUri() {
 	const file = await readFile(
 		path.join(process.cwd(), "public/images/blog/og-bg-texture.png"),
@@ -166,8 +159,7 @@ export default async function OgImage({
 		return coverImageResponse("/images/blog/eliminating-memory-leaks-og.jpg");
 	}
 
-	const [logo, bg, fonts] = await Promise.all([
-		logoDataUri(),
+	const [bg, fonts] = await Promise.all([
 		bgDataUri(),
 		Promise.all([
 			loadGoogleFont("Geist", 400),
@@ -246,14 +238,20 @@ export default async function OgImage({
 			</div>
 
 			{/* left rail: logo, headline, footer */}
-			{/** biome-ignore lint/performance/noImgElement: satori only supports <img> */}
-			<img
-				alt="Autumn"
-				height={37}
-				src={logo}
-				style={{ position: "absolute", top: 56, left: 64 }}
-				width={150}
-			/>
+			<div
+				style={{
+					position: "absolute",
+					top: 56,
+					left: 64,
+					display: "flex",
+					color: "#fff",
+					fontSize: 28,
+					fontWeight: 500,
+					letterSpacing: -1,
+				}}
+			>
+				GigBlade
+			</div>
 			<div
 				style={{
 					position: "absolute",

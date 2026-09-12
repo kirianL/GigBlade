@@ -100,12 +100,14 @@ function AccessRoll({
 	className,
 	hover = false,
 	play = false,
+	live = true,
 	options = SLOT,
 }: {
 	text: string;
 	className?: string;
 	hover?: boolean;
 	play?: boolean;
+	live?: boolean;
 	options?: Parameters<typeof slotText>[2];
 }) {
 	const reduceMotion = useReducedMotion();
@@ -113,6 +115,8 @@ function AccessRoll({
 	const ctrl = useRef<ReturnType<typeof slotText> | null>(null);
 	const textRef = useRef(text);
 	const optionsRef = useRef(options);
+	const lastText = useRef(text);
+	const played = useRef(false);
 	textRef.current = text;
 	optionsRef.current = options;
 
@@ -121,19 +125,25 @@ function AccessRoll({
 		const el = ref.current;
 		if (!el) return;
 		ctrl.current = slotText(el, textRef.current, optionsRef.current);
-		if (play) {
-			ctrl.current.set(textRef.current, optionsRef.current);
-		}
 		return () => {
 			ctrl.current?.destroy();
 			ctrl.current = null;
 		};
-	}, [play, reduceMotion]);
+	}, [reduceMotion]);
 
 	useEffect(() => {
-		if (reduceMotion) return;
-		ctrl.current?.set(text, optionsRef.current);
-	}, [text, reduceMotion]);
+		if (reduceMotion || !live) return;
+		const textChanged = lastText.current !== text;
+		lastText.current = text;
+		if (textChanged) {
+			ctrl.current?.set(text, optionsRef.current);
+			return;
+		}
+		if (play && !played.current) {
+			played.current = true;
+			ctrl.current?.set(text, optionsRef.current);
+		}
+	}, [text, live, play, reduceMotion]);
 
 	useEffect(() => {
 		if (!hover || reduceMotion) return;
@@ -158,27 +168,18 @@ function AccessRoll({
 	return <span ref={ref} className={className} />;
 }
 
-const fadeUp = {
-	hidden: { opacity: 0, transform: "translateY(4px)" },
+const pageEnter = {
+	hidden: { opacity: 0, transform: "translateY(10px)" },
 	show: {
 		opacity: 1,
 		transform: "translateY(0px)",
-		transition: { duration: 0.7, ease: EASE },
+		transition: { duration: 0.72, ease: EASE },
 	},
 };
 
-const fadeOnly = {
+const pageEnterStill = {
 	hidden: { opacity: 0 },
-	show: { opacity: 1, transition: { duration: 0.5 } },
-};
-
-const fadeArt = {
-	hidden: { opacity: 0, transform: "translateY(6px)" },
-	show: {
-		opacity: 1,
-		transform: "translateY(0px)",
-		transition: { duration: 0.9, ease: EASE },
-	},
+	show: { opacity: 1, transition: { duration: 0.35 } },
 };
 
 export default function AccesoForm() {
@@ -189,31 +190,19 @@ export default function AccesoForm() {
 	const [error, setError] = useState<string | null>(null);
 	const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
 	const [alreadyJoined, setAlreadyJoined] = useState(false);
+	const [introReady, setIntroReady] = useState(false);
+	const [direction, setDirection] = useState(1);
 	const formRef = useRef<HTMLFormElement>(null);
-	const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		const timer = window.setTimeout(() => setIntroReady(true), 900);
+		return () => window.clearTimeout(timer);
+	}, []);
 
 	const moveTo = (next: Step) => {
-		if (advanceTimer.current) {
-			clearTimeout(advanceTimer.current);
-			advanceTimer.current = null;
-		}
+		setDirection(next > step ? 1 : -1);
 		setStep(next);
 		setError(null);
-	};
-
-	const advanceAfterHint = (next: Step) => {
-		if (
-			typeof window !== "undefined" &&
-			window.matchMedia("(pointer: fine)").matches
-		) {
-			return;
-		}
-		if (advanceTimer.current) clearTimeout(advanceTimer.current);
-		advanceTimer.current = setTimeout(() => {
-			advanceTimer.current = null;
-			setStep(next);
-			setError(null);
-		}, reduceMotion ? 0 : 700);
 	};
 
 	const validate = () => {
@@ -327,7 +316,8 @@ export default function AccesoForm() {
 
 	useEffect(() => {
 		if (status === "done") return;
-		const wait = skipFocusDelay.current || reduceMotion ? 0 : 140;
+		if (!introReady) return;
+		const wait = skipFocusDelay.current || reduceMotion ? 0 : 240;
 		skipFocusDelay.current = false;
 		const timer = window.setTimeout(() => {
 			const root = formRef.current;
@@ -346,14 +336,7 @@ export default function AccesoForm() {
 			)?.focus({ preventScroll: true });
 		}, wait);
 		return () => clearTimeout(timer);
-	}, [step, status, reduceMotion]);
-
-	useEffect(
-		() => () => {
-			if (advanceTimer.current) clearTimeout(advanceTimer.current);
-		},
-		[],
-	);
+	}, [step, status, reduceMotion, introReady]);
 
 	const onFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
 		if (event.key !== "Tab" || status !== "idle") return;
@@ -385,24 +368,36 @@ export default function AccesoForm() {
 	return (
 		<div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#090A09]">
 			<StepBlade step={step} reduceMotion={Boolean(reduceMotion)} />
+			<Image
+				src="/images/gigblade-access-signpost-blue.png"
+				width={706}
+				height={706}
+				alt=""
+				priority
+				aria-hidden="true"
+				className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0"
+			/>
 
-			<header className="relative z-10 flex h-14 shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
+			<motion.div
+				className="relative z-10 flex min-h-0 flex-1 flex-col"
+				initial={reduceMotion ? "show" : "hidden"}
+				animate="show"
+				variants={reduceMotion ? pageEnterStill : pageEnter}
+				onAnimationComplete={() => setIntroReady(true)}
+			>
+			<header className="flex h-14 shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
 				<AppLink
 					href="/"
-					aria-label="Volver a GigBlade"
-					className="access-logo access-press cursor-pointer"
+					className="access-logo access-press cursor-pointer font-sans text-[18px] font-medium tracking-[-3%] text-white"
 				>
-					<Image
-						src="/images/navbar/autumnlogo.svg"
-						width={114}
-						height={28}
-						alt="GigBlade"
-						priority
-						sizes="114px"
-						className="access-logo-mark h-auto w-24"
-					/>
+					<span className="access-logo-mark">GigBlade</span>
 				</AppLink>
-				<Progress step={step} done={status === "done"} reduceMotion={Boolean(reduceMotion)} />
+				<Progress
+					step={step}
+					done={status === "done"}
+					reduceMotion={Boolean(reduceMotion)}
+					live={introReady}
+				/>
 			</header>
 
 			<div className="relative z-10 h-px bg-white/8">
@@ -413,12 +408,12 @@ export default function AccesoForm() {
 							status === "done" ? 1 : (step + 1) / QUESTIONS.length
 						})`,
 					}}
-					transition={{ duration: reduceMotion ? 0 : 0.22, ease: EASE }}
+					transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
 				/>
 			</div>
 
 			<main
-				className={`relative z-10 flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 ${
+				className={`flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 ${
 					status === "done" ? "items-center" : "items-start sm:items-center"
 				}`}
 			>
@@ -437,13 +432,12 @@ export default function AccesoForm() {
 							onKeyDown={onFormKeyDown}
 							noValidate
 							className="min-w-0 w-full max-w-2xl py-2 sm:py-0"
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
+							initial={false}
 							exit={{ opacity: 0 }}
-							transition={{ duration: reduceMotion ? 0 : 0.4, ease: EASE }}
+							transition={{ duration: reduceMotion ? 0 : 0.35, ease: EASE }}
 						>
 							<h1 className="min-h-12 max-w-full text-[clamp(28px,8.5vw,32px)] leading-[1.3] tracking-[-0.04em] text-[#F5F7F5] sm:min-h-20 sm:max-w-xl sm:text-[clamp(2.25rem,5.5vw,3.75rem)] sm:tracking-[-0.055em]">
-								<AccessRoll text={QUESTIONS[step]} />
+								<AccessRoll text={QUESTIONS[step]} live={introReady} />
 							</h1>
 
 							<p
@@ -456,18 +450,41 @@ export default function AccesoForm() {
 								{error ? (
 									<span className="access-error-copy">{error}</span>
 								) : (
-									<AccessRoll text={provinceHint} />
+									<AccessRoll text={provinceHint} live={introReady} />
 								)}
 							</p>
 
-							<div className="relative mt-8 sm:mt-10">
-								<AnimatePresence initial={false} mode="popLayout">
+							<motion.div
+								layout="size"
+								className="relative mt-8 overflow-hidden sm:mt-10"
+								transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
+							>
+								<AnimatePresence
+									initial={false}
+									mode="popLayout"
+									custom={direction}
+								>
 									<motion.div
 										key={step}
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										exit={{ opacity: 0 }}
-										transition={{ duration: reduceMotion ? 0 : 0.12, ease: EASE }}
+										custom={direction}
+										variants={{
+											enter: (dir: number) =>
+												reduceMotion
+													? { opacity: 0 }
+													: { opacity: 0, y: dir * 12 },
+											center: { opacity: 1, y: 0 },
+											exit: (dir: number) =>
+												reduceMotion
+													? { opacity: 0 }
+													: { opacity: 0, y: dir * -10 },
+										}}
+										initial="enter"
+										animate="center"
+										exit="exit"
+										transition={{
+											duration: reduceMotion ? 0 : 0.28,
+											ease: EASE,
+										}}
 									>
 										{step === 0 && (
 											<LineInput
@@ -505,7 +522,6 @@ export default function AccesoForm() {
 													setFields((current) => ({ ...current, country }));
 													setError(null);
 												}}
-												onConfirm={() => advanceAfterHint(3)}
 												onUnavailable={() =>
 													setError("De momento no estamos ahí.")
 												}
@@ -517,7 +533,6 @@ export default function AccesoForm() {
 												onChange={(city) => {
 													setError(null);
 													setFields((current) => ({ ...current, city }));
-													advanceAfterHint(4);
 												}}
 											/>
 										)}
@@ -532,11 +547,27 @@ export default function AccesoForm() {
 												}
 											/>
 										)}
+										{step === 4 && (
+											<button
+												type="button"
+												onClick={() => {
+													if (status !== "idle") return;
+													void joinWaitlist("");
+												}}
+												className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
+											>
+												Saltar
+											</button>
+										)}
 									</motion.div>
 								</AnimatePresence>
-							</div>
+							</motion.div>
 
-							<div className="mt-6 flex w-full items-center gap-2 sm:mt-7 sm:w-auto">
+							<motion.div
+								layout
+								className="mt-6 flex w-full items-center gap-2 sm:mt-7 sm:w-auto"
+								transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
+							>
 								<AnimatePresence initial={false}>
 									{step > 0 && (
 										<motion.button
@@ -546,15 +577,23 @@ export default function AccesoForm() {
 											aria-label="Volver"
 											initial={{
 												opacity: 0,
-												transform: reduceMotion ? "none" : "translateX(-6px)",
+												width: 0,
+												marginRight: 0,
+												transform: reduceMotion ? "none" : "translateX(-8px)",
 											}}
-											animate={{ opacity: 1, transform: "translateX(0px)" }}
+											animate={{
+												opacity: 1,
+												width: 48,
+												marginRight: 0,
+												transform: "translateX(0px)",
+											}}
 											exit={{
 												opacity: 0,
-												transform: reduceMotion ? "none" : "translateX(-6px)",
+												width: 0,
+												transform: reduceMotion ? "none" : "translateX(-8px)",
 											}}
-											transition={{ duration: reduceMotion ? 0 : 0.12, ease: EASE }}
-											className="access-back access-press flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center border border-[#343734] bg-[#101210] text-white/70 transition-[transform,border-color,color,background-color] duration-160 hover:border-white/30 hover:bg-[#151815] hover:text-white"
+											transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
+											className="access-back access-press flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-[#343734] bg-[#101210] text-white/70 transition-[border-color,color,background-color] duration-160 hover:border-white/30 hover:bg-[#151815] hover:text-white"
 										>
 											<span className="access-back-icon">
 												<IconArrowLeft className="h-5 w-5" />
@@ -570,6 +609,7 @@ export default function AccesoForm() {
 								>
 									<AccessRoll
 										hover
+										play={introReady}
 										options={SLOT_BUTTON}
 										text={
 											status === "submitting"
@@ -584,19 +624,7 @@ export default function AccesoForm() {
 										<IconArrowRight className="h-5 w-5" />
 									</span>
 								</button>
-							</div>
-							{step === 4 && (
-								<button
-									type="button"
-									onClick={() => {
-										if (status !== "idle") return;
-										void joinWaitlist("");
-									}}
-									className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
-								>
-									Saltar
-								</button>
-							)}
+							</motion.div>
 
 							<input
 								tabIndex={-1}
@@ -615,6 +643,7 @@ export default function AccesoForm() {
 					)}
 				</AnimatePresence>
 			</main>
+			</motion.div>
 		</div>
 	);
 }
@@ -652,10 +681,12 @@ function Progress({
 	step,
 	done,
 	reduceMotion,
+	live = true,
 }: {
 	step: Step;
 	done: boolean;
 	reduceMotion: boolean;
+	live?: boolean;
 }) {
 	return (
 		<div className="flex items-center gap-3" aria-label={done ? "Completado" : `Paso ${step + 1} de 5`}>
@@ -675,6 +706,7 @@ function Progress({
 			<span className="font-mono text-[10px] tabular-nums tracking-[0.12em] text-white/45">
 				<AccessRoll
 					text={done ? "LISTO" : `0${step + 1}`}
+					live={live}
 					options={SLOT_PROGRESS}
 				/>
 			</span>
@@ -696,61 +728,41 @@ function Success({
 	return (
 		<motion.section
 			key="success"
-			initial="hidden"
-			animate="show"
+			initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(12px)" }}
+			animate={{ opacity: 1, transform: "translateY(0px)" }}
+			transition={{ duration: reduceMotion ? 0.25 : 0.7, ease: EASE }}
 			className="absolute inset-0 flex w-full flex-col items-center justify-center text-center"
 			aria-live="polite"
-			variants={{
-				hidden: { opacity: 0 },
-				show: {
-					opacity: 1,
-					transition: {
-						duration: reduceMotion ? 0.2 : 0.5,
-						ease: EASE,
-						staggerChildren: reduceMotion ? 0 : 0.18,
-						delayChildren: reduceMotion ? 0 : 0.16,
-					},
-				},
-			}}
 		>
-			<motion.h1
-				variants={reduceMotion ? fadeOnly : fadeUp}
-				className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.75rem)] leading-[1.08] tracking-[-0.045em] text-[#F5F7F5] sm:tracking-[-0.055em]"
-			>
+			<h1 className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.75rem)] leading-[1.08] tracking-[-0.045em] text-[#F5F7F5] sm:tracking-[-0.055em]">
 				{alreadyJoined ? "Ya estabas en la lista." : "Estás en la lista."}
-			</motion.h1>
-			<motion.p
-				variants={reduceMotion ? fadeOnly : fadeUp}
-				className="mt-4 max-w-sm text-[15px] leading-6 text-white/50"
-			>
+			</h1>
+			<p className="mt-4 max-w-sm text-[15px] leading-6 text-white/50">
 				{alreadyJoined
 					? `Cuando abramos el próximo cupo en ${place}, te escribimos.`
 					: `Te escribiremos cuando abramos el próximo cupo en ${place}.`}
-			</motion.p>
-			<motion.div
-				variants={reduceMotion ? fadeOnly : fadeArt}
-				className="mx-auto mt-8 w-[min(100%,18rem)] sm:mt-10 sm:w-[min(100%,20rem)]"
-			>
+			</p>
+			<div className="mx-auto mt-8 w-[min(100%,18rem)] sm:mt-10 sm:w-[min(100%,20rem)]">
 				<div className="access-success-art">
 					<Image
-						src="/images/gigblade-access-signpost-arm.png"
+						src="/images/gigblade-access-signpost-blue.png"
 						width={706}
 						height={706}
-						alt="Un DJ en un cruce de caminos elige la flecha verde"
+						alt="Un DJ en un cruce de caminos elige la flecha azul"
 						className="mx-auto h-auto w-full"
 						sizes="(max-width: 768px) 100vw, 706px"
 						priority
 					/>
 				</div>
-			</motion.div>
-			<motion.div variants={reduceMotion ? fadeOnly : fadeUp}>
+			</div>
+			<div>
 				<AppLink
 					href="/"
 					className="mt-8 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
 				>
 					Volver a GigBlade
 				</AppLink>
-			</motion.div>
+			</div>
 		</motion.section>
 	);
 }
@@ -792,12 +804,10 @@ const COUNTRIES = [
 function CountrySelect({
 	value,
 	onChange,
-	onConfirm,
 	onUnavailable,
 }: {
 	value: Country;
 	onChange: (value: Country) => void;
-	onConfirm: () => void;
 	onUnavailable: () => void;
 }) {
 	return (
@@ -839,7 +849,6 @@ function CountrySelect({
 						key={country.value}
 						value={country.value}
 						data-access-field
-						onClick={onConfirm}
 						className={`${rowClass} cursor-pointer text-white`}
 					>
 						<Flag

@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import Image from "next/image";
 import AppLink from "./app-link";
 import {
 	forwardRef,
@@ -240,17 +239,11 @@ export default function Navbar({
 				<div className="pointer-events-none absolute top-0 bottom-0 left-4 md:left-(--page-pad) border-l border-[#292929]" />
 				<div className="pointer-events-none absolute top-0 bottom-0 right-4 md:right-(--page-pad) border-r border-[#292929]" />
 				<nav className="nav-root flex h-14 items-center justify-between bg-[#0F0F0F] px-3 font-mono text-xs uppercase md:px-1">
-					<AppLink href="/" className="shrink-0">
-						<Image
-							src="/images/navbar/autumnlogo.svg"
-							width={114}
-							height={28}
-							alt="GigBlade"
-							unoptimized
-							priority
-							className="nav-logo ml-1 block h-auto w-[90px] sm:w-[110px] lg:w-[114px]"
-							sizes="114px"
-						/>
+					<AppLink
+						href="/"
+						className="nav-logo ml-1 shrink-0 font-sans text-[18px] font-medium tracking-[-3%] text-white sm:text-[20px]"
+					>
+						GigBlade
 					</AppLink>
 
 					<div className="hidden items-center gap-8 lg:flex">

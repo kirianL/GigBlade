@@ -1,4 +1,3 @@
-import Image from "next/image";
 import AppLink from "./app-link";
 
 type FooterLink = {
@@ -57,15 +56,11 @@ export default function Footer() {
 
 					<div className="flex flex-col lg:flex-row justify-between pt-[32px] md:pt-24 pb-16 md:pb-16 pl-4.5 xl:pl-[90px] pr-4 sm:pr-8 lg:pr-12 gap-10 md:gap-16 lg:gap-8 relative z-10">
 						<div className="flex flex-col max-w-sm">
-							<AppLink href="/" className="mb-3 md:mb-6 inline-block">
-								<Image
-									src="/images/navbar/autumnlogo.svg"
-									width={195}
-									height={48}
-									alt="GigBlade"
-									className="brightness-0 invert h-[32px] w-[130px] md:h-[48px] md:w-[195px]"
-									sizes="(max-width: 768px) 130px, 195px"
-								/>
+							<AppLink
+								href="/"
+								className="mb-3 inline-block font-sans text-[24px] font-medium tracking-[-3%] text-white md:mb-6 md:text-[32px]"
+							>
+								GigBlade
 							</AppLink>
 							<p className="text-[14px] md:text-[16px] leading-[18px] md:leading-[20px] tracking-[-2%] text-[#FFFFFF99] font-light">
 								GigBlade es presencia digital para DJs: página, dominio y
