@@ -13,6 +13,7 @@ const tenant: Tenant = {
   id: "11111111-1111-4111-8111-111111111111",
   slug: "demo",
   plan: "all_inclusive",
+  templateId: "pista",
   themeConfig: {},
   status: "active",
 };

@@ -1,0 +1,57 @@
+import { ModelMarkupsSchema } from "@models/featureModels/featureConfig/creditConfig";
+import { z } from "zod/v4";
+import { AppEnv } from "../genModels/genEnums";
+import { FeatureType } from "./featureEnums";
+
+export const FeatureStripeMeterSchema = z.object({
+	id: z.string(),
+	event_name: z.string(),
+});
+
+export const FeatureSchema = z.object({
+	internal_id: z.string(),
+	org_id: z.string(),
+	created_at: z.number(),
+	env: z.nativeEnum(AppEnv),
+
+	id: z.string().nonempty("Features must have an ID"),
+	name: z.string().nonempty("Features must have a name"),
+	type: z.nativeEnum(FeatureType, {
+		message: "Features must have a type",
+	}),
+	config: z.any(),
+	display: z
+		.object({
+			singular: z.string().optional(),
+			plural: z.string().optional(),
+		})
+		.nullish(),
+	archived: z.boolean(),
+	event_names: z.array(z.string()).default([]),
+	model_markups: ModelMarkupsSchema.nullish(),
+	stripe_meter: FeatureStripeMeterSchema.nullish(),
+	stripe_product_id: z.string().nullish(),
+});
+
+export const CreateFeatureSchema = FeatureSchema.pick({
+	id: true,
+	name: true,
+	type: true,
+	config: true,
+	display: true,
+	event_names: true,
+	model_markups: true,
+	stripe_meter: true,
+	stripe_product_id: true,
+});
+
+export const MinFeatureSchema = z.object({
+	internal_id: z.string(),
+	id: z.string(),
+	name: z.string(),
+	type: z.nativeEnum(FeatureType),
+	config: z.any(),
+});
+
+export type Feature = z.infer<typeof FeatureSchema>;
+export type CreateFeature = z.infer<typeof CreateFeatureSchema>;

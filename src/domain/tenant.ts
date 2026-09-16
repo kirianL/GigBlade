@@ -1,5 +1,9 @@
 import { notFound, validationError } from "@/domain/errors";
 import { isValidPublicHostname, normalizeHostname } from "@/domain/hostname";
+import {
+  assertRegisteredTemplate,
+  type SiteTemplateId,
+} from "@/domain/site-template";
 
 export type TenantStatus = "active" | "suspended" | "canceled";
 export type TenantPlan = "all_inclusive";
@@ -9,6 +13,7 @@ export type Tenant = {
   id: string;
   slug: string;
   plan: TenantPlan;
+  templateId: SiteTemplateId;
   themeConfig: Record<string, unknown>;
   status: TenantStatus;
 };
@@ -28,6 +33,7 @@ export type TenantContext = {
 export type PublicTenant = {
   slug: string;
   domain: string;
+  templateId: SiteTemplateId;
   themeConfig: Record<string, unknown>;
 };
 
@@ -66,6 +72,7 @@ export function toPublicTenant(
   return {
     slug: tenant.slug,
     domain: canonicalHostname,
+    templateId: assertRegisteredTemplate(tenant.templateId),
     themeConfig: tenant.themeConfig,
   };
 }

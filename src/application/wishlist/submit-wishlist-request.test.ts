@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
 import type { TenantContext } from "@/domain/tenant";
 import { InMemoryWishlistRepository } from "@/infrastructure/memory/in-memory-wishlist-repository";
+import { listWishlistRequests } from "./list-wishlist-requests";
 
 const context: TenantContext = {
   tenantId: "11111111-1111-4111-8111-111111111111",
@@ -26,7 +27,7 @@ const validInput = {
 
 describe("submitWishlistRequest", () => {
   it("guarda la solicitud con el tenant del contexto", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
     const result = await submitWishlistRequest(repository, context, validInput);
 
     expect(result.duplicate).toBe(false);
@@ -40,7 +41,7 @@ describe("submitWishlistRequest", () => {
   });
 
   it("no mezcla solicitudes entre tenants", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
     await submitWishlistRequest(repository, context, validInput);
 
     await expect(
@@ -49,7 +50,7 @@ describe("submitWishlistRequest", () => {
   });
 
   it("ignora un tenant_id enviado en el body", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
     await submitWishlistRequest(repository, context, {
       ...validInput,
       tenantId: otherContext.tenantId,
@@ -63,7 +64,7 @@ describe("submitWishlistRequest", () => {
   });
 
   it("devuelve la solicitud existente si el correo se repite el mismo día", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
     const first = await submitWishlistRequest(repository, context, validInput);
     const second = await submitWishlistRequest(repository, context, validInput);
 
@@ -72,7 +73,7 @@ describe("submitWishlistRequest", () => {
   });
 
   it("acepta un honeypot sin persistir", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
     const result = await submitWishlistRequest(repository, context, {
       ...validInput,
       website: "https://spam.test",
@@ -85,7 +86,7 @@ describe("submitWishlistRequest", () => {
   });
 
   it("rechaza un correo inválido", async () => {
-    const repository = new InMemoryWishlistRepository();
+    const repository = new InMemoryWishlistRepository(false);
 
     await expect(
       submitWishlistRequest(repository, context, {
@@ -93,5 +94,16 @@ describe("submitWishlistRequest", () => {
         email: "no-es-correo",
       }),
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+});
+
+describe("listWishlistRequests", () => {
+  it("devuelve las solicitudes más recientes primero", async () => {
+    const repository = new InMemoryWishlistRepository(false);
+    await submitWishlistRequest(repository, context, validInput);
+    const listed = await listWishlistRequests(repository);
+
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.email).toBe("ana@club.test");
   });
 });

@@ -20,6 +20,13 @@ export default function AppLink({
 	href,
 	...props
 }: AppLinkProps) {
+	const hrefStr = typeof href === "string" ? href : null;
+	const isExternal = Boolean(hrefStr && /^https?:\/\//.test(hrefStr));
+
+	if (isExternal && hrefStr) {
+		return <a href={hrefStr} onClick={onClick} {...props} />;
+	}
+
 	const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
 		onClick?.(event);
 		if (event.defaultPrevented) return;

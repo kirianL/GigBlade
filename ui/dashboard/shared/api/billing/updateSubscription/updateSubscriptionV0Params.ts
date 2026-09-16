@@ -1,0 +1,130 @@
+import { CusProductStatus } from "@models/cusProductModels/cusProductEnums";
+import { nullish } from "@utils/utils";
+import { z } from "zod/v4";
+import { AttachDiscountSchema } from "../attachV2/attachDiscount";
+import { BillingBehaviorSchema } from "../common/billingBehavior";
+import { BillingCycleAnchorSchema } from "../common/billingCycleAnchor";
+import { BillingParamsBaseV0Schema } from "../common/billingParamsBase/billingParamsBaseV0";
+import { CancelActionSchema } from "../common/cancelAction";
+import { CarryOverUsagesSchema } from "../common/carryOverUsages";
+import { LicenseQuantityParamsSchema } from "../common/licenseQuantityParams";
+import { RedirectModeSchema } from "../common/redirectMode";
+import { RefundLastPaymentSchema } from "../common/refundLastPayment";
+import { SubscriptionParamsSchema } from "../common/subscriptionParams";
+
+export const ExtUpdateSubscriptionV0ParamsSchema =
+	BillingParamsBaseV0Schema.extend({
+		// Product identification (optional for update subscription - can target by customer_product_id)
+		product_id: z.string().nullish(),
+
+		invoice: z.boolean().optional(),
+		enable_product_immediately: z.boolean().optional(),
+		finalize_invoice: z.boolean().optional(),
+		invoice_template_id: z.string().optional(),
+		net_terms_days: z.number().int().positive().optional(),
+
+		// New
+
+		// Cancel action: 'cancel_immediately' | 'cancel_end_of_cycle' | 'uncancel'
+		cancel_action: CancelActionSchema.optional(),
+
+		// Billing behavior for subscription updates:
+		// - 'prorate_immediately' (default): Invoice line items are charged immediately
+		// - 'next_cycle_only': Do NOT create any charges due to the update
+		billing_behavior: BillingBehaviorSchema.optional(),
+		refund_last_payment: RefundLastPaymentSchema.optional(),
+		subscription_params: SubscriptionParamsSchema.optional(),
+		billing_cycle_anchor: BillingCycleAnchorSchema.optional(),
+
+		processor_subscription_id: z.string().nullable().optional(),
+		no_billing_changes: z.boolean().optional(),
+		carry_over_usages: CarryOverUsagesSchema,
+		license_quantities: z.array(LicenseQuantityParamsSchema).optional(),
+		discounts: z.array(AttachDiscountSchema).optional(),
+		recalculate_balances: z
+			.object({
+				enabled: z.boolean(),
+			})
+			.optional(),
+		status: z
+			.enum([
+				CusProductStatus.Active,
+				CusProductStatus.PastDue,
+				CusProductStatus.Expired,
+			])
+			.optional(),
+	});
+
+export const UpdateSubscriptionV0ParamsSchema =
+	ExtUpdateSubscriptionV0ParamsSchema.extend({
+		customer_product_id: z.string().optional(),
+		redirect_mode: RedirectModeSchema.optional(),
+	})
+
+		.check((ctx) => {
+			if (ctx.value.options && ctx.value.options.length > 0) {
+				const invalidFeatures = ctx.value.options
+					.filter((opt) => nullish(opt.quantity) || opt.quantity < 0)
+					.map((opt) => opt.feature_id);
+
+				if (invalidFeatures.length > 0) {
+					ctx.issues.push({
+						code: "custom",
+						message: `Options quantity must be >= 0 for features: ${invalidFeatures.join(", ")}`,
+						input: ctx.value,
+					});
+				}
+			}
+		})
+		.refine(
+			(data) => {
+				if (data.cancel_action !== "cancel_immediately") return true;
+
+				const forbiddenFields = [
+					"options",
+					"items",
+					"version",
+					"free_trial",
+				] as const;
+				return !forbiddenFields.some((field) => data[field] !== undefined);
+			},
+			{
+				message:
+					"Cannot pass options, items, version, or free_trial when cancel_action is 'cancel_immediately'. Immediate cancellation only processes a prorated refund.",
+			},
+		)
+		.refine(
+			(data) => {
+				if (data.cancel_action !== "cancel_end_of_cycle") return true;
+
+				// Cannot pass free_trial when cancel_action is 'cancel_end_of_cycle'
+				return data.free_trial === undefined;
+			},
+			{
+				message:
+					"Cannot pass free_trial when cancel_action is 'cancel_end_of_cycle'.",
+			},
+		)
+		.refine((data) => !(data.refund_last_payment && data.billing_behavior), {
+			message:
+				"Cannot pass both billing_behavior and refund_last_payment. Use billing_behavior for invoice credits/proration, or refund_last_payment for direct refunds.",
+		})
+		.refine(
+			(data) =>
+				!(
+					data.refund_last_payment &&
+					data.cancel_action !== "cancel_immediately"
+				),
+			{
+				message:
+					"refund_last_payment requires cancel_action to be 'cancel_immediately'.",
+			},
+		);
+
+export type ExtUpdateSubscriptionV0Params = z.infer<
+	typeof ExtUpdateSubscriptionV0ParamsSchema
+>;
+
+export type UpdateSubscriptionV0Params = z.infer<
+	typeof UpdateSubscriptionV0ParamsSchema
+>;

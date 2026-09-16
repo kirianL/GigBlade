@@ -1,0 +1,70 @@
+import type { Entity, FullCustomer } from "@autumn/shared";
+import { useRef, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useCusQuery } from "@/views/customers/customer/hooks/useCusQuery";
+import { useEntitiesQuery } from "./useEntitiesQuery";
+
+const entityKey = (entity: Entity): string => entity.id || entity.internal_id;
+
+type UseScopeEntitySearchResult = {
+	hasEntities: boolean;
+	entities: Entity[];
+	selectedEntity: Entity | undefined;
+	isLoading: boolean;
+	setSearch: (search: string) => void;
+};
+
+export const useScopeEntitySearch = ({
+	selectedEntityId,
+}: {
+	selectedEntityId: string | undefined;
+}): UseScopeEntitySearchResult => {
+	const { customer } = useCusQuery();
+	const customerEntities = (customer as FullCustomer | null)?.entities ?? [];
+
+	const [search, setSearch] = useState("");
+	const entityCache = useRef(new Map<string, Entity>());
+	const debouncedSearch = useDebounce({ value: search, delayMs: 300 });
+	const {
+		entities: allEntities,
+		totalCount,
+		isLoading: isLoadingAll,
+	} = useEntitiesQuery();
+	const { entities: searchedEntities, isLoading: isLoadingSearch } =
+		useEntitiesQuery({
+			search: debouncedSearch,
+			enabled: !!debouncedSearch,
+		});
+	const allKnownEntities = [
+		...new Map(
+			[...allEntities, ...customerEntities].map((entity) => [
+				entityKey(entity),
+				entity,
+			]),
+		).values(),
+	];
+	const hasEntities = allKnownEntities.length > 0 || totalCount > 0;
+	const visibleEntities = debouncedSearch ? searchedEntities : allKnownEntities;
+
+	for (const entity of [...searchedEntities, ...allKnownEntities]) {
+		if (entity.id) entityCache.current.set(entity.id, entity);
+		if (entity.internal_id) entityCache.current.set(entity.internal_id, entity);
+	}
+	const selectedEntity = selectedEntityId
+		? entityCache.current.get(selectedEntityId)
+		: undefined;
+
+	const entities =
+		selectedEntity &&
+		!visibleEntities.some((e) => entityKey(e) === entityKey(selectedEntity))
+			? [selectedEntity, ...visibleEntities]
+			: visibleEntities;
+
+	return {
+		hasEntities,
+		entities,
+		selectedEntity,
+		isLoading: isLoadingAll || (!!debouncedSearch && isLoadingSearch),
+		setSearch,
+	};
+};

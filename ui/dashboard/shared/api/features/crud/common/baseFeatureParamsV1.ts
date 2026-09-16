@@ -1,0 +1,67 @@
+import { z } from "zod/v4";
+import {
+	ModelMarkupsSchema,
+	ProviderMarkupsSchema,
+} from "../../../../models/featureModels/featureConfig/creditConfig";
+import { FeatureType } from "../../../../models/featureModels/featureEnums";
+import { idRegex } from "../../../../utils/utils";
+import { ApiCreditSchemaItemSchema } from "../../creditRateCard.js";
+
+export const BaseFeatureV1ParamsSchema = z.object({
+	id: z.string().nonempty().regex(idRegex).meta({
+		description:
+			"The ID of the feature. This is used to refer to it in other API calls like /track or /check.",
+	}),
+	name: z
+		.string()
+		.nonempty()
+		.optional()
+		.meta({ description: "The name of the feature." }),
+	type: z.enum(FeatureType).meta({
+		description:
+			"The type of the feature. 'single_use' features are consumed, like API calls, tokens, or messages. 'continuous_use' features are allocated, like seats, workspaces, or projects. 'credit_system' features are schemas that unify multiple 'single_use' features into a single credit system.",
+	}),
+
+	consumable: z.boolean().optional().meta({
+		description:
+			"Whether this feature is consumable. A consumable feature is one that periodically resets and is consumed rather than allocated (like credits, API requests, etc.). Applicable only for 'metered' features.",
+	}),
+
+	display: z
+		.object({
+			singular: z.string(),
+			plural: z.string(),
+		})
+		.optional()
+		.meta({
+			description:
+				"Singular and plural display names for the feature in your user interface.",
+		}),
+
+	credit_schema: z.array(ApiCreditSchemaItemSchema).optional().meta({
+		description:
+			"A schema that maps metered feature IDs to flat or graduated credit costs. For classic credit systems only — AI credit systems use model_markups instead.",
+	}),
+
+	invoice_credit: z.boolean().optional().meta({
+		description:
+			"Whether usage of this classic credit system should be itemized as invoice credits.",
+	}),
+
+	model_markups: ModelMarkupsSchema.optional().meta({
+		description:
+			"Per-model markup overrides for AI credit systems. Maps model IDs to their markup configuration.",
+	}),
+
+	default_markup: z.number().min(-100).optional().meta({
+		description:
+			"Default percentage markup for this AI credit system. Used when no model or provider markup applies. Use -100 to make usage free.",
+	}),
+
+	provider_markups: ProviderMarkupsSchema.optional().meta({
+		description:
+			"Per-provider default markup percentages for AI credit systems. Provider keys match the first segment of model_id.",
+	}),
+
+	event_names: z.array(z.string()).optional(),
+});

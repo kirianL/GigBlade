@@ -8,4 +8,6 @@ export interface WishlistRequestRepository {
     email: string,
   ): Promise<WishlistRequest | null>;
   create(input: NewWishlistRequest): Promise<WishlistRequest>;
+  listAll(): Promise<WishlistRequest[]>;
+  listByTenant(tenantId: string): Promise<WishlistRequest[]>;
 }

@@ -1,0 +1,112 @@
+import { InternalError } from "@api/errors/base/InternalError.js";
+import { FeatureNotFoundError } from "@api/errors/classes/featureErrClasses.js";
+import type { Feature } from "../../models/featureModels/featureModels.js";
+
+// Overload: errorOnNotFound = true → guaranteed Feature
+export function findFeatureByInternalId(params: {
+	features: Feature[];
+	internalId: string;
+	errorOnNotFound: true;
+}): Feature;
+
+// Overload: errorOnNotFound = false/undefined → Feature | undefined
+export function findFeatureByInternalId(params: {
+	features: Feature[];
+	internalId: string;
+	errorOnNotFound?: false;
+}): Feature | undefined;
+
+// Implementation
+export function findFeatureByInternalId({
+	features,
+	internalId,
+	errorOnNotFound,
+}: {
+	features: Feature[];
+	internalId: string;
+	errorOnNotFound?: boolean;
+}): Feature | undefined {
+	const result = features.find((feature) => feature.internal_id === internalId);
+
+	if (errorOnNotFound && !result) {
+		throw new InternalError({
+			message: `Feature not found for internal_id: ${internalId}`,
+		});
+	}
+
+	return result;
+}
+
+// Overload: errorOnNotFound = true → guaranteed Feature
+export function findFeatureById(params: {
+	features: Feature[];
+	featureId: string;
+	errorOnNotFound: true;
+}): Feature;
+
+// Overload: errorOnNotFound = false/undefined → Feature | undefined
+export function findFeatureById(params: {
+	features: Feature[];
+	featureId: string;
+	errorOnNotFound?: false;
+}): Feature | undefined;
+
+// Implementation
+export function findFeatureById({
+	features,
+	featureId,
+	errorOnNotFound,
+}: {
+	features: Feature[];
+	featureId: string;
+	errorOnNotFound?: boolean;
+}): Feature | undefined {
+	const result = features.find((feature) => feature.id === featureId);
+
+	if (errorOnNotFound && !result) {
+		throw new FeatureNotFoundError({
+			featureId,
+		});
+	}
+
+	return result;
+}
+
+// Overload: errorOnNotFound = true → guaranteed Feature
+export function findFeatureByIdOrInternalId(params: {
+	features: Feature[];
+	featureIdOrInternalId: string;
+	errorOnNotFound: true;
+}): Feature;
+
+// Overload: errorOnNotFound = false/undefined → Feature | undefined
+export function findFeatureByIdOrInternalId(params: {
+	features: Feature[];
+	featureIdOrInternalId: string;
+	errorOnNotFound?: false;
+}): Feature | undefined;
+
+// Implementation
+export function findFeatureByIdOrInternalId({
+	features,
+	featureIdOrInternalId,
+	errorOnNotFound,
+}: {
+	features: Feature[];
+	featureIdOrInternalId: string;
+	errorOnNotFound?: boolean;
+}): Feature | undefined {
+	const result = features.find(
+		(feature) =>
+			feature.id === featureIdOrInternalId ||
+			feature.internal_id === featureIdOrInternalId,
+	);
+
+	if (errorOnNotFound && !result) {
+		throw new InternalError({
+			message: `Feature not found for id or internal_id: ${featureIdOrInternalId}`,
+		});
+	}
+
+	return result;
+}

@@ -1,0 +1,66 @@
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
+import {
+	foreignKey,
+	index,
+	jsonb,
+	numeric,
+	pgTable,
+	text,
+	unique,
+} from "drizzle-orm/pg-core";
+import { collatePgColumn, sqlNow } from "../../../db/utils.js";
+import { customers } from "../cusTable.js";
+import { entities } from "../entityModels/entityTable.js";
+import type { InvoiceDiscount, InvoiceItem } from "./invoiceModels.js";
+
+export const invoices = pgTable(
+	"invoices",
+	{
+		id: text("id").primaryKey(),
+		created_at: numeric({ mode: "number" }).notNull().default(sqlNow),
+		product_ids: text("product_ids").array().default([]),
+		internal_product_ids: text("internal_product_ids").array().default([]),
+
+		internal_customer_id: text("internal_customer_id").notNull(),
+		internal_entity_id: text("internal_entity_id"),
+
+		stripe_id: text("stripe_id").notNull(),
+		processor_type: text("processor_type"),
+		status: text("status").notNull().default("draft"),
+		hosted_invoice_url: text("hosted_invoice_url"),
+		total: numeric({ mode: "number" }).notNull().default(0),
+		amount_paid: numeric({ mode: "number" }),
+		refunded_amount: numeric({ mode: "number" }).notNull().default(0),
+		currency: text("currency").notNull().default("usd"),
+		discounts: jsonb("discounts").$type<InvoiceDiscount>().array().default([]),
+		items: jsonb("items").$type<InvoiceItem>().array().default([]),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.internal_customer_id],
+			foreignColumns: [customers.internal_id],
+			name: "invoices_internal_customer_id_fkey",
+		}).onDelete("cascade"),
+		foreignKey({
+			columns: [table.internal_entity_id],
+			foreignColumns: [entities.internal_id],
+			name: "invoices_internal_entity_id_fkey",
+		}).onDelete("cascade"),
+		unique("invoices_stripe_id_key").on(table.stripe_id),
+		index("idx_invoices_customer_created").on(
+			table.internal_customer_id,
+			sql`${table.created_at} DESC`,
+			sql`${table.id} DESC`,
+		),
+		// Serves the entities.internal_id delete cascade (both default collation).
+		index("idx_invoices_internal_entity_id")
+			.on(table.internal_entity_id)
+			.where(sql`${table.internal_entity_id} IS NOT NULL`)
+			.concurrently(),
+	],
+);
+
+collatePgColumn(invoices.id, "C");
+
+export type InvoiceRow = InferSelectModel<typeof invoices>;
+export type InsertInvoice = InferInsertModel<typeof invoices>;

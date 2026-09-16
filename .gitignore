@@ -1,17 +1,21 @@
 # dependencies
 /node_modules
+ui/landing/node_modules
+ui/dashboard/**/node_modules
 
 # Next.js
 /.next
 /out
 /docs
-ui/landing/node_modules
 ui/landing/.next
 ui/landing/out
 
-# landing assets linked from ui/landing (do not edit ui/landing)
+# landing assets linked from ui/landing
 /public
 /content
+
+# supabase CLI
+supabase/.temp
 
 # production
 /build

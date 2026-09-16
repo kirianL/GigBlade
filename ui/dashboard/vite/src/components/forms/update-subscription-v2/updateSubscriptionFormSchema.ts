@@ -1,0 +1,42 @@
+import {
+	BillingBehaviorSchema,
+	CancelActionSchema,
+	type CustomizePlanLicense,
+	FreeTrialDuration,
+	type ProductItem,
+} from "@autumn/shared";
+
+import { z } from "zod/v4";
+import type { FormDiscount } from "@/components/forms/attach-v2/utils/discountUtils";
+import { RefundBehaviorSchema } from "@/components/forms/update-subscription-v2/types/refundBehaviourSchema";
+
+export const UpdateSubscriptionFormSchema = z.object({
+	prepaidOptions: z.record(z.string(), z.number().nonnegative().optional()),
+	licenseQuantities: z.record(z.string(), z.number().nonnegative().optional()),
+
+	trialLength: z.number().positive().nullable(),
+	trialDuration: z.enum(FreeTrialDuration),
+	trialCardRequired: z.boolean(),
+	removeTrial: z.boolean(),
+	trialEnabled: z.boolean(),
+
+	version: z.number().positive(),
+
+	items: z.custom<ProductItem[]>().nullable(),
+	addLicenses: z.custom<CustomizePlanLicense[]>().nullable(),
+
+	cancelAction: CancelActionSchema.nullable(),
+	billingBehavior: BillingBehaviorSchema.nullable(),
+	resetBillingCycle: z.boolean(),
+	billingCycleAnchorMode: z.enum(["now", "custom"]),
+	billingCycleAnchorDate: z.number().nullable(),
+	resetUsage: z.boolean(),
+	refundBehavior: RefundBehaviorSchema.nullable(),
+	refundAmount: z.enum(["prorated", "full"]).nullable(),
+	noBillingChanges: z.boolean(),
+	discounts: z.custom<FormDiscount[]>(),
+});
+
+export type UpdateSubscriptionForm = z.infer<
+	typeof UpdateSubscriptionFormSchema
+>;

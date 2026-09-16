@@ -1,0 +1,94 @@
+import type { CreatePlanItemParamsV1 } from "@api/models";
+import { RecaseError } from "@api/errors/base/RecaseError";
+import { ProductErrorCode } from "@api/errors/codes/productErrCodes";
+import { BillingMethod } from "@api/products/components/billingMethod";
+import { billingMethodToUsageModel } from "@api/products/components/mappers/billingMethodTousageModel";
+import type { ApiPlanItemV0 } from "@api/products/items/previousVersions/apiPlanItemV0";
+import { TierBehavior } from "@models/productModels/priceModels/priceConfig/usagePriceConfig";
+import { isContUseFeature } from "@utils/featureUtils/convertFeatureUtils";
+import { featureUtils } from "@utils/featureUtils/index";
+import { subtractIncludedFromTiers } from "@utils/productV2Utils/productItemUtils/tierUtils";
+import type { SharedContext } from "../../../../types/sharedContext";
+import type { ApiPlanItemV1 } from "../apiPlanItemV1";
+
+/** Transform ApiPlanItemV1 to ApiPlanItemV0 */
+export function planItemV1ToV0({
+	ctx,
+	item,
+}: {
+	ctx: SharedContext;
+	item: ApiPlanItemV1 | CreatePlanItemParamsV1;
+}): ApiPlanItemV0 {
+	const { included = 0, price, ...restItem } = item;
+
+	const billingUnits = price?.billing_units ?? 1;
+
+	const feature = ctx.features.find((f) => f.id === item.feature_id);
+	const resetUsageWhenEnabled = feature
+		? featureUtils.isConsumable(feature)
+		: true;
+	if (
+		feature &&
+		item.rollover &&
+		!item.proration &&
+		price?.billing_method === BillingMethod.UsageBased &&
+		isContUseFeature({ feature })
+	) {
+		throw new RecaseError({
+			message: `rollover requires proration for allocated usage-based features (feature: ${item.feature_id})`,
+			code: ProductErrorCode.InvalidProductItem,
+			statusCode: 400,
+		});
+	}
+
+	// V1 API: tier `to` values INCLUDE included usage.
+	// Internal: tier `to` values do NOT include included usage.
+	const internalTiers = price?.tiers
+		? subtractIncludedFromTiers({ tiers: price.tiers, included })
+		: undefined;
+
+	return {
+		...restItem,
+		threshold_billing: item.threshold_billing,
+		unlimited: item.unlimited ?? false,
+		granted_balance: included,
+		reset: item.reset
+			? {
+					interval: item.reset.interval,
+					interval_count: item.reset.interval_count,
+					reset_when_enabled: resetUsageWhenEnabled,
+				}
+			: null,
+		price: price
+			? {
+					stripe_price_id:
+						"stripe_price_id" in price
+							? price.stripe_price_id
+							: undefined,
+					processors: "processors" in price ? price.processors : undefined,
+					amount: price.amount,
+					tiers: internalTiers,
+					tier_behavior: internalTiers?.length
+						? (price.tier_behavior ?? TierBehavior.Graduated)
+						: undefined,
+					interval: price.interval,
+					interval_count: price.interval_count,
+					billing_units: billingUnits,
+					usage_model: billingMethodToUsageModel(price.billing_method),
+					max_purchase: price.max_purchase ?? null,
+				}
+			: null,
+
+		rollover: item.rollover
+			? {
+					max: item.rollover.max ?? null,
+					max_percentage: item.rollover.max_percentage ?? null,
+					expiry_duration_type: item.rollover.expiry_duration_type,
+					expiry_duration_length: item.rollover.expiry_duration_length,
+				}
+			: undefined,
+
+		entitlement_id: "entitlement_id" in item ? item.entitlement_id : undefined,
+		price_id: "price_id" in item ? item.price_id : undefined,
+	};
+}

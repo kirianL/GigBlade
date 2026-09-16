@@ -1,0 +1,284 @@
+import {
+	type AddPlanOp,
+	formatAmount,
+	formatInterval,
+	type Operations,
+	type UpdatePlanOp,
+} from "@autumn/shared";
+import { Separator } from "@autumn/ui";
+import { CurrencyCircleDollarIcon, GitBranchIcon } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
+import { SubscriptionItemRow } from "@/components/forms/update-subscription-v2/components/SubscriptionItemRow";
+import { ItemStatusDot } from "@/components/v2/ItemStatusDot";
+import { LicenseIcon } from "@/components/v2/icons/LicenseIcon";
+import { FeatureIconCluster } from "@/components/v2/PlanItemLabel";
+import { useOrg } from "@/hooks/common/useOrg";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useProductsQuery } from "@/hooks/queries/useProductsQuery";
+import {
+	AdditionalCurrenciesHint,
+	getCurrencyChangeStates,
+} from "@/views/products/plan/components/plan-card/AdditionalCurrenciesHint";
+import {
+	filterToProductItem,
+	getFilterSummary,
+	type ItemFilter,
+} from "../operations/operationItemUtils";
+import { planIdsFromFilter } from "../operations/UpdatePlanOpForm";
+import { migrationItemToProductItem } from "./migrationItemUtils";
+
+/** Full-width row matching SubscriptionItemRow, with an amber dot for an edited value. */
+function EditedRow({
+	icon,
+	text,
+	hint,
+}: {
+	icon: ReactNode;
+	text: ReactNode;
+	hint?: ReactNode;
+}) {
+	return (
+		<div className="flex items-center flex-1 min-w-0 h-10 px-3 rounded-xl input-base gap-2">
+			<div className="flex flex-row items-center flex-1 gap-2 min-w-0 overflow-hidden">
+				{icon}
+				<p className="whitespace-nowrap truncate min-w-0 text-body">{text}</p>
+				{hint}
+			</div>
+			<div className="flex items-center shrink-0">
+				<ItemStatusDot state="updated" />
+			</div>
+		</div>
+	);
+}
+
+/** A removal is a filter (feature + optional interval / included / billing
+ * method), not a concrete item, so it has no quantity — show the matched
+ * feature, not "0". */
+function RemovedFilterRow({ filter }: { filter: ItemFilter }) {
+	const { features } = useFeaturesQuery();
+	return (
+		<div className="flex items-center flex-1 min-w-0 h-10 px-3 rounded-xl input-base gap-2">
+			<div className="flex flex-row items-center flex-1 gap-2 min-w-0 overflow-hidden opacity-50">
+				<FeatureIconCluster item={filterToProductItem(filter)} />
+				<p className="whitespace-nowrap truncate flex-1 min-w-0 text-body">
+					{getFilterSummary(filter, features)}
+				</p>
+			</div>
+			<div className="flex items-center shrink-0">
+				<ItemStatusDot state="removed" />
+			</div>
+		</div>
+	);
+}
+
+/** SubscriptionItemRow draws its own bare row, so the card lives here to match
+ * the edited and removed rows beside it. */
+function AddedItemRow({
+	item,
+}: {
+	item: Parameters<typeof SubscriptionItemRow>[0]["item"];
+}) {
+	return (
+		<div className="flex items-center flex-1 min-w-0 h-10 px-3 rounded-xl input-base gap-2 [&>div]:flex-1 [&>div]:min-w-0">
+			<SubscriptionItemRow item={item} isCreated />
+		</div>
+	);
+}
+
+export function OperationsPreview({ operations }: { operations: Operations }) {
+	const { products } = useProductsQuery({ allVersions: true });
+	const { features } = useFeaturesQuery();
+	const { org } = useOrg();
+	const currency = org?.default_currency ?? "USD";
+	const ops = operations.customer ?? [];
+
+	if (ops.length === 0) return null;
+
+	const planName = (id: string) =>
+		products.find((p) => p.id === id)?.name ?? id;
+
+	return (
+		<div className="flex flex-col gap-3 min-w-0">
+			<Separator />
+			<div className="flex flex-col gap-3 min-w-0 max-h-72 overflow-y-auto overflow-x-hidden">
+				{ops.map((op, index) => {
+					if (op.type === "add_plan") {
+						const addOp = op as AddPlanOp;
+						return (
+							<div key={`op-${index}`} className="flex items-center gap-2">
+								<span className="text-sm font-medium text-foreground">
+									Add plan
+								</span>
+								<span className="text-xs text-tertiary-foreground">
+									{planName(addOp.plan_id)}
+								</span>
+							</div>
+						);
+					}
+
+					const updateOp = op as UpdatePlanOp;
+					const planIds = planIdsFromFilter(updateOp.plan_filter);
+					const customize = updateOp.customize;
+					const addItems = customize?.add_items ?? [];
+					const removeItems = customize?.remove_items ?? [];
+					const upsertLicenses = customize?.upsert_licenses ?? [];
+
+					const priceCurrencies = customize?.price?.additional_currencies ?? [];
+					const previousCurrencies =
+						customize?.previous_price?.additional_currencies ?? [];
+					const removedCurrencies = previousCurrencies.filter(
+						(previous) =>
+							!priceCurrencies.some(
+								(current) =>
+									current.currency.toLowerCase() ===
+									previous.currency.toLowerCase(),
+							),
+					);
+					const hintCurrencies = [...priceCurrencies, ...removedCurrencies];
+					const currencyChangeStates =
+						customize?.previous_price !== undefined
+							? {
+									...getCurrencyChangeStates({
+										entries: previousCurrencies,
+										others: priceCurrencies,
+										missingState: "removed",
+									}),
+									...getCurrencyChangeStates({
+										entries: priceCurrencies,
+										others: previousCurrencies,
+										missingState: "added",
+									}),
+								}
+							: undefined;
+
+					return (
+						<div key={`op-${index}`} className="flex flex-col gap-2 min-w-0">
+							<div className="flex items-center gap-2 min-w-0">
+								<span className="text-sm font-medium text-foreground whitespace-nowrap shrink-0">
+									{planIds.length > 1 ? "Update plans" : "Update plan"}
+								</span>
+								{planIds.length > 0 && (
+									<span className="text-xs text-tertiary-foreground truncate min-w-0">
+										{planIds.map(planName).join(", ")}
+									</span>
+								)}
+							</div>
+
+							{updateOp.version !== undefined && (
+								<EditedRow
+									icon={
+										<GitBranchIcon
+											size={16}
+											weight="duotone"
+											className="text-violet-500 shrink-0"
+										/>
+									}
+									text={`v${updateOp.version}`}
+								/>
+							)}
+
+							{customize?.price !== undefined && (
+								<EditedRow
+									hint={
+										hintCurrencies.length > 0 ? (
+											<AdditionalCurrenciesHint
+												changeStates={currencyChangeStates}
+												count={priceCurrencies.length}
+												currencies={hintCurrencies}
+											/>
+										) : undefined
+									}
+									icon={
+										<CurrencyCircleDollarIcon
+											size={16}
+											weight="duotone"
+											className="text-yellow-500 shrink-0"
+										/>
+									}
+									text={`${formatAmount({
+										currency,
+										amount: customize.price?.amount ?? 0,
+										amountFormatOptions: {
+											style: "currency",
+											currencyDisplay: "narrowSymbol",
+										},
+									})} ${formatInterval({
+										interval: customize.price?.interval ?? "month",
+										intervalCount: 1,
+									})}`}
+								/>
+							)}
+
+							{addItems.map((item, idx) => (
+								<AddedItemRow
+									key={`add-${idx}`}
+									item={migrationItemToProductItem(item, features)}
+								/>
+							))}
+
+							{upsertLicenses.map((license) => (
+								<div
+									className="flex flex-col gap-1"
+									key={`license-${license.license_plan_id}`}
+								>
+									<span className="flex items-center gap-1.5 text-xs text-subtle min-w-0">
+										<LicenseIcon size={12} className="shrink-0" />
+										<span className="truncate min-w-0">
+											{license.license_plan_id}
+										</span>
+									</span>
+									<div className="flex flex-col gap-1 border-l border-border pl-3 ml-1.5">
+										{license.customize?.price !== undefined && (
+											<EditedRow
+												icon={
+													<CurrencyCircleDollarIcon
+														size={16}
+														weight="duotone"
+														className="text-yellow-500 shrink-0"
+													/>
+												}
+												text={`${formatAmount({
+													currency,
+													amount: license.customize.price?.amount ?? 0,
+													amountFormatOptions: {
+														style: "currency",
+														currencyDisplay: "narrowSymbol",
+													},
+												})} ${formatInterval({
+													interval:
+														license.customize.price?.interval ?? "month",
+													intervalCount: 1,
+												})}`}
+											/>
+										)}
+										{(license.customize?.add_items ?? []).map((item, idx) => (
+											<AddedItemRow
+												key={`license-add-${idx}`}
+												item={migrationItemToProductItem(item, features)}
+											/>
+										))}
+										{(license.customize?.remove_items ?? []).map(
+											(item, idx) => (
+												<RemovedFilterRow
+													filter={item as ItemFilter}
+													key={`license-remove-${idx}`}
+												/>
+											),
+										)}
+									</div>
+								</div>
+							))}
+
+							{removeItems.map((item, idx) => (
+								<RemovedFilterRow
+									key={`remove-${idx}`}
+									filter={item as ItemFilter}
+								/>
+							))}
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}

@@ -1,0 +1,214 @@
+import type { ApiPlanItemV0 } from "@api/products/items/previousVersions/apiPlanItemV0";
+import { Infinite } from "@models/productModels/productEnums";
+import {
+	OnDecrease,
+	OnIncrease,
+} from "@models/productV2Models/productItemModels/productItemEnums";
+import {
+	type ProductItem,
+	type ProductItemConfig,
+	ProductItemSchema,
+	ProductItemType,
+	type RolloverConfig,
+	UsageModel,
+} from "@models/productV2Models/productItemModels/productItemModels";
+import {
+	apiFeatureOverrideToDb,
+	dbToApiFeatureV1,
+} from "@utils/featureUtils/apiFeatureToDbFeature";
+import { featureToItemFeatureType } from "@utils/featureUtils/convertFeatureUtils";
+import { featureUtils } from "@utils/featureUtils/index";
+import { resetIntvToItemIntv } from "@utils/productV2Utils/productItemUtils/convertProductItem/planItemIntervals";
+import { billingToItemInterval } from "@utils/productV2Utils/productItemUtils/itemIntervalUtils";
+import type { SharedContext } from "../../../../types/sharedContext";
+import {
+	type ApiFeatureV0,
+	type CreateBalanceParamsV0,
+	FeatureNotFoundError,
+} from "../../../models";
+import { ApiVersion } from "../../../versionUtils/ApiVersion";
+import { ApiVersionClass } from "../../../versionUtils/ApiVersionClass";
+import { hasPrice, hasResetInterval } from "../utils/classifyPlanItemV0";
+
+const planItemV0ToResetProductItemInterval = ({
+	planItemV0,
+}: {
+	planItemV0: ApiPlanItemV0;
+}) => {
+	// If reset is omitted, default the entitlement reset interval to the
+	// price interval. This preserves the existing create-plan behavior while
+	// still allowing explicit reset/price split intervals for prepaid items.
+	if (hasResetInterval(planItemV0)) {
+		return resetIntvToItemIntv(planItemV0.reset.interval);
+	}
+
+	if (hasPrice(planItemV0)) {
+		return billingToItemInterval({
+			billingInterval: planItemV0.price.interval,
+		});
+	}
+
+	return null;
+};
+
+const planItemV0ToItemConfig = ({
+	planItemV0,
+}: {
+	planItemV0: ApiPlanItemV0;
+}) => {
+	const toItemRollover = () => {
+		if (planItemV0.rollover) {
+			return {
+				max: planItemV0.rollover.max,
+				max_percentage: planItemV0.rollover.max_percentage ?? null,
+				duration: planItemV0.rollover.expiry_duration_type,
+				length: planItemV0.rollover.expiry_duration_length ?? 1,
+			} satisfies RolloverConfig;
+		}
+		return undefined;
+	};
+
+	const toItemProration = () => {
+		if (!planItemV0.proration) return undefined;
+
+		const { on_increase, on_decrease } = planItemV0.proration;
+
+		return {
+			on_increase: on_increase ?? OnIncrease.ProrateImmediately,
+			on_decrease: on_decrease ?? OnDecrease.Prorate,
+		};
+	};
+
+	const rollover = toItemRollover();
+	const proration = toItemProration();
+	const featureOverride = planItemV0.feature_override
+		? apiFeatureOverrideToDb(planItemV0.feature_override)
+		: undefined;
+	const thresholdBilling = planItemV0.threshold_billing ?? undefined;
+
+	if (rollover || proration || featureOverride || thresholdBilling) {
+		return {
+			rollover,
+			on_increase: proration?.on_increase,
+			on_decrease: proration?.on_decrease,
+			feature_override: featureOverride,
+			threshold_billing: thresholdBilling,
+		} satisfies ProductItemConfig;
+	}
+	return undefined;
+};
+
+/**
+ * Augmented CreateBalanceParams that can be used for planFeaturesToItems function
+ */
+type CreateBalanceForPlanFeatureMap = CreateBalanceParamsV0 & {
+	price?: undefined;
+} & {
+	reset?: CreateBalanceParamsV0["reset"] & { reset_when_enabled: true };
+};
+
+export const planItemV0ToProductItem = ({
+	ctx,
+	planItem,
+}: {
+	ctx: SharedContext;
+	planItem: ApiPlanItemV0;
+}): ProductItem => {
+	const { features } = ctx;
+
+	const feature = features.find((f) => f.id === planItem.feature_id);
+	if (!feature) {
+		throw new FeatureNotFoundError({ featureId: planItem.feature_id });
+	}
+
+	// Get interval
+	const resetInterval = planItemV0ToResetProductItemInterval({
+		planItemV0: planItem,
+	});
+	const resetIntervalCount =
+		planItem.reset?.interval_count ?? planItem.price?.interval_count;
+	const priceInterval = planItem.price
+		? billingToItemInterval({
+				billingInterval: planItem.price.interval,
+			})
+		: undefined;
+
+	const priceIntervalCount = planItem.price?.interval_count ?? 1;
+	const config = planItemV0ToItemConfig({ planItemV0: planItem });
+
+	const type = planItem.price
+		? ProductItemType.FeaturePrice
+		: ProductItemType.Feature;
+
+	const entitlementId =
+		"entitlement_id" in planItem ? planItem.entitlement_id : undefined;
+	const priceId = "price_id" in planItem ? planItem.price_id : undefined;
+
+	const resetUsageWhenEnabled = featureUtils.isConsumable(feature);
+
+	// One stated id, two slots: prepaid bills from v2, everything else from v1.
+	// Presence is the signal: an omitted `stripe` states nothing and leaves the
+	// current mapping alone, while an explicit null unlinks it.
+	const statedStripe = planItem.price?.processors?.stripe;
+	const statedStripePriceId =
+		statedStripe === undefined ? undefined : (statedStripe?.price_id ?? null);
+	const billsFromPrepaidSlot =
+		planItem.price?.usage_model === UsageModel.Prepaid;
+	const statedForV1Slot = billsFromPrepaidSlot
+		? undefined
+		: statedStripePriceId;
+
+	return ProductItemSchema.parse({
+		type,
+
+		feature_id: planItem.feature_id,
+		feature_type: featureToItemFeatureType({ feature }),
+		feature: dbToApiFeatureV1({
+			ctx,
+			dbFeature: feature,
+			targetVersion: new ApiVersionClass(ApiVersion.V1_2),
+		}) as unknown as ApiFeatureV0,
+
+		included_usage: planItem.unlimited ? Infinite : planItem.granted_balance,
+
+		interval: resetInterval,
+		interval_count: resetIntervalCount,
+		price_interval: priceInterval,
+		price_interval_count: priceIntervalCount,
+
+		price: planItem.price?.amount,
+		stripe_price_id:
+			statedForV1Slot === undefined
+				? planItem.price?.stripe_price_id
+				: statedForV1Slot,
+		stripe_prepaid_price_v2_id: billsFromPrepaidSlot
+			? statedStripePriceId
+			: undefined,
+
+		tiers: planItem.price?.tiers?.map((tier) => ({
+			amount: tier.amount,
+			to: tier.to,
+			flat_amount: tier.flat_amount,
+		})),
+		tier_behavior: planItem.price?.tier_behavior,
+
+		usage_model: planItem.price?.usage_model,
+		billing_units: planItem.price?.billing_units,
+		usage_limit: planItem.price?.max_purchase
+			? planItem.price.max_purchase + (planItem.granted_balance ?? 0)
+			: undefined,
+
+		reset_usage_when_enabled:
+			planItem.reset?.reset_when_enabled ?? resetUsageWhenEnabled,
+
+		config,
+
+		display: "display" in planItem ? planItem.display : undefined,
+
+		entitlement_id: entitlementId,
+		price_id: priceId,
+
+		entity_feature_id: planItem.entity_feature_id ?? null,
+		pooled: planItem.pooled ?? false,
+	} satisfies ProductItem);
+};

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/autumn-logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <title>GigBlade</title>
+    <script>
+      (() => {
+        try {
+          const theme = localStorage.getItem("theme") || '"system"';
+          const parsedTheme = JSON.parse(theme);
+
+          let resolvedTheme = parsedTheme;
+          if (parsedTheme === "system") {
+            resolvedTheme = window.matchMedia("(prefers-color-scheme: dark)")
+              .matches
+              ? "dark"
+              : "light";
+          }
+
+          document.documentElement.classList.add(resolvedTheme);
+          document.documentElement.style.backgroundColor =
+            resolvedTheme === "dark" ? "#000000" : "#fafaf9";
+        } catch (e) {
+          document.documentElement.classList.add("light");
+          document.documentElement.style.backgroundColor = "#fafaf9";
+        }
+      })();
+    </script>
+
+    <script type="module">
+      if (import.meta.env.DEV) {
+        import("react-grab");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

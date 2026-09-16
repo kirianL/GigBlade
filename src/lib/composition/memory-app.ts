@@ -1,6 +1,7 @@
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
+import { listWishlistRequests } from "@/application/wishlist/list-wishlist-requests";
 import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
 import { InMemoryTenantRepository } from "@/infrastructure/memory/in-memory-tenant-repository";
@@ -14,6 +15,7 @@ export const memoryDemoTenant: Tenant = {
   id: MEMORY_TENANT_ID,
   slug: "demo",
   plan: "all_inclusive",
+  templateId: "after",
   themeConfig: {
     displayName: "Nox",
     tagline: "Sets nocturnos para pistas que no cierran",
@@ -26,6 +28,8 @@ export function createMemoryApp() {
   const tenants = new InMemoryTenantRepository([memoryDemoTenant]);
   const routing = new InMemoryTenantRoutingStore([
     ["localhost", createTenantRouting(memoryDemoTenant, "localhost")],
+    ["127.0.0.1", createTenantRouting(memoryDemoTenant, "localhost")],
+    ["demo.localhost", createTenantRouting(memoryDemoTenant, "demo.localhost")],
   ]);
   const wishlist = new InMemoryWishlistRepository();
   const waitlist = new InMemoryWaitlistRepository();
@@ -41,6 +45,8 @@ export function createMemoryApp() {
       context: Parameters<typeof submitWishlistRequest>[1],
       input: unknown,
     ) => submitWishlistRequest(wishlist, context, input),
+    listWishlistRequests: (tenantId?: string) =>
+      listWishlistRequests(wishlist, tenantId),
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
   };
 }

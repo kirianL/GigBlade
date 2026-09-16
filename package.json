@@ -5,7 +5,8 @@
   "scripts": {
     "predev": "node scripts/link-landing-assets.mjs",
     "prebuild": "node scripts/link-landing-assets.mjs",
-    "dev": "next dev",
+		"dev": "next dev",
+		"dev:dashboard": "bun run --cwd ui/dashboard dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

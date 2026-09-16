@@ -1,0 +1,45 @@
+import { z } from "zod/v4";
+import { CustomerBillingControlsParamsSchema } from "../../models/cusModels/billingControls/customerBillingControls.js";
+import { rejectDuplicateBillingControls } from "../../models/cusModels/billingControls/duplicates/rejectDuplicateBillingControls.js";
+import { ApiAutoTopupSchema } from "./autoTopup.js";
+import { ApiOverageAllowedSchema } from "./overageAllowed.js";
+import { ApiSpendLimitSchema } from "./spendLimit.js";
+import { ApiUsageAlertSchema } from "./usageAlert.js";
+import { ApiUsageLimitSchema, WritableUsageLimitsShape } from "./usageLimit.js";
+
+/**
+ * Response-only variant of CustomerBillingControlsSchema: `auto_topups` may
+ * carry the expanded runtime purchase-limit shape, and `usage_limits` carry
+ * the current window `usage`. Input/params validation continues to use
+ * `CustomerBillingControlsParamsSchema` (models), which remains strict.
+ */
+export const CustomerBillingControlsResponseSchema = z.object({
+	auto_topups: z.array(ApiAutoTopupSchema).optional().meta({
+		description: "List of auto top-up configurations per feature.",
+	}),
+	spend_limits: z.array(ApiSpendLimitSchema).optional().meta({
+		description:
+			"List of overage spend limits per feature (caps overage spend).",
+	}),
+	usage_limits: z.array(ApiUsageLimitSchema).optional().meta({
+		description:
+			"List of hard usage caps per feature, with current interval usage.",
+	}),
+	usage_alerts: z.array(ApiUsageAlertSchema).optional().meta({
+		description: "List of usage alert configurations per feature.",
+	}),
+	overage_allowed: z.array(ApiOverageAllowedSchema).optional().meta({
+		description:
+			"List of overage allowed controls per feature. When enabled, usage can exceed balance.",
+	}),
+});
+
+export type CustomerBillingControlsResponse = z.infer<
+	typeof CustomerBillingControlsResponseSchema
+>;
+
+/** Update-request variant: usage limits may also be counter-only writes. */
+export const CustomerBillingControlsUpdateSchema =
+	CustomerBillingControlsParamsSchema.extend(WritableUsageLimitsShape).check(
+		rejectDuplicateBillingControls,
+	);

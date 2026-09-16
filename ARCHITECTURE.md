@@ -6,10 +6,10 @@ Estado: arquitectura objetivo para el MVP. Landing pública y dashboard operativ
 
 ### Estado de implementación
 
-- Hecho: migraciones SQL sin bookings, dominio de tenant, fakes en memoria, adaptadores reales, `/api/tenant`, switch `APP_RUNTIME`, landing `/` y dashboard `/dashboard`.
+- Hecho: migraciones SQL sin bookings, dominio de tenant, fakes en memoria, adaptadores reales, `/api/tenant`, switch `APP_RUNTIME`, landing `/`, dashboard `/dashboard` y cableado de plantillas de sitio DJ (`template_id`, rewrite a `/site`).
 - Cableado: `getApp()` lee `APP_RUNTIME`. `memory` (default) usa fakes; `real` instancia `createRealApp()`.
-- Fuera de alcance ahora: persistir bookings o formularios de contacto.
-- Pendiente: MFA en dashboard, Edge Config, Cloudflare, Vercel Domains y aplicar migraciones.
+- Fuera de alcance ahora: persistir bookings o formularios de contacto; diseño visual de las plantillas DJ.
+- Pendiente: MFA en dashboard, Edge Config, Cloudflare, Vercel Domains, aplicar migraciones y diseñar las plantillas.
 
 ## Principios no negociables
 
@@ -111,6 +111,66 @@ export const config = {
 Los encabezados internos transportan contexto dentro de Next.js, pero no reemplazan la autorización de base de datos. Ningún repositorio acepta un `tenant_id` proveniente del body, query string o formulario.
 
 Si Edge Config falla, la respuesta es cerrada (`503`) y no se consulta Supabase como fallback por request. Un dominio desconocido o suspendido devuelve `404`.
+
+### Sitios de tenant y plantillas
+
+Un mismo deploy atiende dos superficies. El hostname decide, nunca un `tenant_id` del cliente:
+
+| Superficie | Hosts | Rutas públicas |
+|---|---|---|
+| Plataforma (marketing) | `gigblade.com`, `www`, `*.vercel.app`, `localhost`, IPs LAN | landing actual |
+| Sitio DJ | dominio propio del tenant o `*.localhost` de preview (`demo.localhost`) | rewrite interno a `/site` |
+
+`src/proxy.ts` resuelve el tenant, escribe encabezados internos y, si el host es superficie de sitio, reescribe `/` → `/site`. No se reescriben `/api/*`, `/dashboard` ni archivos estáticos.
+
+La plantilla es un id de catálogo en código, persistido en `tenants.template_id` (migración `0007_tenant_site_templates.sql`). No vive solo dentro de `theme_config`. Ids actuales: `pista`, `festival`, `after`. Un id desconocido falla cerrado (`404`).
+
+`theme_config` sigue siendo contenido/tokens (nombre, tagline, ciudad). El registro `src/lib/tenant/templates/registry.ts` mapea cada id a un renderer. Hoy los tres ids apuntan al mismo placeholder estructural, sin diseño visual.
+
+Contrato público (`GET /api/tenant` y el sitio):
+
+```ts
+type PublicTenant = {
+  slug: string;
+  domain: string;
+  templateId: "pista" | "festival" | "after";
+  themeConfig: Record<string, unknown>;
+};
+```
+
+En local: `http://localhost:3000` es la landing de GigBlade. `http://demo.localhost:3000` (o `http://localhost:3000/site` con el tenant de memoria) es el sitio DJ.
+
+#### Lectura pública (visitante anónimo)
+
+`anon` no tiene `GRANT SELECT` sobre `tenants`. La página pública de un DJ no pasa por RLS de miembro: el servidor lee con `service_role` y filtra por el `tenant_id` que resolvió `proxy.ts` contra Edge Config, nunca por un id del cliente.
+
+```text
+visitante → hostname → proxy.ts (Edge Config)
+         → x-tenant-id interno
+         → GET /api/tenant o src/app/site
+         → SupabaseTenantRepository.findById(context.tenantId)
+         → service_role + .eq("id", context.tenantId)
+         → template_id + theme_config
+```
+
+Ese filtro explícito no es opcional: `service_role` omite RLS, y esta es la ruta de cada visita anónima a un sitio DJ. Un `.from("tenants").select(...)` sin `.eq("id", context.tenantId)` expondría filas de otros tenants.
+
+#### Si `0007` (o `tenants`) no está aplicada
+
+No hay fallback a `pista` ni se asume `template_id === undefined`. Casos:
+
+| Resultado de Postgres/PostgREST | Código | HTTP |
+|---|---|---|
+| Error de esquema (`42703`, tabla o columna ausente) | `SERVICE_UNAVAILABLE` | 503 |
+| Fila sin `template_id` | `SERVICE_UNAVAILABLE` | 503 |
+| Fila inexistente | `NOT_FOUND` | 404 |
+| `template_id` fuera del catálogo (`neon`) | `NOT_FOUND` | 404 |
+
+No convertir un 503 de esquema en 404 de “tenant no encontrado”: el visitante vería que el DJ no existe cuando el fallo es de plataforma.
+
+PostgREST usa el mismo shape `{ data, error }` para “no hay fila” y para “no hay tabla/columna”. Toda consulta Supabase pasa por `readPostgrestResult` / `failPostgrestQuery` (`src/infrastructure/supabase/postgrest.ts`): `error.code` 42703/42P01/PGRST204/PGRST205 es fallo de esquema (503), no ausencia de fila. No usar `error || !data → null` en repositorios nuevos.
+
+El 503 al visitante es genérico. El diagnóstico va al log `postgrest_query_failed` (`operation`, `tenantId`, `providerCode`, `reason`). Un fallo de esquema emite además `platform_alert` de inmediato; el mismo `query_failed` tres veces en un minuto también. No hay pager: Kirian o quien administre Vercel mira Runtime Logs al entrar al dashboard y al menos una vez por semana (no solo en el release). La retención no es eterna: Hobby 1 h, Pro 1 día, Enterprise 3 días; Observability Plus 30 días. Ver `SECURITY.md` A09.
 
 ### Sincronización de Edge Config
 
@@ -394,7 +454,7 @@ No se concede escritura directa sobre `tenants`, `tenant_domains`, `tenant_membe
 
 La plataforma no almacena bookings en esta fase. Si se agrega más adelante, será una migración nueva, no una reescritura de estas tablas.
 
-`service_role` omite RLS. Por ello, cada método privilegiado recibe un objeto `TenantContext` construido por código confiable y añade `.eq("tenant_id", context.tenantId)` en lecturas, actualizaciones y borrados. Esto se valida con pruebas de aislamiento entre dos tenants.
+`service_role` omite RLS. Por ello, cada método privilegiado recibe un objeto `TenantContext` construido por código confiable y añade `.eq("tenant_id", context.tenantId)` o `.eq("id", context.tenantId)` en lecturas, actualizaciones y borrados. La página pública del DJ es el ejemplo concreto: el visitante es `anon` y no puede leer `tenants`; el servidor usa `service_role` y debe filtrar por el tenant del proxy. Esto se valida con pruebas de aislamiento entre dos tenants.
 
 ### Administradores y MFA
 
@@ -427,7 +487,7 @@ Las colecciones usan plural de forma consistente:
 - Errores JSON tipados con `code`, `message` seguro y `requestId`.
 - No devolver mensajes internos de proveedores.
 - Timeouts y cancelación en llamadas externas.
-- Logs estructurados con `requestId`, operación y tenant; nunca tokens, email completo ni contenido del mensaje.
+- Logs estructurados con `requestId`, operación y tenant; nunca tokens, email completo ni contenido del mensaje. Un 503 de plataforma se loguea (`postgrest_query_failed` / `platform_alert` / `app_error`); un 404 de recurso no.
 - `Idempotency-Key` obligatorio en operaciones facturables o reintentables.
 
 ## Rate limiting y aislamiento de tráfico
@@ -547,7 +607,9 @@ Dependencias apuntan hacia el dominio, no hacia proveedores:
 ```text
 src/
   app/                    # rutas, Server Components y Route Handlers
+    site/                 # superficie DJ (rewrite desde el hostname del tenant)
   application/            # casos de uso y orquestación
+    sites/                # resolver plantilla + perfil público del tenant
   domain/                 # entidades, invariantes y errores
   infrastructure/
     cloudflare/
@@ -560,6 +622,7 @@ src/
     http/
     rate-limit/
     tenant/
+      templates/          # registro de renderers (sin diseño en esta fase)
 ```
 
 Convenciones:

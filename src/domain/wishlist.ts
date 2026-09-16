@@ -15,6 +15,7 @@ export type WishlistEventType = (typeof WISHLIST_EVENT_TYPES)[number];
 export type WishlistRequest = {
   id: string;
   tenantId: string;
+  artistName: string | null;
   name: string;
   email: string;
   eventType: WishlistEventType;
@@ -40,6 +41,7 @@ export const wishlistRequestInputSchema = z.object({
   eventDate: z.string().optional(),
   note: optionalText(500),
   website: z.string().max(200).optional(),
+  artistName: optionalText(80),
 });
 
 export type WishlistRequestInput = z.infer<typeof wishlistRequestInputSchema>;
@@ -63,6 +65,7 @@ export function normalizeWishlistInput(input: WishlistRequestInput): {
   city: string;
   eventDate: string | null;
   note: string | null;
+  artistName: string | null;
   isHoneypot: boolean;
 } {
   const rawDate = input.eventDate?.trim() ?? "";
@@ -79,6 +82,7 @@ export function normalizeWishlistInput(input: WishlistRequestInput): {
     city: input.city,
     eventDate,
     note: input.note ?? null,
+    artistName: input.artistName ?? null,
     isHoneypot: Boolean(input.website?.trim()),
   };
 }

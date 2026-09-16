@@ -1,0 +1,427 @@
+import {
+	ACTIVE_STATUSES,
+	cusEntsToBalance,
+	cusEntsToGrantedBalance,
+	cusEntsToPrepaidQuantity,
+	type DbUsageAlert,
+	DEFAULT_USAGE_ALERT_BASIS,
+	type Feature,
+	FeatureType,
+	type FullCustomer,
+	filterUnresolvableUsageLimitAlerts,
+	fullCustomerToCustomerEntitlements,
+	nullish,
+	type UsageAlertBasis,
+} from "@autumn/shared";
+import {
+	Button,
+	FormLabel,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	Switch,
+} from "@autumn/ui";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { UsageAlertBasisSelect } from "@/components/billing-controls/UsageAlertBasisSelect";
+import { USAGE_ALERT_BASIS_OPTIONS } from "@/components/billing-controls/usageAlertBasisOptions";
+import {
+	USAGE_ALERT_THRESHOLD_TYPE_LABELS,
+	USAGE_ALERT_THRESHOLD_TYPE_OPTIONS,
+} from "@/components/billing-controls/usageAlertThresholdTypeOptions";
+import { FeatureSearchDropdown } from "@/components/v2/dropdowns/FeatureSearchDropdown";
+import {
+	LayoutGroup,
+	SheetFooter,
+	SheetHeader,
+	SheetSection,
+} from "@/components/v2/sheets/SharedSheetComponents";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useSheetStore } from "@/hooks/stores/useSheetStore";
+import { CusService } from "@/services/customers/CusService";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { getBackendErr } from "@/utils/genUtils";
+import { useCusQuery } from "@/views/customers/customer/hooks/useCusQuery";
+import { useCustomerContext } from "../../customer/CustomerContext";
+import {
+	type UsageLimitCondition,
+	UsageLimitConditionRows,
+} from "./UsageLimitConditionRows";
+import {
+	conditionsFromFilter,
+	conditionsToFilter,
+} from "./usageLimitFilterConditions";
+import { useCustomerPropertyKeys } from "./useCustomerPropertyKeys";
+
+export function BillingUsageAlertSheet() {
+	const closeSheet = useSheetStore((s) => s.closeSheet);
+	const sheetData = useSheetStore((s) => s.data);
+	const sheetType = useSheetStore((s) => s.type);
+	const { customer, refetch } = useCusQuery();
+	const { entityId } = useCustomerContext();
+	const { features } = useFeaturesQuery();
+	const axiosInstance = useAxiosInstance();
+
+	const isEdit = sheetType === "billing-usage-alert-edit";
+	const existingItem = sheetData?.item as DbUsageAlert | undefined;
+	const existingIndex = sheetData?.index as number | undefined;
+
+	const fullCustomer = customer as FullCustomer | undefined;
+	const selectedEntity = entityId
+		? fullCustomer?.entities?.find(
+				(e) => e.id === entityId || e.internal_id === entityId,
+			)
+		: null;
+
+	const [isSaving, setIsSaving] = useState(false);
+	const [featureId, setFeatureId] = useState(existingItem?.feature_id ?? "");
+	const [enabled, setEnabled] = useState(existingItem?.enabled ?? true);
+	const [name, setName] = useState(existingItem?.name ?? "");
+	const [threshold, setThreshold] = useState(
+		existingItem?.threshold?.toString() ?? "",
+	);
+	const [thresholdType, setThresholdType] = useState<string>(
+		existingItem?.threshold_type ?? "usage",
+	);
+	const [basis, setBasis] = useState<UsageAlertBasis>(
+		existingItem?.basis ?? DEFAULT_USAGE_ALERT_BASIS,
+	);
+	const [conditions, setConditions] = useState<UsageLimitCondition[]>(
+		conditionsFromFilter(existingItem?.filter),
+	);
+	const measuresUsageLimit = basis === "usage_limit";
+	const propertySuggestions = useCustomerPropertyKeys({
+		customerId: measuresUsageLimit
+			? fullCustomer?.id || fullCustomer?.internal_id
+			: undefined,
+	});
+
+	const nonArchivedFeatures = (features ?? []).filter(
+		(f: Feature) => !f.archived && f.type !== FeatureType.Boolean,
+	);
+
+	const featureRemaining = useMemo(() => {
+		if (!fullCustomer || !featureId) return null;
+
+		const cusEnts = fullCustomerToCustomerEntitlements({
+			fullCustomer,
+			featureId,
+			entity: selectedEntity ?? undefined,
+			inStatuses: ACTIVE_STATUSES,
+		});
+
+		const grantedBalance = cusEntsToGrantedBalance({
+			cusEnts,
+			entityId: entityId ?? undefined,
+		});
+		const prepaid = cusEntsToPrepaidQuantity({
+			cusEnts,
+			sumAcrossEntities: nullish(entityId),
+		});
+		const totalAllowance = grantedBalance + prepaid;
+
+		const balance = cusEntsToBalance({
+			cusEnts,
+			entityId: entityId ?? undefined,
+		});
+
+		return {
+			remaining: balance,
+			remainingPercentage:
+				totalAllowance > 0 ? (balance / totalAllowance) * 100 : null,
+		};
+	}, [fullCustomer, featureId, selectedEntity, entityId]);
+
+	const getCurrentUsageAlerts = () => {
+		if (selectedEntity) return [...(selectedEntity.usage_alerts ?? [])];
+		return [...(fullCustomer?.usage_alerts ?? [])];
+	};
+
+	const saveBillingControls = async ({
+		usageAlerts,
+	}: {
+		usageAlerts: DbUsageAlert[];
+	}) => {
+		const customerId = fullCustomer?.id || fullCustomer?.internal_id;
+		if (!customerId) return;
+
+		if (selectedEntity) {
+			await CusService.updateEntity({
+				axios: axiosInstance,
+				customerId,
+				entityId: selectedEntity.id || selectedEntity.internal_id,
+				billingControls: {
+					usage_alerts: usageAlerts,
+				},
+			});
+		} else {
+			await CusService.updateCustomer({
+				axios: axiosInstance,
+				customer_id: customerId,
+				data: {
+					billing_controls: {
+						usage_alerts: usageAlerts,
+					},
+				},
+			});
+		}
+	};
+
+	const handleSave = async () => {
+		const parsedThreshold = Number.parseFloat(threshold);
+		if (Number.isNaN(parsedThreshold) || parsedThreshold < 0) {
+			toast.error("Please enter a valid threshold");
+			return;
+		}
+
+		if (thresholdType === "remaining_percentage" && parsedThreshold > 100) {
+			toast.error("Remaining percentage threshold must be between 0 and 100");
+			return;
+		}
+
+		if (measuresUsageLimit && !featureId) {
+			toast.error("Choose a feature to measure against a usage limit");
+			return;
+		}
+
+		const { filter, error: filterError } = measuresUsageLimit
+			? conditionsToFilter(conditions)
+			: {};
+		if (filterError) {
+			toast.error(filterError);
+			return;
+		}
+
+		const item: DbUsageAlert = {
+			feature_id: featureId || undefined,
+			enabled,
+			threshold: parsedThreshold,
+			threshold_type: thresholdType as DbUsageAlert["threshold_type"],
+			basis,
+			...(filter && { filter }),
+			name: name.trim() || undefined,
+		};
+		const unresolvable = filterUnresolvableUsageLimitAlerts({
+			usageAlerts: [item],
+			usageLimitLists: [
+				selectedEntity?.usage_limits,
+				fullCustomer?.usage_limits,
+				fullCustomer?.customer_products?.flatMap(
+					(customerProduct) => customerProduct.product?.usage_limits ?? [],
+				),
+			],
+		});
+		if (unresolvable.length > 0) {
+			toast.error("No usage limit matches this feature and conditions");
+			return;
+		}
+
+		const currentUsageAlerts = getCurrentUsageAlerts();
+
+		if (isEdit && existingIndex !== undefined) {
+			currentUsageAlerts[existingIndex] = item;
+		} else {
+			currentUsageAlerts.push(item);
+		}
+
+		setIsSaving(true);
+		try {
+			await saveBillingControls({ usageAlerts: currentUsageAlerts });
+			await refetch();
+			closeSheet();
+			toast.success(isEdit ? "Usage alert updated" : "Usage alert added");
+		} catch (error) {
+			toast.error(getBackendErr(error, "Failed to save usage alert"));
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	const handleDelete = async () => {
+		if (existingIndex === undefined) return;
+
+		const currentUsageAlerts = getCurrentUsageAlerts();
+		currentUsageAlerts.splice(existingIndex, 1);
+
+		setIsSaving(true);
+		try {
+			await saveBillingControls({ usageAlerts: currentUsageAlerts });
+			await refetch();
+			closeSheet();
+			toast.success("Usage alert deleted");
+		} catch (error) {
+			toast.error(getBackendErr(error, "Failed to delete usage alert"));
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	return (
+		<LayoutGroup>
+			<div className="flex h-full flex-col overflow-y-auto">
+				<SheetHeader
+					title={isEdit ? "Edit Usage Alert" : "Add Usage Alert"}
+					description="Configure alerts that notify when usage reaches a threshold."
+				/>
+
+				<SheetSection withSeparator>
+					<FormLabel>Feature</FormLabel>
+					{isEdit ? (
+						<div className="text-sm text-muted-foreground">
+							{featureId
+								? (nonArchivedFeatures.find((f: Feature) => f.id === featureId)
+										?.name ?? featureId)
+								: "All features"}
+						</div>
+					) : (
+						<FeatureSearchDropdown
+							features={nonArchivedFeatures}
+							value={featureId || null}
+							onSelect={setFeatureId}
+							placeholder="Optional — leave empty for global"
+						/>
+					)}
+				</SheetSection>
+
+				{featureRemaining && (
+					<SheetSection withSeparator>
+						<div className="flex items-center gap-4">
+							<div className="flex flex-col">
+								<FormLabel>Remaining</FormLabel>
+								<span className="text-sm text-muted-foreground">
+									{featureRemaining.remaining.toLocaleString()}
+								</span>
+							</div>
+							{featureRemaining.remainingPercentage !== null && (
+								<div className="flex flex-col">
+									<FormLabel>Remaining %</FormLabel>
+									<span className="text-sm text-muted-foreground">
+										{Math.round(featureRemaining.remainingPercentage)}%
+									</span>
+								</div>
+							)}
+						</div>
+					</SheetSection>
+				)}
+
+				<SheetSection withSeparator>
+					<div className="flex flex-col gap-3">
+						<div className="flex items-center justify-between">
+							<FormLabel className="mb-0">Enabled</FormLabel>
+							<Switch checked={enabled} onCheckedChange={setEnabled} />
+						</div>
+
+						<div>
+							<FormLabel>Name</FormLabel>
+							<Input
+								placeholder="Optional label for this alert"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+							/>
+						</div>
+
+						<div>
+							<FormLabel>Threshold type</FormLabel>
+							<Select
+								value={thresholdType}
+								onValueChange={setThresholdType}
+								items={USAGE_ALERT_THRESHOLD_TYPE_LABELS}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{USAGE_ALERT_THRESHOLD_TYPE_OPTIONS.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						<UsageAlertBasisSelect
+							value={basis}
+							options={USAGE_ALERT_BASIS_OPTIONS}
+							onChange={setBasis}
+						/>
+
+						{measuresUsageLimit && (
+							<div>
+								<FormLabel>Conditions</FormLabel>
+								<UsageLimitConditionRows
+									conditions={conditions}
+									onChange={setConditions}
+									suggestions={propertySuggestions}
+								/>
+								<p className="mt-2 text-tertiary-foreground text-xs">
+									Leave empty to measure this feature's usage limit without
+									conditions. Add conditions only to target a limit that has the
+									same ones.
+								</p>
+							</div>
+						)}
+
+						<div>
+							<FormLabel>
+								Threshold
+								{thresholdType === "usage_percentage" ||
+								thresholdType === "remaining_percentage"
+									? " (%)"
+									: ""}
+							</FormLabel>
+							<Input
+								placeholder={
+									thresholdType === "usage_percentage" ||
+									thresholdType === "remaining_percentage"
+										? "eg, 80"
+										: "eg, 1000"
+								}
+								type="number"
+								value={threshold}
+								onChange={(e) => setThreshold(e.target.value)}
+							/>
+						</div>
+					</div>
+				</SheetSection>
+
+				<div className="flex-1" />
+
+				{isEdit && (
+					<div className="px-4 pb-2">
+						<Button
+							variant="ghost"
+							className="text-destructive hover:text-destructive w-full"
+							onClick={handleDelete}
+							disabled={isSaving}
+						>
+							Delete usage alert
+						</Button>
+					</div>
+				)}
+
+				<SheetFooter>
+					<Button
+						variant="secondary"
+						className="w-full"
+						onClick={closeSheet}
+						disabled={isSaving}
+					>
+						Cancel
+					</Button>
+					<Button
+						variant="primary"
+						className="w-full"
+						onClick={handleSave}
+						isLoading={isSaving}
+					>
+						{isEdit ? "Save" : "Add"}
+					</Button>
+				</SheetFooter>
+			</div>
+		</LayoutGroup>
+	);
+}

@@ -1,0 +1,171 @@
+import {
+	AllocatedBillingBehavior,
+	BillingInterval,
+	FeatureUsageType,
+	getFeatureName,
+	Infinite,
+	isContUseItem,
+	isFeaturePriceItem,
+	ProductItemInterval,
+	UsageModel,
+} from "@autumn/shared";
+import { PanelButton } from "@autumn/ui";
+import { CoinsIcon } from "@phosphor-icons/react";
+import { IncludedUsageIcon } from "@/components/v2/icons/AutumnIcons";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useProductItemContext } from "@/views/products/product/product-item/ProductItemContext";
+
+export function BillingType() {
+	const { features } = useFeaturesQuery();
+	const { item, setItem } = useProductItemContext();
+
+	if (!item) return null;
+
+	// Derive billing type from item state
+	const isFeaturePrice = isFeaturePriceItem(item);
+	const feature = features.find((f) => f.id === item.feature_id);
+
+	const getConfigForBillingType = ({
+		usageModel,
+	}: {
+		usageModel?: UsageModel;
+	}) => {
+		if (!isContUseItem({ item, features })) return item.config;
+
+		if (usageModel !== UsageModel.PayPerUse) {
+			const {
+				allocated_billing_behavior,
+				on_increase,
+				on_decrease,
+				...config
+			} = item.config ?? {};
+			return Object.keys(config).length > 0 ? config : undefined;
+		}
+
+		const hasProrationKnobs =
+			item.config?.on_increase != null || item.config?.on_decrease != null;
+		return {
+			...item.config,
+			allocated_billing_behavior:
+				item.config?.allocated_billing_behavior ??
+				(hasProrationKnobs
+					? AllocatedBillingBehavior.Prorated
+					: AllocatedBillingBehavior.Arrear),
+		};
+	};
+
+	// Determine if we should preselect based on explicit configuration
+	const hasExplicitConfig =
+		isFeaturePrice || // Has tiers, so it's priced
+		(item.included_usage !== undefined && item.included_usage !== null) || // Has explicit included usage
+		item.usage_model !== undefined; // Has explicit usage model
+
+	const shouldPreselect = hasExplicitConfig;
+
+	const setBillingType = (type: "included" | "priced") => {
+		const getPricedInterval = () => {
+			if (
+				!Object.values(BillingInterval).includes(
+					item.interval as unknown as BillingInterval,
+				)
+			) {
+				return ProductItemInterval.Month;
+			}
+			return item.interval;
+		};
+
+		if (type === "included") {
+			// Remove tiers to switch to included
+			setItem({
+				...item,
+				tiers: null,
+				billing_units: undefined,
+				usage_model: undefined,
+				price: null,
+				price_config: null,
+				config: getConfigForBillingType({}),
+				included_usage: item.included_usage,
+				interval: isContUseItem({ item, features }) ? null : item.interval,
+			});
+		} else {
+			// Only switch if not already priced
+			if (!isFeaturePrice) {
+				// Add initial tier to switch to priced
+				setItem({
+					...item,
+					tiers: [{ to: Infinite, amount: 0 }],
+					billing_units: 1,
+					usage_model: UsageModel.PayPerUse,
+					config: getConfigForBillingType({
+						usageModel: UsageModel.PayPerUse,
+					}),
+					included_usage:
+						item.included_usage === Infinite ? 0 : item.included_usage,
+					interval: getPricedInterval(),
+				});
+			}
+		}
+	};
+
+	const featureName =
+		getFeatureName({
+			feature,
+			plural: true,
+		}) || "credits";
+	const singleFeatureName =
+		getFeatureName({
+			feature,
+			plural: false,
+		}) || "credit";
+
+	const usageType =
+		feature?.config?.usage_type ||
+		undefined; /* could be FeatureUsageType.Single or FeatureUsageType.Continuous */
+
+	const isConsumable = usageType === FeatureUsageType.Single;
+	const isAllocated = usageType === FeatureUsageType.Continuous;
+
+	return (
+		<div className="mt-3 space-y-4 billing-type-section">
+			<div className="flex w-full items-center gap-4">
+				<PanelButton
+					isSelected={!isFeaturePrice}
+					onClick={() => {
+						setBillingType("included");
+					}}
+					icon={<IncludedUsageIcon size={18} color="currentColor" />}
+				/>
+				<div className="flex-1">
+					<div className="text-body-highlight mb-1">Included</div>
+					<div className="text-body-secondary leading-tight">
+						{isConsumable
+							? `Set an included usage limit (eg, 100 ${featureName} per month).`
+							: isAllocated
+								? `Set a usage limit (eg, 5 ${featureName}).`
+								: "Set a usage limit."}
+					</div>
+				</div>
+			</div>
+
+			<div className="flex w-full items-center gap-4">
+				<PanelButton
+					isSelected={shouldPreselect && isFeaturePrice}
+					onClick={() => {
+						setBillingType("priced");
+					}}
+					icon={<CoinsIcon size={16} color="currentColor" />}
+				/>
+				<div className="flex-1">
+					<div className="text-body-highlight mb-1">Priced</div>
+					<div className="text-body-secondary leading-tight">
+						{isConsumable
+							? `Charge a price for usage (eg, $0.05 per ${singleFeatureName}).`
+							: isAllocated
+								? `Charge a price based on usage (eg, $10 per ${singleFeatureName}).`
+								: "Charge a price based on usage."}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}

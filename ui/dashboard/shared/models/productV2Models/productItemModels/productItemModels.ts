@@ -1,0 +1,256 @@
+import { z } from "zod/v4";
+import { ApiFeatureV0Schema } from "../../../api/features/prevVersions/apiFeatureV0.js";
+import {
+	AdditionalCurrencyPriceArraySchema,
+	AdditionalCurrencyTierArraySchema,
+} from "../../../api/products/components/additionalCurrencies.js";
+import { FeatureConfigOverrideSchema } from "../../featureModels/featureConfig/creditConfig.js";
+import { RolloverExpiryDurationType } from "../../productModels/durationTypes/rolloverExpiryDurationType.js";
+import { ProductItemInterval } from "../../productModels/intervals/productItemInterval.js";
+import { TierBehavior } from "../../productModels/priceModels/priceConfig/usagePriceConfig.js";
+import { Infinite } from "../../productModels/productEnums.js";
+import {
+	AllocatedBillingBehavior,
+	OnDecrease,
+	OnIncrease,
+} from "./productItemEnums.js";
+
+export const TierInfinite = "inf";
+
+export enum ProductItemType {
+	Feature = "feature",
+	FeaturePrice = "priced_feature",
+	Price = "price",
+}
+
+export const PriceTierSchema = z
+	.object({
+		to: z.number().or(z.literal(TierInfinite)).meta({
+			description: "The maximum amount of usage for this tier.",
+			example: 100,
+		}),
+		amount: z.number().optional().meta({
+			description: "The price of the product item for this tier.",
+			example: 10,
+		}),
+		flat_amount: z.number().optional().meta({
+			description:
+				"A flat fee charged for this tier, in addition to the per-unit amount.",
+		}),
+		additional_currencies: AdditionalCurrencyTierArraySchema.nullish().meta({
+			description:
+				"Per-currency amounts for this tier. Boundaries ('to') are shared across currencies.",
+		}),
+	})
+	.refine((val) => val.amount != null || val.flat_amount != null, {
+		message: "Either amount or flat_amount, or both must be defined",
+		path: ["amount", "flat_amount"],
+	})
+	.transform((val) => ({
+		...val,
+		amount: val.amount ?? 0,
+	}));
+
+export enum UsageModel {
+	Prepaid = "prepaid",
+	PayPerUse = "pay_per_use",
+}
+
+export enum ProductItemFeatureType {
+	SingleUse = "single_use",
+	ContinuousUse = "continuous_use",
+	Boolean = "boolean",
+	Static = "static",
+}
+
+export const RolloverConfigSchema = z.object({
+	max: z.number().nullable().optional(),
+	max_percentage: z.number().nullable().optional(),
+	duration: z
+		.enum(RolloverExpiryDurationType)
+		.default(RolloverExpiryDurationType.Month),
+	length: z.number(),
+});
+
+const ProductItemConfigSchema = z.object({
+	threshold_billing: z
+		.object({ threshold: z.number().finite().positive() })
+		.nullish()
+		.meta({
+			description:
+				"Bills this many feature units when outstanding overage reaches it.",
+		}),
+	allocated_billing_behavior: z.enum(AllocatedBillingBehavior).nullish(),
+	on_increase: z.enum(OnIncrease).nullish(),
+	on_decrease: z.enum(OnDecrease).nullish(),
+	rollover: RolloverConfigSchema.nullish(),
+	/** Partial override of the feature's config, keyed like the feature
+	 * config itself in DB shape (schema is a full replacement when present). */
+	feature_override: FeatureConfigOverrideSchema.nullish(),
+});
+
+export const ProductItemSchema = z.object({
+	type: z.enum(ProductItemType).nullish().meta({
+		description: "The type of the product item.",
+	}),
+
+	// Feature stuff
+	feature_id: z.string().nullish().meta({
+		description:
+			"The feature ID of the product item. Should be null for fixed price items.",
+	}),
+
+	feature_type: z.enum(ProductItemFeatureType).nullish().meta({
+		internal: true,
+	}),
+
+	feature: ApiFeatureV0Schema.nullish().meta({
+		internal: true,
+	}),
+
+	included_usage: z
+		.union([z.number(), z.literal(Infinite)])
+		.nullish()
+		.meta({
+			description:
+				"The amount of usage included for this feature (per interval).",
+		}),
+
+	interval: z
+		.preprocess((val) => {
+			if (val === "") {
+				throw new Error("Interval cannot be empty.");
+			}
+			return val;
+		}, z.enum(ProductItemInterval).nullish())
+		.meta({
+			description:
+				"The reset or billing interval of the product item. If null, feature will have no reset date, and if there's a price, it will be billed one-off.",
+		}),
+
+	interval_count: z.number().nullish().meta({
+		description: "Interval count of the feature.",
+	}),
+
+	entity_feature_id: z.string().nullish().meta({
+		description:
+			"The feature ID of the entity (like seats) to track sub-balances for.",
+	}),
+	pooled: z.boolean().default(false).optional().meta({
+		description:
+			"Whether entity-level grants contribute to a shared customer balance.",
+	}),
+
+	// Price config
+	usage_model: z.enum(UsageModel).nullish().meta({
+		description:
+			"Whether the feature should be prepaid upfront or billed for how much they use end of billing period.",
+	}),
+
+	price: z.number().nullish().meta({
+		description:
+			"The price of the product item. Should be null if tiered pricing is set.",
+	}),
+
+	tiers: z.array(PriceTierSchema).nullish().meta({
+		description:
+			"Tiered pricing for the product item. Not applicable for fixed price items.",
+	}),
+
+	// Multi-currency: the flat `price` above is in `base_currency`;
+	// `additional_currencies` holds the same flat price in other currencies.
+	base_currency: z.string().nullish().meta({
+		internal: true,
+	}),
+	additional_currencies: AdditionalCurrencyPriceArraySchema.nullish().meta({
+		description:
+			"Amounts in additional currencies for a flat-priced item. Tiered items carry per-currency amounts on each tier.",
+	}),
+
+	billing_units: z.number().nullish().meta({
+		description:
+			"The billing units of the product item (eg $1 for 30 credits).",
+	}),
+
+	tier_behavior: z.enum(TierBehavior).nullish().meta({
+		description: "The type of tiered pricing: graduated or volume-based.",
+	}),
+
+	// Others
+	// carry_over_usage: z.boolean().nullish(),
+	reset_usage_when_enabled: z.boolean().nullish().meta({
+		description:
+			"Whether the usage should be reset when the product is enabled.",
+	}),
+
+	display: z
+		.object({
+			primary_text: z.string(),
+			secondary_text: z.string().nullish(),
+		})
+		.nullish()
+		.meta({
+			internal: true,
+		}),
+
+	// Hidden from users for now.
+	usage_limit: z.number().nullish().meta({
+		internal: true,
+	}),
+
+	config: ProductItemConfigSchema.nullish().meta({
+		internal: true,
+	}),
+
+	// Stored in backend
+	created_at: z.number().nullish().meta({
+		internal: true,
+	}),
+	entitlement_id: z.string().nullish().meta({
+		internal: true,
+	}),
+	price_id: z.string().nullish().meta({
+		internal: true,
+	}),
+	/** Set only by producers that know the item corresponds to an existing
+	 * Stripe price of the same shape. Flows into Price.config when rebuilt. */
+	stripe_price_id: z.string().nullish().meta({
+		internal: true,
+	}),
+	/** Caller-adopted Stripe price. Validated to exist before it is honoured. */
+	stripe_prepaid_price_v2_id: z.string().nullish().meta({
+		internal: true,
+	}),
+	price_interval: z.enum(ProductItemInterval).nullish().meta({
+		internal: true,
+	}),
+	price_interval_count: z.number().nullish().meta({
+		internal: true,
+	}),
+	/** One-way Price → ProductItem display context. Never read this back when
+	 * rebuilding a price because an edited item may carry stale Stripe IDs. */
+	price_config: z.any().nullish().meta({
+		internal: true,
+	}),
+	/** Editor-only handle for items with no persisted entitlement/price id yet,
+	 * so two unsaved items for one feature stay individually addressable. */
+	_uid: z.string().nullish().meta({
+		internal: true,
+	}),
+});
+
+export const LimitedItemSchema = ProductItemSchema.extend({
+	included_usage: z.number(),
+});
+
+export const FrontendProductItem = ProductItemSchema.extend({
+	isPrice: z.boolean(),
+	isVariable: z.boolean().nullish(),
+});
+
+export type ProductItem = z.infer<typeof ProductItemSchema>;
+export type LimitedItem = z.infer<typeof LimitedItemSchema>;
+export type ProductItemConfig = z.infer<typeof ProductItemConfigSchema>;
+export type PriceTier = z.infer<typeof PriceTierSchema>;
+export type RolloverConfig = z.infer<typeof RolloverConfigSchema>;
+export type FrontendProductItem = z.infer<typeof FrontendProductItem>;

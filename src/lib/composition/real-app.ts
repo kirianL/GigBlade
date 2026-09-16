@@ -1,6 +1,7 @@
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
+import { listWishlistRequests } from "@/application/wishlist/list-wishlist-requests";
 import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
 import { EdgeConfigRoutingStore } from "@/infrastructure/edge-config/edge-config-routing-store";
@@ -32,6 +33,8 @@ export function createRealApp() {
       context: Parameters<typeof submitWishlistRequest>[1],
       input: unknown,
     ) => submitWishlistRequest(wishlist, context, input),
+    listWishlistRequests: (tenantId?: string) =>
+      listWishlistRequests(wishlist, tenantId),
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
   };
 }

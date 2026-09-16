@@ -1,0 +1,149 @@
+import type {
+	BillingBehavior,
+	CancelAction,
+	CheckoutMode,
+	Entitlement,
+	FeatureOptions,
+	FreeTrial,
+	Price,
+	ProcessorType,
+	TrialOnEnd,
+} from "@autumn/shared";
+import type { PaymentBehaviorIntent } from "@models/billingModels/context/paymentBehaviorIntent";
+import type { TransitionConfig } from "@models/billingModels/context/transitionConfig";
+import type { DbInvoiceLineItem } from "@models/cusModels/invoiceModels/invoiceLineItemTable";
+import { InvoicePaymentMethodSchema } from "@models/orgModels/orgConfig";
+import type { EntInterval } from "@models/productModels/intervals/entitlementInterval";
+import type Stripe from "stripe";
+import { z } from "zod/v4";
+import type { FullCustomer } from "../../cusModels/fullCusModel";
+import type { FullProduct } from "../../productModels/productModels";
+import type { CustomerLicenseQuantity } from "../customerLicenseQuantity";
+import type { StripeDiscountWithCoupon } from "../stripe/stripeDiscountWithCoupon";
+import type { CustomerLicenseBillingContext } from "./customerLicenseBillingContext";
+
+const InvoiceModeSchema = z.object({
+	finalizeInvoice: z.boolean().default(false),
+	enableProductImmediately: z.boolean().default(true),
+	footer: z.string().optional(),
+	memo: z.string().optional(),
+	daysUntilDue: z.number().optional(),
+	paymentMethodTypes: z.array(InvoicePaymentMethodSchema).optional(),
+});
+
+export type InvoiceMode = z.infer<typeof InvoiceModeSchema>;
+
+export enum BillingVersion {
+	V1 = "v1",
+	V2 = "v2",
+}
+
+export const LATEST_BILLING_VERSION = BillingVersion.V2;
+export interface TrialContext {
+	freeTrial?: FreeTrial | null;
+	trialEndsAt: number | null;
+	customFreeTrial?: FreeTrial;
+	appliesToBilling: boolean;
+	cardRequired: boolean;
+	onEnd?: TrialOnEnd;
+}
+
+export interface AnchorResetRefund {
+	noPartialRefund: boolean;
+	refundCycle?: {
+		interval: EntInterval;
+		intervalCount: number;
+	};
+}
+
+export interface BillingContext {
+	fullCustomer: FullCustomer;
+	fullProducts: FullProduct[];
+
+	featureQuantities: FeatureOptions[];
+	adjustableFeatureQuantities?: string[];
+	customerLicenseQuantities?: CustomerLicenseQuantity[];
+	transitionConfig?: TransitionConfig;
+	invoiceMode?: InvoiceMode;
+
+	// Timestamps...
+	currentEpochMs: number;
+	billingCycleAnchorMs: number | "now";
+	resetCycleAnchorMs: number | "now";
+	billingStartsAt?: number;
+	subscriptionBackdateStartMs?: number;
+	requestedBillingCycleAnchor?: number | "now";
+	requestedProrationBehavior?: BillingBehavior;
+
+	// Stripe context
+	stripeCustomer?: Stripe.Customer;
+	stripeSubscription?: Stripe.Subscription;
+	/** The subscription linked to the target customer product exists but is
+	 * canceled, so `stripeSubscription` is absent. Each action decides what that
+	 * means: updateSubscription blocks billing changes, attach buys fresh. */
+	canceledStripeSubscriptionId?: string;
+	/** The linked Stripe subscription belongs to a different Stripe customer, so
+	 * this context must not write to Stripe. Only set for flows allowed to
+	 * proceed past that fault (immediate cancel). */
+	mismatchedStripeSubscriptionId?: string;
+	stripeSubscriptionSchedule?: Stripe.SubscriptionSchedule;
+	stripeDiscounts?: StripeDiscountWithCoupon[];
+	stripeTaxRate?: Stripe.TaxRate;
+	paymentMethod?: Stripe.PaymentMethod;
+
+	// Unforunately, need to add custom prices, custom entitlements and free trial here, because it's determined in the setup step.
+	// Optional - only needed for custom plan flows
+	customPrices?: Price[];
+	customEnts?: Entitlement[];
+
+	// License billing state loaded at setup; absent when the customer
+	// touches no licenses.
+	customerLicenseBillingContext?: CustomerLicenseBillingContext;
+
+	// Trial context
+	trialContext?: TrialContext;
+	isCustom?: boolean;
+
+	// Cancel action (used by update subscription for uncancel)
+	cancelAction?: CancelAction;
+
+	billingVersion: BillingVersion;
+	successUrl?: string;
+	checkoutSessionParams?: Record<string, unknown>;
+	userMetadata?: Record<string, string>;
+	taxRateId?: string;
+
+	skipBillingChanges?: boolean;
+	dryRunStripe?: boolean;
+
+	checkoutMode?: CheckoutMode;
+
+	// When true, the cusProduct is activated immediately even if a Stripe checkout
+	// session is required. Mirrors invoice-mode enable_plan_immediately for the
+	// stripe_checkout flow.
+	enablePlanImmediately?: boolean;
+	// When set, Autumn access starts at this time while billing may start later.
+	accessStartsAt?: number;
+	/** Identifies the Autumn action driving this billing context. Stamped onto Stripe
+	 * subscription metadata so downstream webhook handlers can recognise Autumn-driven
+	 * subscription mutations and skip auto-sync. */
+	actionSource?: string;
+
+	anchorResetRefund?: AnchorResetRefund;
+
+	storedChargeLineItems?: DbInvoiceLineItem[];
+	storedRefundLineItems?: DbInvoiceLineItem[];
+
+	refundLastPayment?: "prorated" | "full";
+	subscriptionParams?: Record<string, unknown>;
+
+	paymentBehaviorIntent?: PaymentBehaviorIntent;
+	shouldFinalizeFirstInvoice?: boolean;
+	skipCustomPaymentMethodGuard?: boolean;
+
+	/** See `BillingContextOverride.skipExternalPSPGuard`. */
+	skipExternalPSPGuard?: boolean;
+
+	/** See `BillingContextOverride.processorTypeOverride`. */
+	processorTypeOverride?: ProcessorType;
+}

@@ -1,0 +1,264 @@
+import { ApiFeatureOverrideSchema } from "@api/features/apiFeatureOverride.js";
+import { ApiFeatureV0Schema } from "@api/features/prevVersions/apiFeatureV0.js";
+import {
+	AdditionalCurrencyPriceArraySchema,
+	ApiUsageTierWithCurrenciesSchema,
+	additionalCurrencyPlanItemIssues,
+} from "@api/products/components/additionalCurrencies.js";
+import { BillingMethod } from "@api/products/components/billingMethod.js";
+import { DisplaySchema } from "@api/products/components/display.js";
+import { ApiPriceProcessorsSchema } from "@api/products/components/processors.js";
+import { RolloverExpiryDurationType } from "@models/productModels/durationTypes/rolloverExpiryDurationType.js";
+import { BillingInterval } from "@models/productModels/intervals/billingInterval.js";
+import { ResetInterval } from "@models/productModels/intervals/resetInterval.js";
+import { TierBehavior } from "@models/productModels/priceModels/priceConfig/usagePriceConfig.js";
+import {
+	OnDecrease,
+	OnIncrease,
+} from "@models/productV2Models/productItemModels/productItemEnums";
+import { z } from "zod/v4";
+
+export const API_PLAN_ITEM_USAGE_BASED_EXAMPLE = {
+	featureId: "messages",
+	included: 100,
+	unlimited: false,
+	reset: {
+		interval: "month",
+	},
+	price: {
+		amount: 0.5,
+		interval: "month",
+		billingUnits: 100,
+		billingMethod: "usage_based",
+		maxPurchase: null,
+	},
+	display: {
+		primaryText: "100 messages",
+		secondaryText: "then $0.5 per 100 messages",
+	},
+};
+
+export const API_PLAN_ITEM_PREPAID_EXAMPLE = {
+	featureId: "users",
+	included: 0,
+	unlimited: false,
+	reset: null,
+	price: {
+		amount: 10,
+		interval: "month",
+		billingUnits: 1,
+		billingMethod: "prepaid",
+		maxPurchase: null,
+	},
+	display: {
+		primaryText: "$10 per Users",
+	},
+};
+
+export const ApiPlanItemV1Schema = z
+	.object({
+		threshold_billing: z
+			.object({ threshold: z.number().finite().positive() })
+			.nullish()
+			.meta({
+				description:
+					"Bills this many feature units when outstanding overage reaches it.",
+			}),
+		feature_id: z.string().meta({
+			description: "The ID of the feature this item configures.",
+		}),
+		feature: ApiFeatureV0Schema.optional().meta({
+			description: "The full feature object if expanded.",
+		}),
+
+		included: z.number().meta({
+			description:
+				"Number of free units included. For consumable features, balance resets to this number each interval.",
+		}),
+		unlimited: z.boolean().meta({
+			description: "Whether the customer has unlimited access to this feature.",
+		}),
+		pooled: z.boolean().default(false).optional().meta({
+			description:
+				"Whether entity-level grants contribute to a shared customer balance.",
+		}),
+
+		reset: z
+			.object({
+				interval: z.enum(ResetInterval).meta({
+					description:
+						"The interval at which the feature balance resets (e.g. 'month', 'year'). For consumable features, usage resets to 0 and included units are restored.",
+				}),
+				interval_count: z.number().optional().meta({
+					description: "Number of intervals between resets. Defaults to 1.",
+				}),
+			})
+			.nullable()
+			.meta({
+				description:
+					"Reset configuration for consumable features. Null for non-consumable features like seats where usage persists across billing cycles.",
+			}),
+
+		price: z
+			.object({
+				amount: z.number().optional().meta({
+					description:
+						"Price per billing_units after included usage is consumed. Mutually exclusive with tiers.",
+				}),
+				additional_currencies:
+					AdditionalCurrencyPriceArraySchema.optional().meta({
+						description:
+							"Amounts in additional currencies for this flat price. The base 'amount' is in the org's default currency. Only valid with 'amount', not 'tiers' (tiered prices carry per-currency amounts on each tier).",
+					}),
+				tiers: z.array(ApiUsageTierWithCurrenciesSchema).optional().meta({
+					description:
+						"Tiered pricing configuration. Each tier's 'to' INCLUDES the included amount. Either 'tiers' or 'amount' is required.",
+				}),
+				tier_behavior: z.enum(TierBehavior).optional(),
+
+				interval: z.enum(BillingInterval).meta({
+					description:
+						"Billing interval for this price. For consumable features, should match reset.interval.",
+				}),
+				interval_count: z.number().optional().meta({
+					description: "Number of intervals per billing cycle. Defaults to 1.",
+				}),
+
+				billing_units: z.number().meta({
+					description:
+						"Number of units per price increment. Usage is rounded UP to the nearest billing_units when billed (e.g. billing_units=100 means 101 usage rounds to 200).",
+				}),
+				billing_method: z.enum(BillingMethod).meta({
+					description:
+						"'prepaid' for features like seats where customers pay upfront, 'usage_based' for pay-as-you-go after included usage.",
+				}),
+				max_purchase: z.number().nullable().meta({
+					description:
+						"Maximum units a customer can purchase beyond included. E.g. if included=100 and max_purchase=300, customer can use up to 400 total before usage is capped. Null for no limit.",
+				}),
+				processors: ApiPriceProcessorsSchema.optional().meta({
+					description:
+						"Payment processors this item price is connected to. Omitted when unset.",
+				}),
+			})
+			.nullable()
+			.meta({
+				description:
+					"Pricing configuration for usage beyond included units. Null if feature is entirely free.",
+			}),
+
+		display: DisplaySchema.optional().meta({
+			description: "Display text for showing this item in pricing pages.",
+		}),
+
+		rollover: z
+			.object({
+				max: z.number().nullable().meta({
+					description: "Maximum rollover units. Null for unlimited rollover.",
+				}),
+				max_percentage: z.number().nullable().optional().meta({
+					description:
+						"Maximum rollover as a percentage (0-100) of included + prepaid grant. Mutually exclusive with max.",
+				}),
+				expiry_duration_type: z.enum(RolloverExpiryDurationType).meta({
+					description: "When rolled over units expire.",
+				}),
+				expiry_duration_length: z.number().optional().meta({
+					description: "Number of periods before expiry.",
+				}),
+			})
+			.optional()
+			.meta({
+				description:
+					"Rollover configuration for unused units. If set, unused included units roll over to the next period.",
+			}),
+
+		proration: z
+			.object({
+				on_increase: z.enum(OnIncrease).optional().meta({
+					description:
+						"How to handle billing when quantity increases mid-cycle.",
+				}),
+				on_decrease: z.enum(OnDecrease).optional().meta({
+					description:
+						"How to handle credits when quantity decreases mid-cycle.",
+				}),
+			})
+			.optional()
+			.meta({
+				internal: true,
+			}),
+
+		feature_override: ApiFeatureOverrideSchema.optional().meta({
+			description:
+				"Overrides fields of this item's feature for customers on this plan (e.g. a credit system's credit_schema).",
+		}),
+
+		entity_feature_id: z.string().optional().meta({
+			internal: true,
+		}),
+		entitlement_id: z.string().optional().meta({
+			internal: true,
+		}),
+		price_id: z.string().optional().meta({
+			internal: true,
+		}),
+	})
+	.check((ctx) => {
+		const resetInterval = ctx.value.reset?.interval;
+		const priceInterval = ctx.value.price?.interval;
+		const resetIntervalCount = ctx.value.reset?.interval_count ?? 1;
+		const priceIntervalCount = ctx.value.price?.interval_count ?? 1;
+		const hasDifferentResetAndPriceInterval =
+			!!resetInterval &&
+			!!priceInterval &&
+			(String(resetInterval) !== String(priceInterval) ||
+				resetIntervalCount !== priceIntervalCount);
+
+		if (
+			hasDifferentResetAndPriceInterval &&
+			ctx.value.price?.billing_method !== BillingMethod.Prepaid
+		) {
+			ctx.issues.push({
+				code: "custom",
+				message:
+					"reset.interval and price.interval can only differ for prepaid prices.",
+				input: ctx.value,
+			});
+		}
+
+		if (
+			ctx.value !== undefined &&
+			ctx.value.price !== undefined &&
+			ctx.value.price !== null
+		) {
+			if (
+				ctx.value.price.amount &&
+				ctx.value.price.tiers &&
+				ctx.value.price.tiers.length > 0
+			) {
+				ctx.issues.push({
+					code: "custom",
+					message: "Price amount and tiers are mutually exclusive.",
+					input: ctx.value,
+				});
+			}
+
+			for (const message of additionalCurrencyPlanItemIssues(ctx.value.price)) {
+				ctx.issues.push({
+					code: "custom",
+					message,
+					input: ctx.value.price,
+				});
+			}
+		}
+	});
+
+export type ApiPlanItemV1 = z.infer<typeof ApiPlanItemV1Schema>;
+
+export const ApiPlanItemV1WithMeta = ApiPlanItemV1Schema.meta({
+	id: "PlanItem",
+	description:
+		"Configuration for a feature within a plan, defining included units, pricing, and reset behavior.",
+	example: API_PLAN_ITEM_USAGE_BASED_EXAMPLE,
+});

@@ -1,0 +1,91 @@
+import { z } from "zod/v4";
+import { isUsageLimitBasisAlert } from "../cusModels/billingControls/classify/isUsageLimitBasisAlert.js";
+import { DbUsageAlertSchema } from "../cusModels/billingControls/usageAlert.js";
+
+// Org alerts apply to every customer, so there is no single usage limit to measure against.
+const OrgUsageAlertsSchema = z
+	.array(DbUsageAlertSchema)
+	.optional()
+	.default([])
+	.check((ctx) => {
+		const index = ctx.value.findIndex(isUsageLimitBasisAlert);
+		if (index === -1) return;
+		ctx.issues.push({
+			code: "custom",
+			message: "Org-level usage alerts cannot use basis usage_limit",
+			input: ctx.value[index],
+			path: [index, "basis"],
+		});
+	});
+
+/** Invoice-capable subset of Stripe's subscription
+ *  `payment_settings.payment_method_types`. */
+export const InvoicePaymentMethodSchema = z.enum([
+	"card",
+	"customer_balance",
+	"us_bank_account",
+	"sepa_debit",
+	"bacs_debit",
+	"acss_debit",
+	"link",
+]);
+
+export type InvoicePaymentMethod = z.infer<typeof InvoicePaymentMethodSchema>;
+
+export const OrgConfigSchema = z.object({
+	usage_alerts: OrgUsageAlertsSchema,
+	/** Sandbox-env-only usage alerts. `checkUsageAlerts` reads this list when
+	 *  `ctx.env === AppEnv.Sandbox` and `usage_alerts` when env is live. */
+	sandbox_usage_alerts: OrgUsageAlertsSchema,
+
+	bill_upgrade_immediately: z.boolean().default(true),
+	convert_to_charge_automatically: z.boolean().default(true),
+	anchor_start_of_month: z.boolean().default(false), // If true, the billing cycle will start on the first day of the month
+	cancel_on_past_due: z.boolean().default(false),
+
+	prorate_unused: z.boolean().default(true),
+
+	checkout_on_failed_payment: z.boolean().default(true), // false for pipeline?
+	reverse_deduction_order: z.boolean().default(false),
+
+	/** @deprecated Use block_overdue_entitlements; remove after the rollout. */
+	include_past_due: z.boolean().default(true),
+	block_overdue_entitlements: z.boolean().default(false),
+
+	sync_status: z.boolean().default(true),
+	merge_billing_cycles: z.boolean().default(true),
+	multiple_trials: z.boolean().default(false),
+	allow_paid_default: z.boolean().default(false),
+	cache_customer: z.boolean().default(false),
+	invoice_memos: z.boolean().default(false),
+	entity_product: z.boolean().default(false),
+	void_invoices_on_subscription_deletion: z.boolean().default(false),
+
+	// default
+	default_applies_to_entities: z.boolean().default(false),
+
+	disable_overage_billing: z.boolean().default(false),
+
+	// disable stripe writes
+	disable_stripe_writes: z.boolean().default(false),
+
+	disabled_auto_topup: z.boolean().default(false),
+	persist_free_overage: z.boolean().default(false),
+	dryrun_autotopups: z.boolean().default(false),
+
+	forward_customer_metadata: z.boolean().default(false),
+
+	// When true, Stripe writes pass `automatic_tax: { enabled: true }`.
+	// Customer must have a tax-resolvable address.
+	automatic_tax: z.boolean().default(false),
+
+	multi_currency: z.boolean().default(false),
+
+	// Unset/null = Stripe's own invoice settings apply; never add a default.
+	allowed_payment_methods: z.array(InvoicePaymentMethodSchema).min(1).nullish(),
+
+	// Unset/null = downstream 30-day fallback applies; never add a default.
+	default_invoice_net_terms_days: z.number().int().positive().nullish(),
+});
+
+export type OrgConfig = z.infer<typeof OrgConfigSchema>;

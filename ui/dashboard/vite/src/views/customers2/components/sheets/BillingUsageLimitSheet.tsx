@@ -1,0 +1,370 @@
+import {
+	type DbUsageLimit,
+	type Feature,
+	FeatureType,
+	type FullCustomer,
+	ResetInterval,
+	usageLimitIdentity,
+} from "@autumn/shared";
+import {
+	Button,
+	FormLabel,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	Switch,
+} from "@autumn/ui";
+import { useState } from "react";
+import { toast } from "sonner";
+import { UsageAnchorTooltip } from "@/components/billing-controls/UsageAnchorTooltip";
+import { FeatureSearchDropdown } from "@/components/v2/dropdowns/FeatureSearchDropdown";
+import {
+	LayoutGroup,
+	SheetFooter,
+	SheetHeader,
+	SheetSection,
+} from "@/components/v2/sheets/SharedSheetComponents";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useSheetStore } from "@/hooks/stores/useSheetStore";
+import { CusService } from "@/services/customers/CusService";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { getBackendErr } from "@/utils/genUtils";
+import { useCusQuery } from "@/views/customers/customer/hooks/useCusQuery";
+import { useCustomerContext } from "../../customer/CustomerContext";
+import {
+	type UsageLimitCondition,
+	UsageLimitConditionRows,
+} from "./UsageLimitConditionRows";
+import {
+	conditionsFromFilter,
+	conditionsToFilter,
+} from "./usageLimitFilterConditions";
+import { useCustomerPropertyKeys } from "./useCustomerPropertyKeys";
+
+// Interval is required (no inherit) and one_off intervals are not supported.
+const INTERVAL_OPTIONS: Record<string, string> = {
+	[ResetInterval.Day]: "Day",
+	[ResetInterval.Week]: "Week",
+	[ResetInterval.Month]: "Month",
+	[ResetInterval.Year]: "Year",
+};
+
+/** Build the usage_limits entry for an interval-based hard cap. */
+export const buildUsageLimitItem = ({
+	featureId,
+	enabled,
+	limit,
+	interval,
+	anchorUtc,
+	filter,
+}: {
+	featureId: string;
+	enabled: boolean;
+	limit: number;
+	interval: string;
+	anchorUtc?: boolean;
+	filter?: DbUsageLimit["filter"];
+}): DbUsageLimit => ({
+	feature_id: featureId,
+	enabled,
+	limit,
+	interval: interval as ResetInterval,
+	anchor: anchorUtc ? "utc" : "billing_cycle",
+	...(filter && { filter }),
+});
+
+export function BillingUsageLimitSheet() {
+	const closeSheet = useSheetStore((s) => s.closeSheet);
+	const sheetData = useSheetStore((s) => s.data);
+	const sheetType = useSheetStore((s) => s.type);
+	const { customer, refetch } = useCusQuery();
+	const { entityId } = useCustomerContext();
+	const { features } = useFeaturesQuery();
+	const axiosInstance = useAxiosInstance();
+
+	const isEdit = sheetType === "billing-usage-limit-edit";
+	const existingItem = sheetData?.item as DbUsageLimit | undefined;
+	const existingIndex = sheetData?.index as number | undefined;
+
+	const fullCustomer = customer as FullCustomer | undefined;
+	const selectedEntity = entityId
+		? fullCustomer?.entities?.find(
+				(e) => e.id === entityId || e.internal_id === entityId,
+			)
+		: null;
+
+	const [isSaving, setIsSaving] = useState(false);
+	const [featureId, setFeatureId] = useState(existingItem?.feature_id ?? "");
+	const [enabled, setEnabled] = useState(existingItem?.enabled ?? true);
+	const [usageLimit, setUsageLimit] = useState(
+		existingItem?.limit?.toString() ?? "",
+	);
+	const [usage, setUsage] = useState("");
+	const [selectedInterval, setSelectedInterval] = useState<string>(
+		existingItem?.interval ?? ResetInterval.Month,
+	);
+	const [anchorUtc, setAnchorUtc] = useState(existingItem?.anchor === "utc");
+	const [conditions, setConditions] = useState<UsageLimitCondition[]>(
+		conditionsFromFilter(existingItem?.filter),
+	);
+	const propertySuggestions = useCustomerPropertyKeys({
+		customerId: fullCustomer?.id || fullCustomer?.internal_id,
+	});
+
+	const nonArchivedFeatures = (features ?? []).filter(
+		(f: Feature) => !f.archived && f.type !== FeatureType.Boolean,
+	);
+
+	const getCurrentUsageLimits = (): DbUsageLimit[] => {
+		if (selectedEntity) return [...(selectedEntity.usage_limits ?? [])];
+		return [...(fullCustomer?.usage_limits ?? [])];
+	};
+
+	const saveBillingControls = async (usageLimits: DbUsageLimit[]) => {
+		const customerId = fullCustomer?.id || fullCustomer?.internal_id;
+		if (!customerId) return;
+
+		if (selectedEntity) {
+			await CusService.updateEntity({
+				axios: axiosInstance,
+				customerId,
+				entityId: selectedEntity.id || selectedEntity.internal_id,
+				billingControls: { usage_limits: usageLimits },
+			});
+		} else {
+			await CusService.updateCustomer({
+				axios: axiosInstance,
+				customer_id: customerId,
+				data: { billing_controls: { usage_limits: usageLimits } },
+			});
+		}
+	};
+
+	const handleSave = async () => {
+		const parsedLimit =
+			usageLimit.trim() === "" ? Number.NaN : Number.parseFloat(usageLimit);
+		if (Number.isNaN(parsedLimit) || parsedLimit < 0) {
+			toast.error("Please enter a valid usage limit");
+			return;
+		}
+		if (!featureId) {
+			toast.error("Feature is required for a usage limit");
+			return;
+		}
+
+		const { filter, error: filterError } = conditionsToFilter(conditions);
+		if (filterError) {
+			toast.error(filterError);
+			return;
+		}
+
+		const item = buildUsageLimitItem({
+			featureId,
+			enabled,
+			limit: parsedLimit,
+			interval: selectedInterval,
+			anchorUtc,
+			filter,
+		});
+		const parsedUsage = usage.trim() === "" ? undefined : Number(usage);
+		if (
+			parsedUsage !== undefined &&
+			(!Number.isFinite(parsedUsage) || parsedUsage < 0)
+		) {
+			toast.error("Please enter a valid current usage");
+			return;
+		}
+
+		const usageLimits = getCurrentUsageLimits();
+		const itemIdentity = usageLimitIdentity(item);
+		const duplicate = usageLimits.some(
+			(existing, index) =>
+				!(isEdit && index === existingIndex) &&
+				usageLimitIdentity(existing) === itemIdentity,
+		);
+		if (duplicate) {
+			toast.error(
+				item.filter
+					? "A usage limit with these conditions already exists for this feature"
+					: "This feature already has a usage limit without conditions",
+			);
+			return;
+		}
+
+		if (isEdit && existingIndex !== undefined) {
+			usageLimits[existingIndex] = {
+				...item,
+				...(parsedUsage !== undefined && { usage: parsedUsage }),
+			} as DbUsageLimit;
+		} else {
+			usageLimits.push({
+				...item,
+				...(parsedUsage !== undefined && { usage: parsedUsage }),
+			} as DbUsageLimit);
+		}
+
+		setIsSaving(true);
+		try {
+			await saveBillingControls(usageLimits);
+			await refetch();
+			closeSheet();
+			toast.success(isEdit ? "Usage limit updated" : "Usage limit added");
+		} catch (error) {
+			toast.error(getBackendErr(error, "Failed to save usage limit"));
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	const handleDelete = async () => {
+		if (existingIndex === undefined) return;
+
+		const usageLimits = getCurrentUsageLimits();
+		usageLimits.splice(existingIndex, 1);
+
+		setIsSaving(true);
+		try {
+			await saveBillingControls(usageLimits);
+			await refetch();
+			closeSheet();
+			toast.success("Usage limit deleted");
+		} catch (error) {
+			toast.error(getBackendErr(error, "Failed to delete usage limit"));
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	return (
+		<LayoutGroup>
+			<div className="flex h-full flex-col overflow-y-auto">
+				<SheetHeader
+					title={isEdit ? "Edit Usage Limit" : "Add Usage Limit"}
+					description="Hard-cap how much of a feature can be used per interval, regardless of remaining balance."
+				/>
+
+				<SheetSection withSeparator>
+					<FormLabel>Feature</FormLabel>
+					{isEdit ? (
+						<div className="text-sm text-muted-foreground">
+							{nonArchivedFeatures.find((f: Feature) => f.id === featureId)
+								?.name ?? featureId}
+						</div>
+					) : (
+						<FeatureSearchDropdown
+							features={nonArchivedFeatures}
+							value={featureId || null}
+							onSelect={setFeatureId}
+						/>
+					)}
+				</SheetSection>
+
+				<SheetSection withSeparator>
+					<div className="flex flex-col gap-3">
+						<div className="flex items-center justify-between">
+							<FormLabel className="mb-0">Enabled</FormLabel>
+							<Switch checked={enabled} onCheckedChange={setEnabled} />
+						</div>
+
+						<div>
+							<FormLabel>Limit</FormLabel>
+							<Input
+								placeholder="Max usage allowed per interval"
+								type="number"
+								value={usageLimit}
+								onChange={(e) => setUsageLimit(e.target.value)}
+							/>
+						</div>
+						<div>
+							<FormLabel>Current usage</FormLabel>
+							<Input
+								type="number"
+								min="0"
+								value={usage}
+								onChange={(e) => setUsage(e.target.value)}
+								placeholder="Leave blank to keep unchanged"
+							/>
+						</div>
+
+						<div>
+							<FormLabel>Interval</FormLabel>
+							<Select
+								value={selectedInterval}
+								onValueChange={setSelectedInterval}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue placeholder="Select interval" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.entries(INTERVAL_OPTIONS).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-1.5">
+								<FormLabel className="mb-0">Anchor to UTC time</FormLabel>
+								<UsageAnchorTooltip />
+							</div>
+							<Switch checked={anchorUtc} onCheckedChange={setAnchorUtc} />
+						</div>
+
+						<div>
+							<FormLabel>Conditions</FormLabel>
+							<UsageLimitConditionRows
+								conditions={conditions}
+								onChange={setConditions}
+								suggestions={propertySuggestions}
+							/>
+							<p className="mt-2 text-tertiary-foreground text-xs">
+								Only usage matching every condition counts toward this limit.
+							</p>
+						</div>
+					</div>
+				</SheetSection>
+
+				<div className="flex-1" />
+
+				{isEdit && (
+					<div className="px-4 pb-2">
+						<Button
+							variant="ghost"
+							className="text-destructive hover:text-destructive w-full"
+							onClick={handleDelete}
+							disabled={isSaving}
+						>
+							Delete usage limit
+						</Button>
+					</div>
+				)}
+
+				<SheetFooter>
+					<Button
+						variant="secondary"
+						className="w-full"
+						onClick={closeSheet}
+						disabled={isSaving}
+					>
+						Cancel
+					</Button>
+					<Button
+						variant="primary"
+						className="w-full"
+						onClick={handleSave}
+						isLoading={isSaving}
+						disabled={!featureId}
+					>
+						{isEdit ? "Save" : "Add"}
+					</Button>
+				</SheetFooter>
+			</div>
+		</LayoutGroup>
+	);
+}

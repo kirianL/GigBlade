@@ -1,0 +1,157 @@
+import { customerEntitlementFundsFeature } from "@utils/cusEntUtils/classifyCusEnt/customerEntitlementFundsFeature.js";
+import { isEntityCusEnt } from "@utils/cusEntUtils/cusEntUtils.js";
+import { isCustomerProductLicenseAssignment } from "@utils/cusProductUtils/classifyCustomerProduct/classifyCustomerProduct.js";
+import type { Entity } from "../../../models/cusModels/entityModels/entityModels.js";
+import type { FullCustomer } from "../../../models/cusModels/fullCusModel.js";
+import type { CustomerEntitlementFilters } from "../../../models/cusProductModels/cusEntModels/cusEntModels.js";
+import type { FullCusEntWithFullCusProduct } from "../../../models/cusProductModels/cusEntModels/cusEntWithProduct.js";
+import { CusProductStatus } from "../../../models/cusProductModels/cusProductEnums.js";
+import { isCusEntExpired } from "../../cusEntUtils/classifyCusEnt/isCusEntExpired.js";
+import { isPooledBalanceSourceCustomerEntitlement } from "../../cusEntUtils/classifyCusEnt/isPooledBalanceCustomerEntitlement.js";
+import { cusEntMatchesEntity } from "../../cusEntUtils/filterCusEntUtils.js";
+import { sortCusEntsForDeduction } from "../../cusEntUtils/sortCusEntsForDeduction.js";
+import { notNullish } from "../../utils.js";
+
+export const fullCustomerToCustomerEntitlements = ({
+	fullCustomer,
+	inStatuses = [CusProductStatus.Active, CusProductStatus.PastDue],
+	reverseOrder = false,
+	featureId,
+	featureIds,
+	fundsFeatureId,
+	entity,
+	customerEntitlementFilters,
+	isRefund = false,
+	includeExpired = false,
+}: {
+	fullCustomer: FullCustomer;
+	inStatuses?: CusProductStatus[];
+	reverseOrder?: boolean;
+	featureId?: string;
+	featureIds?: string[];
+	/** Membership by EFFECTIVE credit schema (plan-item feature_override,
+	 * else catalog) — per cusEnt, unlike the per-feature featureIds filter. */
+	fundsFeatureId?: string;
+	entity?: Entity;
+	customerEntitlementFilters?: CustomerEntitlementFilters;
+	isRefund?: boolean;
+	includeExpired?: boolean;
+}) => {
+	const cusProducts = fullCustomer.customer_products;
+	let cusEnts: FullCusEntWithFullCusProduct[] = [];
+
+	for (const cusProduct of cusProducts) {
+		if (!inStatuses.includes(cusProduct.status)) continue;
+
+		cusEnts.push(
+			...cusProduct.customer_entitlements.map((cusEnt) => ({
+				...cusEnt,
+				customer_product: cusProduct,
+			})),
+		);
+	}
+
+	for (const cusEnt of fullCustomer.extra_customer_entitlements || []) {
+		cusEnts.push({
+			...cusEnt,
+			customer_product: null,
+		});
+	}
+
+	for (const cusEnt of fullCustomer.pooled_customer_entitlements ?? []) {
+		cusEnts.push({
+			...cusEnt,
+			customer_product: null,
+		});
+	}
+
+	cusEnts = cusEnts.filter(
+		(customerEntitlement) =>
+			!isPooledBalanceSourceCustomerEntitlement({ customerEntitlement }),
+	);
+
+	if (featureId) {
+		cusEnts = cusEnts.filter(
+			(cusEnt) => cusEnt.entitlement.feature.id === featureId,
+		);
+	}
+
+	if (featureIds) {
+		cusEnts = cusEnts.filter((cusEnt) =>
+			featureIds.includes(cusEnt.entitlement.feature.id),
+		);
+	}
+
+	if (fundsFeatureId) {
+		cusEnts = cusEnts.filter((cusEnt) =>
+			customerEntitlementFundsFeature({
+				customerEntitlement: cusEnt,
+				featureId: fundsFeatureId,
+			}),
+		);
+	}
+
+	if (entity) {
+		cusEnts = cusEnts.filter((cusEnt) =>
+			cusEntMatchesEntity({
+				cusEnt: cusEnt,
+				entity,
+			}),
+		);
+	} else {
+		// License seat assignments stay invisible at the customer level — the
+		// pool parent already reports them. Other entity-scoped cusEnts pool up.
+		cusEnts = cusEnts.filter(
+			(cusEnt) =>
+				!isCustomerProductLicenseAssignment(
+					cusEnt.customer_product ?? undefined,
+				),
+		);
+	}
+
+	const now = Date.now();
+	if (!includeExpired) {
+		cusEnts = cusEnts.filter((cusEnt) => !isCusEntExpired({ cusEnt, now }));
+	}
+
+	sortCusEntsForDeduction({
+		cusEnts,
+		reverseOrder,
+		entityId: entity?.id ?? undefined,
+		customerEntitlementFilters,
+	});
+
+	if (
+		customerEntitlementFilters?.cusEntIds &&
+		customerEntitlementFilters.cusEntIds.length > 0
+	) {
+		cusEnts = cusEnts.filter((cusEnt) =>
+			customerEntitlementFilters.cusEntIds?.includes(cusEnt.id),
+		);
+	}
+
+	if (notNullish(customerEntitlementFilters?.interval)) {
+		cusEnts = cusEnts.filter(
+			(cusEnt) =>
+				cusEnt.entitlement.interval === customerEntitlementFilters.interval,
+		);
+	}
+
+	if (notNullish(customerEntitlementFilters?.balanceId)) {
+		cusEnts = cusEnts.filter(
+			(cusEnt) =>
+				(cusEnt.external_id ?? cusEnt.id) ===
+				customerEntitlementFilters.balanceId,
+		);
+	}
+
+	// When disable_pooled_balance is enabled and we're scoped to an entity, drop
+	// customer-level (shared pool) cusEnts so the returned balances reflect
+	// only the entity's own pool. Matches the filter in prepareFeatureDeduction
+	// so the deduction path and reporting stay consistent.
+	if (fullCustomer.entity?.id && fullCustomer.config?.disable_pooled_balance) {
+		cusEnts = cusEnts.filter((ce) => isEntityCusEnt({ cusEnt: ce }));
+	}
+
+	return cusEnts as FullCusEntWithFullCusProduct[];
+};

@@ -1,0 +1,901 @@
+import { describe, expect, test } from "bun:test";
+import type { Feature, ProductItem, ProductV2 } from "@autumn/shared";
+import { AppEnv, UsageModel } from "@autumn/shared";
+import {
+	canResetScheduleBillingCycle,
+	EMPTY_SCHEDULE_PLAN,
+	type SchedulePhase,
+} from "@/components/forms/create-schedule/createScheduleFormSchema";
+import { buildCreateScheduleRequestBody } from "@/components/forms/create-schedule/hooks/useCreateScheduleRequestBody";
+import {
+	buildCustomize,
+	buildCustomizeBasePrice,
+	buildCustomizeItems,
+} from "@/components/forms/shared/utils/buildPlanCustomize";
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function makeProduct({
+	id = "prod_1",
+	items = [],
+}: {
+	id?: string;
+	items?: ProductV2["items"];
+} = {}): ProductV2 {
+	return {
+		id,
+		name: "Test Product",
+		is_add_on: false,
+		is_default: false,
+		version: 1,
+		group: null,
+		env: AppEnv.Sandbox,
+		items,
+		created_at: Date.now(),
+	};
+}
+
+const basePriceItem: ProductItem = {
+	feature_id: null,
+	price: 2000,
+	interval: "month",
+	interval_count: 1,
+} as ProductItem;
+
+const featurePriceItem: ProductItem = {
+	feature_id: "api_calls",
+	price: 0.01,
+	tiers: null,
+	interval: "month",
+	interval_count: 1,
+	included_usage: 1000,
+	usage_model: UsageModel.PayPerUse,
+} as ProductItem;
+
+const featureTieredItem: ProductItem = {
+	feature_id: "storage",
+	price: null,
+	tiers: [
+		{ to: 100, amount: 0.5 },
+		{ to: -1, amount: 0.25 },
+	],
+	interval: "month",
+	interval_count: 1,
+	included_usage: 10,
+	usage_model: UsageModel.PayPerUse,
+} as ProductItem;
+
+const freeFeatureItem: ProductItem = {
+	feature_id: "support",
+	price: null,
+	tiers: null,
+	included_usage: 1,
+} as ProductItem;
+
+const features: Feature[] = [
+	{
+		id: "api_calls",
+		name: "API Calls",
+		internal_id: "int_api",
+		type: "usage",
+	} as Feature,
+	{
+		id: "storage",
+		name: "Storage",
+		internal_id: "int_storage",
+		type: "usage",
+	} as Feature,
+	{
+		id: "support",
+		name: "Support",
+		internal_id: "int_support",
+		type: "boolean",
+	} as Feature,
+];
+
+const schedulePlan = (productId: string) => ({
+	...EMPTY_SCHEDULE_PLAN,
+	productId,
+});
+
+const schedulePhase = ({
+	startsAt = 1000,
+	persistedStartsAt,
+	productIds = ["prod_1"],
+}: {
+	startsAt?: number;
+	persistedStartsAt?: number;
+	productIds?: string[];
+}): SchedulePhase => ({
+	startsAt,
+	persistedStartsAt,
+	plans: productIds.map(schedulePlan),
+});
+
+// ---------------------------------------------------------------------------
+// buildCustomizeBasePrice
+// ---------------------------------------------------------------------------
+
+describe("buildCustomizeBasePrice", () => {
+	test("extracts base price from items", () => {
+		const result = buildCustomizeBasePrice({
+			items: [basePriceItem, featurePriceItem],
+		});
+
+		expect(result).toBeDefined();
+		expect(result!.amount).toBe(2000);
+		expect(result!.interval).toBe("month");
+	});
+
+	test("returns null when base price item was removed", () => {
+		const result = buildCustomizeBasePrice({ items: [featurePriceItem] });
+
+		expect(result).toBeNull();
+	});
+
+	test("returns null when price is zero (free)", () => {
+		const zeroPriceItem = { ...basePriceItem, price: 0 } as ProductItem;
+		const result = buildCustomizeBasePrice({ items: [zeroPriceItem] });
+
+		expect(result).toBeNull();
+	});
+
+	test("returns undefined when price item has no interval", () => {
+		const noIntervalItem = {
+			...basePriceItem,
+			interval: null,
+		} as unknown as ProductItem;
+		const result = buildCustomizeBasePrice({ items: [noIntervalItem] });
+
+		expect(result).toBeUndefined();
+	});
+
+	test("includes interval_count when present", () => {
+		const quarterlyItem = {
+			...basePriceItem,
+			interval_count: 3,
+		} as ProductItem;
+		const result = buildCustomizeBasePrice({ items: [quarterlyItem] });
+
+		expect(result!.interval_count).toBe(3);
+	});
+
+	test("omits interval_count when null", () => {
+		const item = {
+			...basePriceItem,
+			interval_count: null,
+		} as unknown as ProductItem;
+		const result = buildCustomizeBasePrice({ items: [item] });
+
+		expect(result).toBeDefined();
+		expect(result!).not.toHaveProperty("interval_count");
+	});
+
+	test("ignores feature items that happen to have a price", () => {
+		const result = buildCustomizeBasePrice({ items: [featurePriceItem] });
+
+		expect(result).toBeNull();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildCustomizeItems
+// ---------------------------------------------------------------------------
+
+describe("buildCustomizeItems", () => {
+	test("converts priced feature items to plan items", () => {
+		const result = buildCustomizeItems({
+			items: [featurePriceItem],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		expect(result!.length).toBe(1);
+		expect(result![0].feature_id).toBe("api_calls");
+	});
+
+	test("includes tiered feature items", () => {
+		const result = buildCustomizeItems({
+			items: [featureTieredItem],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		expect(result!.length).toBe(1);
+		expect(result![0].feature_id).toBe("storage");
+	});
+
+	test("includes free features (boolean/included-only)", () => {
+		const result = buildCustomizeItems({
+			items: [freeFeatureItem],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		expect(result!.length).toBe(1);
+		expect(result![0].feature_id).toBe("support");
+	});
+
+	test("excludes base price items (no feature_id)", () => {
+		const result = buildCustomizeItems({
+			items: [basePriceItem],
+			features,
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	test("strips null max_purchase from output", () => {
+		const itemWithNullMax: ProductItem = {
+			...featurePriceItem,
+			price: 5,
+		} as ProductItem;
+		const result = buildCustomizeItems({
+			items: [itemWithNullMax],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		if (result![0].price) {
+			expect(result![0].price.max_purchase).toBeUndefined();
+		}
+	});
+
+	test("returns items when all feature items are free", () => {
+		const result = buildCustomizeItems({
+			items: [freeFeatureItem],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		expect(result![0].feature_id).toBe("support");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildCustomize
+// ---------------------------------------------------------------------------
+
+describe("buildCustomize", () => {
+	test("returns undefined for null items", () => {
+		const result = buildCustomize({ items: null, features });
+
+		expect(result).toBeUndefined();
+	});
+
+	test("returns items and price:null when base price was removed", () => {
+		const result = buildCustomize({ items: [freeFeatureItem], features });
+
+		expect(result).toBeDefined();
+		expect(result!.items).toBeDefined();
+		expect(result!.price).toBeNull();
+	});
+
+	test("returns price when only base price is customized", () => {
+		const result = buildCustomize({ items: [basePriceItem], features });
+
+		expect(result).toBeDefined();
+		expect(result!.price).toBeDefined();
+		expect(result!.price!.amount).toBe(2000);
+		expect(result).not.toHaveProperty("items");
+	});
+
+	test("returns items and price:null when items have no base price", () => {
+		const result = buildCustomize({ items: [featurePriceItem], features });
+
+		expect(result).toBeDefined();
+		expect(result!.items).toBeDefined();
+		expect(result!.price).toBeNull();
+	});
+
+	test("returns both price and items when fully customized", () => {
+		const result = buildCustomize({
+			items: [basePriceItem, featurePriceItem],
+			features,
+		});
+
+		expect(result).toBeDefined();
+		expect(result!.price).toBeDefined();
+		expect(result!.items).toBeDefined();
+	});
+
+	test("can preserve an explicit empty items override", () => {
+		const result = buildCustomize({
+			items: [],
+			features,
+			includeEmptyItems: true,
+		});
+
+		expect(result).toEqual({ items: [], price: null });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// canResetScheduleBillingCycle
+// ---------------------------------------------------------------------------
+
+describe("canResetScheduleBillingCycle", () => {
+	test("allows existing schedules with multiple current plans", () => {
+		expect(
+			canResetScheduleBillingCycle({
+				phases: [
+					schedulePhase({
+						persistedStartsAt: 1000,
+						productIds: ["prod_1", "prod_2"],
+					}),
+				],
+			}),
+		).toBe(true);
+	});
+
+	test("blocks new schedules with multiple current plans", () => {
+		expect(
+			canResetScheduleBillingCycle({
+				phases: [schedulePhase({ productIds: ["prod_1", "prod_2"] })],
+			}),
+		).toBe(false);
+	});
+
+	test("blocks new schedules whose first non-empty phase has multiple plans", () => {
+		expect(
+			canResetScheduleBillingCycle({
+				phases: [
+					schedulePhase({ productIds: [""] }),
+					schedulePhase({ productIds: ["prod_1", "prod_2"] }),
+				],
+			}),
+		).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildCreateScheduleRequestBody
+// ---------------------------------------------------------------------------
+
+describe("buildCreateScheduleRequestBody", () => {
+	const defaultProducts = [makeProduct({ id: "prod_1" })];
+
+	test("returns null when customerId is missing", () => {
+		const result = buildCreateScheduleRequestBody({
+			customerId: undefined,
+			phases: [
+				{
+					startsAt: Date.now(),
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).toBeNull();
+	});
+
+	test("returns null when phases is empty", () => {
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).toBeNull();
+	});
+
+	test("builds valid request body for single phase single plan", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.customer_id).toBe("cus_1");
+		expect(result!.phases).toHaveLength(1);
+		expect(result!.phases[0].plans).toHaveLength(1);
+		expect(result!.phases[0].plans[0].plan_id).toBe("prod_1");
+	});
+
+	test("sends unscheduled plans alongside the phases, not inside them", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [schedulePhase({ startsAt: now, persistedStartsAt: now })],
+			unscheduledPlans: [
+				{ ...schedulePlan("prod_2"), entityId: "entity_1" },
+				{ ...EMPTY_SCHEDULE_PLAN },
+			],
+			products: [...defaultProducts, makeProduct({ id: "prod_2" })],
+			features,
+		});
+
+		expect(result!.phases[0].plans).toHaveLength(1);
+		expect(result!.unscheduled_plans).toHaveLength(1);
+		expect(result!.unscheduled_plans![0].plan_id).toBe("prod_2");
+		expect(result!.unscheduled_plans![0].entity_id).toBe("entity_1");
+	});
+
+	test("omits unscheduled_plans when none are picked", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [schedulePhase({ startsAt: now, persistedStartsAt: now })],
+			unscheduledPlans: [{ ...EMPTY_SCHEDULE_PLAN }],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result!.unscheduled_plans).toBeUndefined();
+	});
+
+	test("includes customize when plan has custom items and isCustom", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							items: [basePriceItem, featurePriceItem],
+							isCustom: true,
+						},
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).not.toBeNull();
+		const plan = result!.phases[0].plans[0];
+		expect(plan.customize).toBeDefined();
+		expect(plan.customize!.price).toBeDefined();
+		expect(plan.customize!.items).toBeDefined();
+	});
+
+	test("omits customize when plan has items but isCustom is false", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							items: [basePriceItem, featurePriceItem],
+							isCustom: false,
+						},
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).not.toBeNull();
+		const plan = result!.phases[0].plans[0];
+		expect(plan.customize).toBeUndefined();
+	});
+
+	test("omits customize when plan has no custom items", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		const plan = result!.phases[0].plans[0];
+		expect(plan.customize).toBeUndefined();
+	});
+
+	test("skips plans without productId", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{ ...EMPTY_SCHEDULE_PLAN },
+						{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" },
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result!.phases[0].plans).toHaveLength(1);
+		expect(result!.phases[0].plans[0].plan_id).toBe("prod_1");
+	});
+
+	test("returns null when phase has null startsAt and is not first without persisted schedule", () => {
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: null,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+				{
+					startsAt: null,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_2" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).toBeNull();
+	});
+
+	test("sends per-plan scope on the opening phase and no request-level entity", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							entityId: "entity_1",
+						},
+						{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_2", entityId: null },
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result).not.toBeNull();
+		expect((result as any).entity_id).toBeUndefined();
+		expect(result!.phases[0].plans[0].entity_id).toBe("entity_1");
+		expect(result!.phases[0].plans[1].entity_id).toBeNull();
+	});
+
+	test("defaults an unset opening-phase plan to customer-level", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{
+							productId: "prod_1",
+							prepaidOptions: {},
+							items: null,
+							isCustom: false,
+						},
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result!.phases[0].plans[0].entity_id).toBeNull();
+	});
+
+	test("sends each later phase's own entity scope", () => {
+		const now = Date.now();
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							entityId: "entity_1",
+						},
+					],
+				},
+				{
+					startsAt: now + 1000 * 60 * 60 * 24 * 30,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							entityId: "entity_2",
+						},
+					],
+				},
+				{
+					startsAt: now + 1000 * 60 * 60 * 24 * 60,
+					plans: [
+						{
+							...EMPTY_SCHEDULE_PLAN,
+							productId: "prod_1",
+							entityId: null,
+						},
+					],
+				},
+			],
+			products: defaultProducts,
+			features,
+		});
+
+		expect(result!.phases[0].plans[0].entity_id).toBe("entity_1");
+		expect(result!.phases[1].plans[0].entity_id).toBe("entity_2");
+		expect(result!.phases[2].plans[0].entity_id).toBeNull();
+	});
+
+	test("sends a past first-phase starts_at when allowFirstPhaseBackdate is true", () => {
+		const now = Date.now();
+		const past = now - 1000 * 60 * 60 * 24 * 35;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: past,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			allowFirstPhaseBackdate: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.phases[0].starts_at).toBe(past);
+	});
+
+	test("forces the first phase to now when backdating is not allowed", () => {
+		const now = Date.now();
+		const past = now - 1000 * 60 * 60 * 24 * 35;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: past,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.phases[0].starts_at).toBe(now);
+	});
+
+	test("preserves persisted first phase start when editing an existing schedule", () => {
+		const persistedStart = Date.UTC(2027, 5, 30, 13, 11);
+		const now = Date.UTC(2027, 6, 2, 16, 49);
+		const paidStart = Date.UTC(2027, 9, 2, 12, 0);
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				schedulePhase({
+					startsAt: persistedStart,
+					persistedStartsAt: persistedStart,
+					productIds: ["prod_1", "prod_2"],
+				}),
+				schedulePhase({
+					startsAt: now,
+					persistedStartsAt: now,
+					productIds: ["prod_1"],
+				}),
+				schedulePhase({
+					startsAt: paidStart,
+					productIds: ["prod_1"],
+				}),
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.phases.map((phase) => phase.starts_at)).toEqual([
+			persistedStart,
+			now,
+			paidStart,
+		]);
+	});
+
+	test("sets phase billing anchor for future phases when billing cycle reset is enabled", () => {
+		const now = Date.now();
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: now,
+					persistedStartsAt: now,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+				{
+					startsAt: future,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.phases[0]).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases[1].billing_cycle_anchor).toBe("phase_start");
+	});
+
+	test("does not reset current billing anchor when editing an existing schedule", () => {
+		const now = Date.now();
+		const persistedStart = now - 1000 * 60 * 60 * 24;
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				{
+					startsAt: persistedStart,
+					persistedStartsAt: persistedStart,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+				{
+					startsAt: future,
+					persistedStartsAt: undefined,
+					plans: [{ ...EMPTY_SCHEDULE_PLAN, productId: "prod_1" }],
+				},
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases[1].billing_cycle_anchor).toBe("phase_start");
+	});
+
+	test("sets future phase anchors for existing schedules with multiple current plans", () => {
+		const now = Date.now();
+		const persistedStart = now - 1000 * 60 * 60 * 24;
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				schedulePhase({
+					startsAt: persistedStart,
+					persistedStartsAt: persistedStart,
+					productIds: ["prod_1", "prod_2"],
+				}),
+				schedulePhase({
+					startsAt: future,
+				}),
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases[1].billing_cycle_anchor).toBe("phase_start");
+	});
+
+	test("does not send stale billing anchors for new schedules with multiple current plans", () => {
+		const now = Date.now();
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				schedulePhase({
+					startsAt: now,
+					productIds: ["prod_1", "prod_2"],
+				}),
+				schedulePhase({
+					startsAt: future,
+				}),
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases[1]).not.toHaveProperty("billing_cycle_anchor");
+	});
+
+	test("sends billing behavior without an anchor reset for multi-plan immediate phases", () => {
+		const now = Date.now();
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				schedulePhase({
+					startsAt: now,
+					productIds: ["prod_1", "prod_2"],
+				}),
+				schedulePhase({ startsAt: future }),
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			billingBehavior: "none",
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.billing_behavior).toBe("none");
+		expect(result).not.toHaveProperty("billing_cycle_anchor");
+	});
+
+	test("sends billing behavior when the first valid phase is multi-plan", () => {
+		const now = Date.now();
+		const future = now + 1000 * 60 * 60 * 24 * 30;
+		const later = now + 1000 * 60 * 60 * 24 * 60;
+		const result = buildCreateScheduleRequestBody({
+			customerId: "cus_1",
+			phases: [
+				schedulePhase({ startsAt: now, productIds: [""] }),
+				schedulePhase({
+					startsAt: future,
+					productIds: ["prod_1", "prod_2"],
+				}),
+				schedulePhase({ startsAt: later }),
+			],
+			products: defaultProducts,
+			features,
+			nowMs: now,
+			billingBehavior: "none",
+			resetBillingCycle: true,
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.billing_behavior).toBe("none");
+		expect(result).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases).toHaveLength(2);
+		expect(result!.phases[0].plans).toHaveLength(2);
+		expect(result!.phases[0]).not.toHaveProperty("billing_cycle_anchor");
+		expect(result!.phases[1]).not.toHaveProperty("billing_cycle_anchor");
+	});
+});

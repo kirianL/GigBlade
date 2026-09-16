@@ -21,6 +21,7 @@ import {
 	MenuGridIcon,
 } from "@/app/constant";
 import { getGsap } from "@/lib/lazyGsap";
+import { getDashboardUrl } from "@/lib/dashboard-url";
 import { getLenis, scrollToHash, scrollToHashWhenReady } from "@/lib/smooth-scroll";
 import { useMediaQuery } from "@/lib/use-media-query";
 import SlotLabel from "./slot-label";
@@ -162,17 +163,8 @@ export default function Navbar({
 	const dashboardIconRef = useRef<PixelHoverHandle | null>(null);
 	const barRef = useRef<HTMLDivElement | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const isLg = useMediaQuery("(min-width: 1024px)");
-
-	useEffect(() => {
-		setIsLoggedIn(
-			document.cookie
-				.split("; ")
-				.find((row) => row.startsWith("logged_in_hint="))
-				?.split("=")[1] === "1",
-		);
-	}, []);
+	const panelHref = getDashboardUrl();
 
 	useEffect(() => {
 		if (!menuOpen) return;
@@ -262,7 +254,7 @@ export default function Navbar({
 								className="relative"
 							>
 								<AppLink
-									href={isLoggedIn ? "/dashboard" : "/acceso"}
+									href={panelHref}
 									data-slot-hover-root
 									className="relative inline-flex cursor-pointer items-center gap-2 overflow-hidden whitespace-nowrap bg-brand px-4 py-3.5 text-white transition-colors duration-300 hover:bg-brand-hover active:bg-brand-hover"
 									onMouseEnter={() => dashboardIconRef.current?.restart()}
@@ -342,6 +334,14 @@ export default function Navbar({
 				</div>
 				<div className="mt-auto flex flex-col">
 					<div className="border-t border-[#292929] py-1.5" />
+					<AppLink
+						href={panelHref}
+						onClick={() => setMenuOpen(false)}
+						className="flex min-h-12 items-center justify-between gap-4 border-b border-[#292929] px-4 py-3 text-sm tracking-widest text-white transition-colors duration-300 active:bg-[#141414]"
+					>
+						<span className="text-sm tracking-[-2%]">Panel</span>
+						<IconDashboard className="h-3.5 w-3.5" />
+					</AppLink>
 					<AppLink
 						href="/acceso"
 						onClick={() => setMenuOpen(false)}

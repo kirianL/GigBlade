@@ -1,0 +1,800 @@
+import {
+	computeGrantedBalanceInput,
+	cusEntsToUnlimitedUsage,
+	customerEntitlementToBillingCycleEnd,
+	EntInterval,
+	type Entity,
+	type FullCusEntWithFullCusProduct,
+	type FullCusProduct,
+	type FullCustomerEntitlement,
+	type FullCustomerPrice,
+	getRolloverFields,
+	isUnlimitedCusEnt,
+	numberWithCommas,
+} from "@autumn/shared";
+import {
+	Button,
+	CopyButton,
+	DateInputUnix,
+	GroupedTabButton,
+	InfoRow,
+	LabelInput,
+	Switch,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@autumn/ui";
+import { ClockCountdownIcon, QuestionIcon } from "@phosphor-icons/react";
+import { useStore } from "@tanstack/react-form";
+import { useState } from "react";
+import { toast } from "sonner";
+import { ConfigRow } from "@/components/forms/shared/ConfigRow";
+import { OpenInStripeButton } from "@/components/v2/buttons/OpenInStripeButton";
+import { SheetHeader, SheetSection } from "@/components/v2/sheets/InlineSheet";
+import { useCustomerBalanceSheetStore } from "@/hooks/stores/useCustomerBalanceSheetStore";
+import { useSheetStore } from "@/hooks/stores/useSheetStore";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
+import { getBackendErr, notNullish } from "@/utils/genUtils";
+import { useCusQuery } from "@/views/customers/customer/hooks/useCusQuery";
+import { useCustomerContext } from "../../customer/CustomerContext";
+import { getCustomerBalancePlanName } from "../table/customer-balance/customerBalanceUtils";
+import { BalanceEditPreviews } from "./BalanceEditPreviews";
+import { FeatureOverrideSection } from "./FeatureOverrideSection";
+import { GrantedBalancePopover } from "./GrantedBalancePopover";
+import { PooledBalanceContributions } from "./PooledBalanceContributions";
+import {
+	type BalanceEditFormInstance,
+	useBalanceEditForm,
+} from "./useBalanceEditForm";
+
+/* ─── Outer Shell ─── */
+
+export function BalanceEditSheet() {
+	const { customer } = useCusQuery();
+	const { entityId } = useCustomerContext();
+	const { featureId, originalEntitlements, selectedCusEntId } =
+		useCustomerBalanceSheetStore();
+
+	if (!featureId || !originalEntitlements.length) {
+		return (
+			<div className="flex flex-col h-full">
+				<SheetHeader
+					title="Edit Balance"
+					description="Loading balance information..."
+				/>
+			</div>
+		);
+	}
+
+	const selectedCusEnt = originalEntitlements.find(
+		(ent) => ent.id === selectedCusEntId,
+	);
+
+	if (!selectedCusEnt) {
+		return (
+			<div className="flex flex-col h-full">
+				<SheetHeader title="Edit Balance" description="No balance selected" />
+			</div>
+		);
+	}
+
+	const isUnlimited = isUnlimitedCusEnt(selectedCusEnt);
+	const feature = selectedCusEnt.entitlement.feature;
+	const billingCycleEnd = customerEntitlementToBillingCycleEnd({
+		customerEntitlement: selectedCusEnt,
+		now: Date.now(),
+	});
+
+	const cusProduct = customer?.customer_products.find(
+		(cp: FullCusProduct) => cp.id === selectedCusEnt.customer_product_id,
+	);
+	const cusPrice = cusProduct?.customer_prices.find(
+		(cp: FullCustomerPrice) =>
+			cp.price.entitlement_id === selectedCusEnt.entitlement.id,
+	);
+
+	const derivedEntity = customer?.entities?.find((e: Entity) => {
+		if (selectedCusEnt.internal_entity_id)
+			return e.internal_id === selectedCusEnt.internal_entity_id;
+		return (
+			e.internal_id === cusProduct?.internal_entity_id ||
+			e.id === cusProduct?.entity_id
+		);
+	});
+	const effectiveEntityId =
+		entityId ?? derivedEntity?.id ?? derivedEntity?.internal_id ?? null;
+
+	return (
+		<div className="flex flex-col h-full">
+			<SheetHeader
+				title={feature.name}
+				description={
+					<CopyButton text={feature.id} size="sm" innerClassName="font-mono">
+						{feature.id}
+					</CopyButton>
+				}
+				breadcrumbs={undefined}
+			>
+				{!isUnlimited && (
+					<p className="text-tertiary-foreground text-xs mt-2">
+						Make a one-off adjustment to a balance. After the next reset, the
+						balance will return to the plan's defaults.{" "}
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<QuestionIcon className="size-3.5 cursor-help text-tertiary-foreground inline align-text-bottom" />
+							</TooltipTrigger>
+							<TooltipContent className="max-w-72">
+								Balance updates are meant for manual corrections. To change what
+								a customer gets on an ongoing basis, update their plan instead.
+								To grant a separate balance that isn't tied to their plan, like
+								a promotional credit, create a new balance.
+							</TooltipContent>
+						</Tooltip>
+					</p>
+				)}
+			</SheetHeader>
+
+			{isUnlimited ? (
+				<UnlimitedBalanceInfo
+					entity={derivedEntity}
+					selectedCusEnt={selectedCusEnt}
+					cusProduct={cusProduct}
+					billingCycleEnd={billingCycleEnd}
+				/>
+			) : (
+				<BalanceEditForm
+					selectedCusEnt={selectedCusEnt}
+					entity={derivedEntity}
+					entityId={effectiveEntityId}
+					cusProduct={cusProduct}
+					cusPrice={cusPrice}
+					featureId={featureId}
+					billingCycleEnd={billingCycleEnd}
+				/>
+			)}
+		</div>
+	);
+}
+
+/* ─── Unlimited Info (no form needed) ─── */
+
+function UnlimitedBalanceInfo({
+	entity,
+	selectedCusEnt,
+	cusProduct,
+	billingCycleEnd,
+}: {
+	entity: Entity | undefined;
+	selectedCusEnt: FullCusEntWithFullCusProduct;
+	cusProduct: FullCusProduct | undefined;
+	billingCycleEnd: number | null;
+}) {
+	// Customer-wide usage on the unlimited balance (includes per-entity slices)
+	const unlimitedUsage = cusEntsToUnlimitedUsage({
+		cusEnts: [selectedCusEnt],
+	});
+
+	return (
+		<div className="flex-1 overflow-y-auto">
+			<SheetSection withSeparator={false}>
+				<EntitlementInfoRows
+					entity={entity}
+					selectedCusEnt={selectedCusEnt}
+					cusProduct={cusProduct}
+					isUnlimited
+					unlimitedUsage={unlimitedUsage}
+					billingCycleEnd={billingCycleEnd}
+				/>
+			</SheetSection>
+			<RolloversSection selectedCusEnt={selectedCusEnt} />
+			<FeatureOverrideSection selectedCusEnt={selectedCusEnt} />
+			<PooledBalanceContributions
+				pooledBalance={selectedCusEnt.pooled_balance}
+			/>
+		</div>
+	);
+}
+
+/* ─── Inner Form ─── */
+
+function BalanceEditForm({
+	selectedCusEnt,
+	entity,
+	entityId,
+	cusProduct,
+	cusPrice,
+	featureId,
+	billingCycleEnd,
+}: {
+	selectedCusEnt: FullCustomerEntitlement;
+	entity: Entity | undefined;
+	entityId: string | null;
+	cusProduct: FullCusProduct | undefined;
+	cusPrice: FullCustomerPrice | undefined;
+	featureId: string;
+	billingCycleEnd: number | null;
+}) {
+	const { customer } = useCusQuery();
+	const form = useBalanceEditForm({
+		selectedCusEnt,
+		entityId,
+	});
+
+	return (
+		<div className="flex-1 overflow-y-auto">
+			<SheetSection withSeparator>
+				<EntitlementInfoRows
+					entity={entity}
+					selectedCusEnt={selectedCusEnt}
+					cusProduct={cusProduct}
+					isUnlimited={false}
+					billingCycleEnd={billingCycleEnd}
+				/>
+			</SheetSection>
+
+			<RolloversSection selectedCusEnt={selectedCusEnt} entityId={entityId} />
+
+			<SheetSection withSeparator={false}>
+				<BalanceFields
+					form={form}
+					selectedCusEnt={selectedCusEnt}
+					cusPrice={cusPrice}
+				/>
+			</SheetSection>
+
+			<SubmitButton
+				form={form}
+				customer={customer}
+				featureId={featureId}
+				entityId={entityId}
+				selectedCusEnt={selectedCusEnt}
+				cusPrice={cusPrice}
+			/>
+
+			<FeatureOverrideSection selectedCusEnt={selectedCusEnt} />
+
+			<PooledBalanceContributions
+				pooledBalance={selectedCusEnt.pooled_balance}
+			/>
+		</div>
+	);
+}
+
+/* ─── Rollovers Section ─── */
+
+function RolloversSection({
+	selectedCusEnt,
+	entityId,
+}: {
+	selectedCusEnt: FullCustomerEntitlement;
+	entityId?: string | null;
+}) {
+	const rolloverFields = getRolloverFields({
+		cusEnt: selectedCusEnt,
+		entityId: entityId ?? undefined,
+	});
+
+	if (!rolloverFields || rolloverFields.rollovers.length === 0) return null;
+
+	const { rollovers } = rolloverFields;
+
+	return (
+		<SheetSection withSeparator>
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center gap-1.5 text-tertiary-foreground text-sm font-medium">
+					<ClockCountdownIcon size={14} weight="duotone" />
+					Rollovers
+				</div>
+				<div className="flex flex-col gap-1.5">
+					{rollovers.map((rollover, index) => {
+						const expiryText = rollover.expires_at
+							? `${formatUnixToDateTime(rollover.expires_at, { withYear: true }).date}, ${formatUnixToDateTime(rollover.expires_at).time}`
+							: "No expiry";
+
+						return (
+							<div
+								key={`rollover-${index}-${rollover.expires_at}`}
+								className="flex items-center justify-between text-sm px-2 py-0.5 rounded-md"
+							>
+								<span className="text-foreground font-medium">
+									+{numberWithCommas(rollover.balance)}
+								</span>
+								<span className="text-tertiary-foreground text-xs">
+									{rollover.expires_at ? `Expires ${expiryText}` : expiryText}
+								</span>
+							</div>
+						);
+					})}
+				</div>
+				<div className="flex items-center justify-between text-xs text-subtle px-2">
+					<span>Total rollover</span>
+					<span>+{numberWithCommas(rolloverFields.balance)}</span>
+				</div>
+			</div>
+		</SheetSection>
+	);
+}
+
+/* ─── Entitlement Info Rows ─── */
+
+function EntitlementInfoRows({
+	entity,
+	selectedCusEnt,
+	cusProduct,
+	isUnlimited,
+	unlimitedUsage = 0,
+	billingCycleEnd,
+}: {
+	entity: Entity | undefined;
+	selectedCusEnt: FullCustomerEntitlement;
+	cusProduct: FullCusProduct | undefined;
+	isUnlimited: boolean;
+	unlimitedUsage?: number;
+	billingCycleEnd: number | null;
+}) {
+	const { customer } = useCusQuery();
+	const planName =
+		getCustomerBalancePlanName({
+			balance: {
+				...selectedCusEnt,
+				customer_product: cusProduct ?? null,
+			},
+			fullCustomer: customer,
+		}) ?? "N/A";
+
+	return (
+		<div className="flex flex-col gap-2 rounded-lg">
+			{selectedCusEnt.external_id && (
+				<InfoRow
+					label="ID"
+					value={
+						<span
+							className="block max-w-[220px] truncate font-mono text-xs"
+							title={selectedCusEnt.external_id}
+						>
+							{selectedCusEnt.external_id}
+						</span>
+					}
+				/>
+			)}
+			{entity && <InfoRow label="Entity" value={entity.name || entity.id} />}
+			<InfoRow label="Plan" value={planName} />
+			<InfoRow
+				label="Interval"
+				value={
+					<span className="bg-muted px-1 py-0.5 rounded-md text-tertiary-foreground">
+						{selectedCusEnt.entitlement.interval === "lifetime"
+							? "Lifetime"
+							: selectedCusEnt.entitlement.interval}
+					</span>
+				}
+			/>
+			{selectedCusEnt.pooled_balance?.stripe_subscription_id && (
+				<InfoRow
+					label="Stripe ID"
+					className="flex-1 min-w-0"
+					value={
+						<div className="flex items-center gap-2 min-w-0 w-full">
+							<CopyButton
+								text={selectedCusEnt.pooled_balance.stripe_subscription_id}
+								size="mini"
+								className="text-tertiary-foreground min-w-0 shrink"
+								innerClassName="text-tiny-id truncate !font-normal min-w-0"
+							/>
+							<OpenInStripeButton
+								subscriptionId={
+									selectedCusEnt.pooled_balance.stripe_subscription_id
+								}
+							/>
+						</div>
+					}
+				/>
+			)}
+			{isUnlimited && (
+				<InfoRow
+					label="Balance"
+					value={
+						<span className="bg-muted px-1 py-0.5 rounded-md text-tertiary-foreground">
+							Unlimited
+						</span>
+					}
+				/>
+			)}
+			{isUnlimited && unlimitedUsage > 0 && (
+				<InfoRow label="Used" value={numberWithCommas(unlimitedUsage)} />
+			)}
+			{billingCycleEnd && (
+				<InfoRow
+					label="Bills"
+					value={`${
+						formatUnixToDateTime(billingCycleEnd, { withYear: true }).date
+					}, ${formatUnixToDateTime(billingCycleEnd).time}`}
+				/>
+			)}
+			{selectedCusEnt.expires_at && (
+				<InfoRow
+					label="Expires At"
+					value={`${
+						formatUnixToDateTime(selectedCusEnt.expires_at, {
+							withYear: true,
+						}).date
+					}, ${formatUnixToDateTime(selectedCusEnt.expires_at).time}`}
+				/>
+			)}
+		</div>
+	);
+}
+
+/* ─── Balance Fields Section ─── */
+
+function BalanceFields({
+	form,
+	selectedCusEnt,
+	cusPrice,
+}: {
+	form: BalanceEditFormInstance;
+	selectedCusEnt: FullCustomerEntitlement;
+	cusPrice: FullCustomerPrice | undefined;
+}) {
+	const mode = useStore(form.store, (s) => s.values.mode);
+	const feature = selectedCusEnt.entitlement.feature;
+
+	const showOutOfPopover = useStore(form.store, (s) => {
+		const gpb = s.values.grantedAndPurchasedBalance ?? 0;
+		const bal = s.values.balance ?? 0;
+		return gpb > 0 || bal > 0;
+	});
+
+	return (
+		<div className="flex flex-col gap-3">
+			<form.Field name="mode">
+				{(field) => (
+					<GroupedTabButton
+						value={field.state.value}
+						onValueChange={(v) => field.handleChange(v as "set" | "add")}
+						options={[
+							{ value: "set", label: "Set Balance" },
+							{ value: "add", label: "Add to Balance" },
+						]}
+					/>
+				)}
+			</form.Field>
+
+			{mode === "set" ? (
+				<SetBalanceFields
+					form={form}
+					selectedCusEnt={selectedCusEnt}
+					cusPrice={cusPrice}
+					feature={feature}
+					showOutOfPopover={showOutOfPopover}
+				/>
+			) : (
+				<AddBalanceFields form={form} />
+			)}
+		</div>
+	);
+}
+
+/* ─── Set Balance Mode ─── */
+
+function SetBalanceFields({
+	form,
+	selectedCusEnt,
+	cusPrice,
+	feature,
+	showOutOfPopover,
+}: {
+	form: BalanceEditFormInstance;
+	selectedCusEnt: FullCustomerEntitlement;
+	cusPrice: FullCustomerPrice | undefined;
+	feature: FullCustomerEntitlement["entitlement"]["feature"];
+	showOutOfPopover: boolean;
+}) {
+	const balance = useStore(form.store, (s) => s.values.balance);
+	const gpb = useStore(form.store, (s) => s.values.grantedAndPurchasedBalance);
+
+	// Mirror the backend guard (updateExpiresAt): only paid recurring balances
+	// can't expire (their lifetime follows the billing cycle). Free grants —
+	// recurring or one-off — and one-off prepaid top-ups are all fine.
+	const interval = selectedCusEnt.entitlement.interval;
+	const isRecurringBalance =
+		notNullish(interval) && interval !== EntInterval.Lifetime;
+	const isPaidBalance = !!cusPrice;
+	const expiresAtDisabled = isRecurringBalance && isPaidBalance;
+	// Setting a brand-new expiry is a rare, API-only flow — only surface the
+	// field in the dashboard when the balance already has one (to view/edit/clear).
+	const showExpiresAt = notNullish(selectedCusEnt.expires_at);
+
+	return (
+		<div className="flex flex-col gap-3">
+			<div className="flex items-end gap-2 w-full">
+				<div className="flex items-end gap-2 w-full">
+					<div className="flex w-full">
+						<form.Field name="balance">
+							{(field) => (
+								<LabelInput
+									label="Balance"
+									placeholder="Enter balance"
+									className="w-full"
+									type="number"
+									value={
+										notNullish(field.state.value)
+											? String(field.state.value)
+											: ""
+									}
+									onChange={(e) => {
+										const v = e.target.value;
+										field.handleChange(v ? parseFloat(v) : null);
+									}}
+								/>
+							)}
+						</form.Field>
+					</div>
+					{showOutOfPopover && (
+						<form.Field name="grantedAndPurchasedBalance">
+							{(field) => (
+								<GrantedBalancePopover
+									grantedBalance={field.state.value}
+									onSave={(v) => field.handleChange(v)}
+								/>
+							)}
+						</form.Field>
+					)}
+					<div className="text-subtle text-sm truncate mb-1 flex justify-center max-w-full w-full">
+						<span className="truncate">
+							{numberWithCommas(
+								(gpb ?? 0) + form.rolloverBalance - (balance ?? 0),
+							)}{" "}
+							used
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<div className="flex flex-col shrink-0 w-full">
+				<div className="text-form-label block mb-1">Next Reset</div>
+				<form.Field name="nextResetAt">
+					{(field) => (
+						<DateInputUnix
+							disabled={
+								!!cusPrice || selectedCusEnt.entitlement.interval === "lifetime"
+							}
+							unixDate={field.state.value}
+							setUnixDate={(v) => field.handleChange(v)}
+							withTime
+							use24Hour
+						/>
+					)}
+				</form.Field>
+			</div>
+
+			{/* Reset-related notes (e.g. "Lifetime balances have no reset date")
+			    pertain to Next Reset, so they sit directly under it. */}
+			<BalanceEditPreviews
+				cusPrice={cusPrice}
+				interval={selectedCusEnt.entitlement.interval}
+				featureUsageType={feature.config?.usage_type}
+				currentBalance={balance}
+			/>
+
+			{showExpiresAt && (
+				<div className="flex flex-col shrink-0 w-full">
+					<div className="text-form-label block mb-1">Expires At</div>
+					<form.Field name="expiresAt">
+						{(field) => (
+							<DateInputUnix
+								disabled={expiresAtDisabled}
+								unixDate={field.state.value}
+								setUnixDate={(v) => field.handleChange(v)}
+								withTime
+								use24Hour
+							/>
+						)}
+					</form.Field>
+					{expiresAtDisabled && (
+						<div className="text-subtle text-xs mt-1">
+							Paid recurring balances follow the billing cycle and can't be set
+							to expire.
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
+/* ─── Add Balance Mode ─── */
+
+function AddBalanceFields({ form }: { form: BalanceEditFormInstance }) {
+	const updateGrantedBalance = useStore(
+		form.store,
+		(s) => s.values.updateGrantedBalance,
+	);
+
+	return (
+		<div className="flex flex-col gap-3">
+			<form.Field name="addValue">
+				{(field) => (
+					<LabelInput
+						label="Amount to Add"
+						placeholder="Enter amount"
+						className="w-full"
+						type="number"
+						value={
+							notNullish(field.state.value) ? String(field.state.value) : ""
+						}
+						onChange={(e) => {
+							const v = e.target.value;
+							field.handleChange(v ? parseFloat(v) : null);
+						}}
+					/>
+				)}
+			</form.Field>
+			<ConfigRow
+				title="Also Update Granted Balance"
+				description="Increase the total granted balance by the same amount"
+				action={
+					<Switch
+						checked={updateGrantedBalance}
+						onCheckedChange={(checked) =>
+							form.setFieldValue("updateGrantedBalance", !!checked)
+						}
+					/>
+				}
+			/>
+		</div>
+	);
+}
+
+/* ─── Submit Button ─── */
+
+function SubmitButton({
+	form,
+	customer,
+	featureId,
+	entityId,
+	selectedCusEnt,
+	cusPrice,
+}: {
+	form: BalanceEditFormInstance;
+	customer: any;
+	featureId: string;
+	entityId: string | null;
+	selectedCusEnt: FullCustomerEntitlement;
+	cusPrice: FullCustomerPrice | undefined;
+}) {
+	const { refetch } = useCusQuery();
+	const { closeSheet: closeBalanceSheet } = useCustomerBalanceSheetStore();
+	const closeSheet = useSheetStore((s) => s.closeSheet);
+	const axiosInstance = useAxiosInstance();
+	const [loading, setLoading] = useState(false);
+
+	const isDirty = useStore(form.store, (s) => s.isDirty);
+
+	const handleClose = () => {
+		closeBalanceSheet();
+		closeSheet();
+	};
+
+	const handleSave = async () => {
+		const values = form.state.values;
+		const promises: Promise<unknown>[] = [];
+
+		// Validate before firing any requests
+		if (hasBalanceChanges({ form })) {
+			if (values.mode === "set") {
+				const balanceNum = parseFloat(String(values.balance));
+				if (Number.isNaN(balanceNum)) {
+					toast.error("Please enter a valid balance");
+					return;
+				}
+				if (cusPrice && values.nextResetAt !== selectedCusEnt.next_reset_at) {
+					toast.error("Not allowed to change reset date for paid features");
+					return;
+				}
+			} else {
+				const addNum = parseFloat(String(values.addValue));
+				if (Number.isNaN(addNum)) {
+					toast.error("Please enter a valid amount");
+					return;
+				}
+			}
+		}
+
+		setLoading(true);
+		try {
+			// Queue balance update
+			if (hasBalanceChanges({ form })) {
+				if (values.mode === "set") {
+					const grantedBalanceInput = computeGrantedBalanceInput({
+						newGPB: values.grantedAndPurchasedBalance ?? 0,
+						prepaidAllowance: form.prepaidAllowance,
+					});
+
+					const targetBalance =
+						parseFloat(String(values.balance)) - form.rolloverBalance;
+
+					promises.push(
+						axiosInstance.post("/v1/balances/update", {
+							customer_id: customer.id || customer.internal_id,
+							feature_id: featureId,
+							current_balance: targetBalance,
+							included_grant: grantedBalanceInput ?? undefined,
+							customer_entitlement_id: selectedCusEnt.id,
+							entity_id: entityId ?? undefined,
+							next_reset_at: values.nextResetAt ?? undefined,
+							expires_at: values.expiresAt ?? undefined,
+						}),
+					);
+				} else {
+					const addAmount = parseFloat(String(values.addValue));
+					const defaultGPB =
+						form.options.defaultValues?.grantedAndPurchasedBalance ?? 0;
+					const newGPB = defaultGPB + addAmount;
+					const grantedBalanceInput = values.updateGrantedBalance
+						? computeGrantedBalanceInput({
+								newGPB,
+								prepaidAllowance: form.prepaidAllowance,
+							})
+						: undefined;
+
+					promises.push(
+						axiosInstance.post("/v1/balances/update", {
+							customer_id: customer.id || customer.internal_id,
+							feature_id: featureId,
+							add_to_balance: addAmount,
+							included_grant: grantedBalanceInput,
+							customer_entitlement_id: selectedCusEnt.id,
+							entity_id: entityId ?? undefined,
+						}),
+					);
+				}
+			}
+
+			await Promise.all(promises);
+			toast.success("Updated successfully");
+			handleClose();
+			refetch();
+		} catch (error) {
+			toast.error(getBackendErr(error, "Failed to update"));
+			setLoading(false);
+		}
+	};
+
+	return (
+		<div className="px-4 pb-4">
+			<Button
+				variant="primary"
+				className="w-full"
+				isLoading={loading}
+				disabled={!isDirty}
+				onClick={handleSave}
+			>
+				Update
+			</Button>
+		</div>
+	);
+}
+
+/* ─── Dirty Helpers ─── */
+
+function hasBalanceChanges({
+	form,
+}: {
+	form: BalanceEditFormInstance;
+}): boolean {
+	const meta = form.state.fieldMeta;
+
+	if (form.state.values.mode === "add") {
+		return meta.addValue?.isDirty ?? false;
+	}
+
+	return (
+		meta.balance?.isDirty ||
+		meta.nextResetAt?.isDirty ||
+		meta.expiresAt?.isDirty ||
+		meta.grantedAndPurchasedBalance?.isDirty ||
+		false
+	);
+}

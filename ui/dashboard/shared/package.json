@@ -1,0 +1,113 @@
+{
+	"name": "@autumn/shared",
+	"type": "module",
+	"version": "1.0.0",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": {
+			"types": "./index.ts",
+			"import": "./index.ts",
+			"default": "./index.ts"
+		},
+		"./scopeDefinitions": {
+			"types": "./utils/scopeDefinitions.ts",
+			"import": "./utils/scopeDefinitions.ts",
+			"default": "./utils/scopeDefinitions.ts"
+		},
+		"./autumnOAuthScopes": {
+			"types": "./utils/auth/autumnOAuthScopes.ts",
+			"import": "./utils/auth/autumnOAuthScopes.ts",
+			"default": "./utils/auth/autumnOAuthScopes.ts"
+		},
+		"./utils/auth/autumnOAuthScopes": {
+			"types": "./utils/auth/autumnOAuthScopes.ts",
+			"import": "./utils/auth/autumnOAuthScopes.ts",
+			"default": "./utils/auth/autumnOAuthScopes.ts"
+		},
+		"./utils/auth/oauthScopeUtils": {
+			"types": "./utils/auth/oauthScopeUtils.ts",
+			"import": "./utils/auth/oauthScopeUtils.ts",
+			"default": "./utils/auth/oauthScopeUtils.ts"
+		},
+		"./utils/auth/oauthAccessTokens": {
+			"types": "./utils/auth/oauthAccessTokens.ts",
+			"import": "./utils/auth/oauthAccessTokens.ts",
+			"default": "./utils/auth/oauthAccessTokens.ts"
+		},
+		"./utils/auth/oauthClientMetadata": {
+			"types": "./utils/auth/oauthClientMetadata.ts",
+			"import": "./utils/auth/oauthClientMetadata.ts",
+			"default": "./utils/auth/oauthClientMetadata.ts"
+		},
+		"./utils/auth/oauthRedirectUris": {
+			"types": "./utils/auth/oauthRedirectUris.ts",
+			"import": "./utils/auth/oauthRedirectUris.ts",
+			"default": "./utils/auth/oauthRedirectUris.ts"
+		},
+		"./utils/auth/oauthRequestBody": {
+			"types": "./utils/auth/oauthRequestBody.ts",
+			"import": "./utils/auth/oauthRequestBody.ts",
+			"default": "./utils/auth/oauthRequestBody.ts"
+		},
+		"./unixUtils": {
+			"types": "./utils/common/unixUtils.ts",
+			"import": "./utils/common/unixUtils.ts",
+			"default": "./utils/common/unixUtils.ts"
+		},
+		"./publicApiSchemas": {
+			"types": "./api/publicApiSchemas.ts",
+			"import": "./api/publicApiSchemas.ts",
+			"default": "./api/publicApiSchemas.ts"
+		},
+		"./utils/chatState": {
+			"types": "./utils/chatState.ts",
+			"import": "./utils/chatState.ts",
+			"default": "./utils/chatState.ts"
+		},
+		"./utils/infisical": {
+			"types": "./utils/infisical.ts",
+			"import": "./utils/infisical.ts",
+			"default": "./utils/infisical.ts"
+		}
+	},
+	"author": "Recase Inc.",
+	"license": "Apache-2.0",
+	"scripts": {
+		"ts": "bunx tsgo --build --noEmit",
+		"db:push": "bun db:generate && bun db:migrate",
+		"db:generate": "cross-env NODE_OPTIONS=\"--import tsx\" bunx drizzle-kit generate --config drizzle.config.ts",
+		"db:migrate": "cross-env NODE_OPTIONS=\"--import tsx\" bunx drizzle-kit migrate --config drizzle.config.ts",
+		"db:studio": "cross-env NODE_OPTIONS=\"--import tsx\" bunx drizzle-kit studio --config drizzle.config.ts",
+		"db:events:push": "cross-env NODE_OPTIONS=\"--import tsx\" bunx drizzle-kit push --config drizzle.config.events.ts",
+		"db:events:push:dev": "infisical run --env=dev --recursive -- bun db:events:push",
+		"db:events:push:prod": "infisical run --env=prod --recursive -- bun db:events:push"
+	},
+	"dependencies": {
+		"@autumn/ksuid": "workspace:*",
+		"@date-fns/utc": "2.1.0",
+		"@orpc/contract": "^1.0.0",
+		"@orpc/openapi": "^1.13.4",
+		"@orpc/zod": "^1.13.4",
+		"better-auth": "1.6.25",
+		"date-fns": "^4.1.0",
+		"decimal.js": "^10.5.0",
+		"dotenv": "^16.5.0",
+		"drizzle-kit": "^0.31.1",
+		"drizzle-orm": "0.43.1",
+		"stripe": "19.3.0-beta.1",
+		"yaml": "^2.8.1",
+		"zod-openapi": "^5.4.1"
+	},
+	"peerDependencies": {
+		"zod": "^3.25.23"
+	},
+	"devDependencies": {
+		"@types/bun": "1.3.14",
+		"@types/node": "^24.0.3",
+		"cross-env": "^7.0.3",
+		"tsx": "^4.21.0",
+		"typescript": "^5.7.2"
+	},
+	"private": true
+}

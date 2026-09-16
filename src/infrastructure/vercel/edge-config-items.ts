@@ -1,5 +1,6 @@
 import "server-only";
 
+import { assertAllowedUrl } from "@/lib/http/allowed-url";
 import { getServerEnv } from "@/lib/env/server";
 
 type EdgeConfigItem = {
@@ -15,7 +16,7 @@ export async function patchEdgeConfigItems(items: EdgeConfigItem[]) {
     throw new Error("Faltan PLATFORM_VERCEL_TOKEN o EDGE_CONFIG_ID");
   }
 
-  const url = new URL(
+  const url = assertAllowedUrl(
     `https://api.vercel.com/v1/edge-config/${env.EDGE_CONFIG_ID}/items`,
   );
 

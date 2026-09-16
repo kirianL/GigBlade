@@ -1,0 +1,84 @@
+import { cusEntToCusPrice } from "@utils/cusEntUtils/convertCusEntUtils/cusEntToCusPrice";
+import { isLosingPrepaidQuantityPrice } from "@utils/productUtils/priceUtils/findPrice/findPrepaidQuantityTargetPrice";
+import { Decimal } from "decimal.js";
+import {
+	type FullCusEntWithFullCusProduct,
+	isEntityScopedCusEnt,
+	isPrepaidPrice,
+	sumValues,
+} from "../../..";
+import { cusProductToFeatureOptions } from "../../cusProductUtils/convertCusProduct/cusProductToFeatureOptions.js";
+
+export const cusEntToPrepaidQuantity = ({
+	cusEnt,
+	sumAcrossEntities = false,
+	useUpcomingQuantity = false,
+}: {
+	cusEnt: FullCusEntWithFullCusProduct;
+	sumAcrossEntities?: boolean;
+	useUpcomingQuantity?: boolean;
+}) => {
+	// 2. If cus ent is not prepaid, skip
+	const cusPrice = cusEntToCusPrice({ cusEnt });
+
+	if (!cusPrice || !isPrepaidPrice(cusPrice.price)) return 0;
+
+	if (!cusEnt.customer_product) return 0;
+
+	// Tie-break: a losing prepaid price (one-off alongside a recurring prepaid
+	// of the same feature) never owns the feature-keyed quantity.
+	const siblingPrices = cusEnt.customer_product.customer_prices.map(
+		(customerPrice) => customerPrice.price,
+	);
+	if (
+		isLosingPrepaidQuantityPrice({
+			price: cusPrice.price,
+			prices: siblingPrices,
+		})
+	)
+		return 0;
+
+	// 3. Get quantity
+	const options = cusProductToFeatureOptions({
+		cusProduct: cusEnt.customer_product,
+		feature: cusEnt.entitlement.feature,
+	});
+
+	if (!options) return 0;
+
+	const quantity = useUpcomingQuantity
+		? (options.upcoming_quantity ?? options.quantity ?? 0)
+		: (options.quantity ?? 0);
+
+	const quantityWithUnits = new Decimal(quantity)
+		.mul(cusPrice.price.config.billing_units ?? 1)
+		.toNumber();
+
+	if (sumAcrossEntities && isEntityScopedCusEnt(cusEnt)) {
+		return new Decimal(quantityWithUnits)
+			.mul(Object.values(cusEnt.entities).length)
+			.toNumber();
+	}
+
+	return quantityWithUnits;
+};
+
+export const cusEntsToPrepaidQuantity = ({
+	cusEnts,
+	sumAcrossEntities = false,
+	useUpcomingQuantity = false,
+}: {
+	cusEnts: FullCusEntWithFullCusProduct[];
+	sumAcrossEntities?: boolean;
+	useUpcomingQuantity?: boolean;
+}) => {
+	return sumValues(
+		cusEnts.map((cusEnt) =>
+			cusEntToPrepaidQuantity({
+				cusEnt,
+				sumAcrossEntities,
+				useUpcomingQuantity,
+			}),
+		),
+	);
+};

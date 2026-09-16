@@ -1,4 +1,18 @@
+import { z } from "zod";
+
 import { validationError } from "@/domain/errors";
+
+export const waitlistRequestSchema = z
+  .object({
+    artistName: z.string().optional(),
+    email: z.string().optional(),
+    country: z.string().optional(),
+    city: z.string().optional(),
+    instagram: z.string().optional(),
+    note: z.string().optional(),
+    website: z.string().optional(),
+  })
+  .strict();
 
 export type WaitlistStatus = "pending" | "contacted" | "onboarded" | "declined";
 

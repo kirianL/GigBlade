@@ -1,0 +1,20 @@
+import { EntInterval } from "@models/productModels/intervals/entitlementInterval";
+import { z } from "zod/v4";
+import { ApiCusFeatureV3RolloverSchema } from "./apiCusFeatureV3";
+
+// Version 2 of cus feature response
+export const ApiCusFeatureV2Schema = z.object({
+	feature_id: z.string(),
+	interval: z.enum(EntInterval).nullish(),
+	interval_count: z.number().nullish(),
+	unlimited: z.boolean().nullish(),
+	balance: z.number().nullish(), //
+	usage: z.number().nullish(),
+	included_usage: z.number().nullish(),
+	next_reset_at: z.number().nullish(),
+	overage_allowed: z.boolean().nullish(),
+	usage_limit: z.number().nullish(),
+	rollovers: z.array(ApiCusFeatureV3RolloverSchema).nullish(),
+});
+
+export type ApiCusFeatureV2 = z.infer<typeof ApiCusFeatureV2Schema>;

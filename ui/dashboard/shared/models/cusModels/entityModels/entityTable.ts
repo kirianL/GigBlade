@@ -1,0 +1,91 @@
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	foreignKey,
+	index,
+	jsonb,
+	numeric,
+	pgTable,
+	text,
+	unique,
+} from "drizzle-orm/pg-core";
+import { features } from "../../featureModels/featureTable.js";
+import { organizations } from "../../orgModels/orgTable.js";
+import type {
+	DbOverageAllowed,
+	DbSpendLimit,
+	DbUsageAlert,
+	DbUsageLimit,
+} from "../billingControls/customerBillingControls.js";
+import { customers } from "../cusTable.js";
+
+export const entities = pgTable(
+	"entities",
+	{
+		id: text(),
+		org_id: text("org_id"),
+		created_at: numeric({ mode: "number" }).notNull(),
+		internal_id: text("internal_id").primaryKey().notNull(),
+		internal_customer_id: text("internal_customer_id").notNull(),
+		env: text(),
+		name: text(),
+		deleted: boolean().default(false).notNull(),
+		internal_feature_id: text("internal_feature_id"),
+		spend_limits: jsonb().$type<DbSpendLimit[]>(),
+		usage_limits: jsonb().$type<DbUsageLimit[]>(),
+		usage_alerts: jsonb().$type<DbUsageAlert[]>(),
+		overage_allowed: jsonb().$type<DbOverageAllowed[]>(),
+
+		// Optional...
+		feature_id: text("feature_id"),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.internal_customer_id],
+			foreignColumns: [customers.internal_id],
+			name: "entities_internal_customer_id_fkey",
+		}).onDelete("cascade"),
+		foreignKey({
+			columns: [table.internal_feature_id],
+			foreignColumns: [features.internal_id],
+			name: "entities_internal_feature_id_fkey",
+		}).onDelete("cascade"),
+		foreignKey({
+			columns: [table.org_id],
+			foreignColumns: [organizations.id],
+			name: "entities_org_id_fkey",
+		}).onDelete("cascade"),
+
+		unique("entity_id_constraint").on(
+			table.org_id,
+			table.env,
+			table.internal_customer_id,
+			table.id,
+		),
+		index("idx_entities_internal_customer_id").on(table.internal_customer_id),
+		index("idx_entities_internal_feature_id_c")
+			.on(sql`${table.internal_feature_id} COLLATE "C"`)
+			.where(sql`${table.internal_feature_id} IS NOT NULL`)
+			.concurrently(),
+		index("idx_entities_internal_feature_id")
+			.on(table.internal_feature_id)
+			.where(sql`${table.internal_feature_id} IS NOT NULL`)
+			.concurrently(),
+		index("idx_entities_customer_internal_desc").on(
+			table.internal_customer_id,
+			sql`${table.internal_id} DESC`,
+		),
+		index("idx_entities_org_env_id").on(table.org_id, table.env, table.id),
+		index("idx_entities_cursor").on(
+			table.org_id,
+			table.env,
+			sql`${table.created_at} DESC`,
+			sql`${table.id} DESC`,
+		),
+		index("idx_entities_customer_created_at").on(
+			table.internal_customer_id,
+			sql`${table.created_at} DESC`,
+			sql`${table.id} DESC`,
+		),
+	],
+);

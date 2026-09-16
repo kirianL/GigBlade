@@ -1,0 +1,83 @@
+import { z } from "zod/v4";
+import { FeatureConfigOverrideSchema } from "../../featureModels/featureConfig/creditConfig";
+import { FeatureSchema } from "../../featureModels/featureModels";
+import { RolloverConfigSchema } from "../../productV2Models/productItemModels/productItemModels";
+import { EntInterval } from "../intervals/entitlementInterval";
+
+export enum AllowanceType {
+	Fixed = "fixed",
+	Unlimited = "unlimited",
+	None = "none",
+}
+
+export enum EntitlementDuration {
+	Day = "day",
+	Week = "week",
+	Month = "month",
+	Year = "year",
+}
+
+export const EntitlementExpirySchema = z.object({
+	duration: z.nativeEnum(EntitlementDuration),
+	length: z.number(),
+});
+
+export const EntitlementSchema = z.object({
+	// Required fields - no .optional()
+	id: z.string(),
+	created_at: z.number(),
+	internal_feature_id: z.string(),
+	internal_product_id: z.string().nullable(),
+	internal_reward_id: z.string().nullish(),
+	is_custom: z.boolean().default(false),
+
+	allowance_type: z.nativeEnum(AllowanceType).optional().nullable(),
+	allowance: z.number().nullish(),
+	interval: z.nativeEnum(EntInterval).optional().nullable(),
+	interval_count: z.number().default(1),
+
+	carry_from_previous: z.boolean().default(false).optional(),
+	entity_feature_id: z.string().nullish(),
+	pooled: z.boolean().default(false).optional(),
+
+	// Part of create entitlement
+	org_id: z.string().optional(),
+	feature_id: z.string().optional(),
+	usage_limit: z.number().nullable().optional().default(null),
+	expiry_duration: z.nativeEnum(EntitlementDuration).nullish(),
+	expiry_length: z.number().nullish(),
+
+	rollover: RolloverConfigSchema.nullish(),
+	feature_override: FeatureConfigOverrideSchema.nullish(),
+});
+
+export const CreateEntitlementSchema = z.object({
+	id: z.string().nullish(),
+	internal_feature_id: z.string(),
+	feature_id: z.string(),
+	allowance_type: z.nativeEnum(AllowanceType).nullish(),
+	allowance: z.number().nullish(),
+	interval: z.nativeEnum(EntInterval).nullish(),
+	interval_count: z.number().nullish(),
+	carry_from_previous: z.boolean().default(false),
+	entity_feature_id: z.string().nullish(),
+	pooled: z.boolean().default(false).optional(),
+	usage_limit: z.number().nullish().default(null),
+	rollover: RolloverConfigSchema.nullish(),
+	feature_override: FeatureConfigOverrideSchema.nullish(),
+});
+
+export type CreateEntitlement = z.infer<typeof CreateEntitlementSchema>;
+
+export type Entitlement = z.infer<typeof EntitlementSchema>;
+export type EntitlementExpiry = z.infer<typeof EntitlementExpirySchema>;
+
+export const EntitlementWithFeatureSchema = EntitlementSchema.extend({
+	feature: FeatureSchema,
+});
+
+export type EntitlementWithFeature = z.infer<
+	typeof EntitlementWithFeatureSchema
+>;
+
+export type FullEntitlement = z.infer<typeof EntitlementWithFeatureSchema>;

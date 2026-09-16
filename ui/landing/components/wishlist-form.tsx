@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import Image from "next/image";
 import { useId, useState, type FormEvent, type HTMLAttributes } from "react";
 import {
 	CTALines,
@@ -118,6 +119,7 @@ export default function WishlistForm({ artistName }: { artistName: string }) {
 					eventDate: fields.eventDate || undefined,
 					note: fields.note.trim() || undefined,
 					website: fields.website,
+					artistName,
 				}),
 			});
 
@@ -166,6 +168,18 @@ export default function WishlistForm({ artistName }: { artistName: string }) {
 							{artistName} va a ver esto en el panel. Te escribimos cuando haya
 							fecha, no por un hilo de Instagram.
 						</p>
+					</div>
+					<div className="w-[min(100%,18rem)] sm:w-[min(100%,20rem)]">
+						<div className="access-success-art">
+							<Image
+								src="/images/gigblade-wishlist-panel.png"
+								width={1024}
+								height={1024}
+								alt={`${artistName} ve la solicitud en el panel, no en un hilo de Instagram`}
+								className="h-auto w-full"
+								sizes="(max-width: 768px) 100vw, 320px"
+							/>
+						</div>
 					</div>
 				</motion.div>
 			) : (

@@ -1,0 +1,20 @@
+export enum AuthType {
+	Admin = "admin",
+	SecretKey = "secret_key",
+	PublicKey = "public_key",
+	CustomerJwt = "customer_jwt",
+	Dashboard = "dashboard",
+
+	// Internal
+	Vercel = "vercel",
+	Revenuecat = "revenuecat",
+	Stripe = "stripe",
+	Unknown = "unknown",
+	Worker = "worker",
+}
+
+export enum ActionType {
+	CustomerCreated = "customer.created",
+	CustomerProductsUpdated = "customer.products.updated",
+	CustomerFeaturesUpdated = "customer.features.updated",
+}

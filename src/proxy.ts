@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { isLocalHostname, isLocalNetworkHostname, isMarketingHostname, normalizeHostname } from "@/domain/hostname";
+import {
+  isTenantPreviewHostname,
+  servesTenantSiteSurface,
+  tenantSiteRewritePath,
+} from "@/domain/site-surface";
 import { getApp } from "@/lib/composition/app";
 import {
   TENANT_CANONICAL_HEADER,
@@ -8,16 +13,25 @@ import {
   TENANT_ID_HEADER,
 } from "@/lib/tenant/headers";
 
+function stripClientTenantHeaders(headers: Headers) {
+  headers.delete(TENANT_ID_HEADER);
+  headers.delete(TENANT_HOSTNAME_HEADER);
+  headers.delete(TENANT_CANONICAL_HEADER);
+}
+
 export async function proxy(request: NextRequest) {
   const hostname = normalizeHostname(
     request.headers.get("host") || request.nextUrl.hostname,
   );
 
   if (
-    (isLocalNetworkHostname(hostname) && !isLocalHostname(hostname)) ||
-    isMarketingHostname(hostname)
+    isMarketingHostname(hostname) ||
+    ((isLocalHostname(hostname) || isLocalNetworkHostname(hostname)) &&
+      !isTenantPreviewHostname(hostname))
   ) {
-    return NextResponse.next();
+    const headers = new Headers(request.headers);
+    stripClientTenantHeaders(headers);
+    return NextResponse.next({ request: { headers } });
   }
 
   let tenant;
@@ -39,9 +53,21 @@ export async function proxy(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
+  stripClientTenantHeaders(requestHeaders);
   requestHeaders.set(TENANT_ID_HEADER, tenant.id);
   requestHeaders.set(TENANT_HOSTNAME_HEADER, hostname);
   requestHeaders.set(TENANT_CANONICAL_HEADER, tenant.canonicalHostname);
+
+  if (servesTenantSiteSurface(hostname)) {
+    const rewritePath = tenantSiteRewritePath(request.nextUrl.pathname);
+    if (rewritePath) {
+      const url = request.nextUrl.clone();
+      url.pathname = rewritePath;
+      return NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      });
+    }
+  }
 
   return NextResponse.next({
     request: { headers: requestHeaders },

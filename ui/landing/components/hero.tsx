@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import AppLink from "./app-link";
 import { CTALines, IconCTADocs, IconCTAStart } from "@/app/constant";
 import SlotLabel from "./slot-label";
+import { getDashboardUrl } from "@/lib/dashboard-url";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 const HeroAurora = dynamic(() => import("./hero-aurora"), { ssr: false });
@@ -71,7 +72,7 @@ export default function Hero() {
 					style={{ ["--enter" as string]: 2 }}
 				>
 					<div className="w-full md:w-fit md:flex-shrink-0">
-						<AppLink href={isLoggedIn ? "/dashboard" : "/acceso"}>
+						<AppLink href={isLoggedIn ? getDashboardUrl() : "/acceso"}>
 							<div className="hero-cta-press relative">
 								<div
 									className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden bg-brand px-3 py-2 font-sans transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-brand-hover active:bg-brand-hover"

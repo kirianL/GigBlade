@@ -1,0 +1,128 @@
+import { expect, test } from "bun:test";
+import {
+	type CreditSchemaItem,
+	type Feature,
+	FeatureType,
+	FeatureUsageType,
+} from "@autumn/shared";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CreditDimensionPriceList } from "../src/views/products/features/credit-systems/components/CreditDimensionPriceList";
+import { CreditRateCardRow } from "../src/views/products/features/credit-systems/components/CreditRateCardRow";
+
+const feature = {
+	id: "feature_a",
+	name: "Feature A",
+	type: FeatureType.Metered,
+	config: { usage_type: FeatureUsageType.Single },
+} as Feature;
+
+const renderRateCardRow = ({
+	item,
+	showRateCardControls,
+}: {
+	item: CreditSchemaItem;
+	showRateCardControls: boolean;
+}) =>
+	renderToStaticMarkup(
+		<CreditRateCardRow
+			item={item}
+			availableFeatures={[feature]}
+			allFeatures={[feature]}
+			onChange={() => {}}
+			onRemove={() => {}}
+			isExpanded={true}
+			onToggle={() => {}}
+			showRateCardControls={showRateCardControls}
+		/>,
+	);
+
+test("non-admins retain flat credit costs without rate-card controls", () => {
+	const html = renderRateCardRow({
+		item: {
+			metered_feature_id: feature.id,
+			feature_amount: 100,
+			credit_amount: 1,
+		},
+		showRateCardControls: false,
+	});
+
+	expect(html).not.toContain('aria-label="Billing units"');
+	expect(html).not.toContain("Add Tier");
+	expect(html).toContain('aria-label="Credit cost"');
+});
+
+test("admins can edit billing units and add graduated tiers", () => {
+	const html = renderRateCardRow({
+		item: {
+			metered_feature_id: feature.id,
+			feature_amount: 100,
+			tier_behavior: "graduated",
+			tiers: [
+				{ to: 10_000, credit_amount: 1 },
+				{ to: "inf", credit_amount: 0.5 },
+			],
+		},
+		showRateCardControls: true,
+	});
+
+	expect(html).toContain('aria-label="Billing units"');
+	expect(html).toContain("Add Tier");
+	expect(html).toContain('aria-label="Tier 1 upper boundary"');
+});
+
+test("collapsed rows summarize the rate without exposing controls", () => {
+	const html = renderToStaticMarkup(
+		<CreditRateCardRow
+			item={{
+				metered_feature_id: feature.id,
+				feature_amount: 100,
+				credit_amount: 1,
+			}}
+			availableFeatures={[feature]}
+			allFeatures={[feature]}
+			onChange={() => {}}
+			onRemove={() => {}}
+			isExpanded={false}
+			onToggle={() => {}}
+			showRateCardControls={true}
+		/>,
+	);
+
+	expect(html).toContain("1 credit per 100");
+	expect(html).not.toContain('aria-label="Credit cost"');
+});
+
+test("the dimensions section lists each field's values and a rate table with a select per field", () => {
+	const html = renderToStaticMarkup(
+		<CreditDimensionPriceList
+			item={{
+				metered_feature_id: feature.id,
+				credit_amount: 1,
+				dimensions: {
+					size_large: { match: { size: "large" }, credit_amount: 16 },
+					size_large_region_eu: {
+						match: { size: "large", region: "eu" },
+						credit_amount: 20,
+					},
+				},
+				multipliers: {
+					region_eu: { match: { region: "eu" }, factor: 1.2 },
+				},
+			}}
+			onChange={() => {}}
+		/>,
+	);
+
+	expect(html).toContain('aria-label="size values"');
+	expect(html).toContain('aria-label="region values"');
+	expect(html).toContain(">large<");
+	expect(html).toContain('aria-label="size dimension name"');
+	expect(html).toContain("New dimension");
+	expect(html).toContain('aria-label="size_large region"');
+	expect(html).toContain('aria-label="size_large_region_eu credit cost"');
+	expect(html).toContain(">Credits<");
+	expect(html).toContain("New rate");
+	expect(html).toContain('aria-label="region_eu factor"');
+	expect(html).toContain("New multiplier");
+	expect(html).not.toContain(">Feature A<");
+});

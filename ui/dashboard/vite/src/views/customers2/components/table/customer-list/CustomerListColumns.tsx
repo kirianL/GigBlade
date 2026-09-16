@@ -1,0 +1,383 @@
+import {
+	BillingInterval,
+	CusProductStatus,
+	type CustomerSchema,
+	type FullCusProduct,
+	type FullCustomer,
+	isCustomerProductTrialing,
+} from "@autumn/shared";
+import {
+	MiniCopyButton,
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@autumn/ui";
+import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { z } from "zod/v4";
+import {
+	dateSkeleton,
+	hiddenSkeleton,
+	idSkeleton,
+	statusSkeleton,
+} from "@/components/general/table";
+import { useOrg } from "@/hooks/common/useOrg";
+import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
+import { CustomerProductsStatus } from "../customer-products/CustomerProductsStatus";
+import { CustomerListRowToolbar } from "./CustomerListRowToolbar";
+import { FeatureUsageCell } from "./FeatureUsageCell";
+
+type CustomerWithProducts = z.infer<typeof CustomerSchema> & {
+	customer_products?: Array<{
+		product?: { name?: string; id?: string; version?: number };
+		status?: string;
+		canceled_at?: number | null;
+		trial_ends_at?: number | null;
+		[key: string]: unknown;
+	}>;
+	products_total_count?: number;
+	/** Full customer data with entitlements - merged from full_customers query */
+	fullCustomer?: FullCustomer;
+	/** Whether the full customer data is still loading */
+	isFullDataLoading?: boolean;
+};
+
+/** Default column IDs that are visible by default */
+export const BASE_COLUMN_IDS = [
+	"name",
+	"customer_id",
+	"email",
+	"customer_products",
+	"created_at",
+	"actions",
+];
+
+const getCusProductsInfo = ({
+	customer,
+}: {
+	customer: CustomerWithProducts;
+}) => {
+	if (!customer.customer_products || customer.customer_products.length === 0) {
+		return <span className="text-tertiary-foreground"></span>;
+	}
+
+	// Filter out expired and scheduled products first
+	const activeProducts = customer.customer_products.filter(
+		(cusProduct: (typeof customer.customer_products)[number]) =>
+			(cusProduct as FullCusProduct).status !== CusProductStatus.Expired &&
+			(cusProduct as FullCusProduct).status !== CusProductStatus.Scheduled,
+	);
+
+	//put add ons last THIS DOESNT WORK ATM BECAUSE NO ADD ON PARAM EXISTS
+	activeProducts.sort((a, b) => {
+		const aIsAddOn = (a as FullCusProduct).product.is_add_on;
+		const bIsAddOn = (b as FullCusProduct).product.is_add_on;
+
+		if (aIsAddOn !== bIsAddOn) {
+			return aIsAddOn ? 1 : -1;
+		}
+		return 0;
+	});
+
+	// customer.id === "e526e698-6d5d-4f0e-89e7-632f375663fb" &&
+	// 	console.log("activeProducts", activeProducts, "customer", customer);
+
+	if (activeProducts.length === 0) {
+		return <span className="text-tertiary-foreground"></span>;
+	}
+
+	const totalCount = customer.products_total_count ?? activeProducts.length;
+	const extraCount = totalCount - 1;
+
+	return (
+		<div className="flex min-w-0">
+			{activeProducts
+				.slice(0, 1)
+				.map((cusProduct: (typeof activeProducts)[number], index: number) => {
+					return (
+						<div key={index} className="flex items-center gap-2 w-full min-w-0">
+							<span className="text-tertiary-foreground truncate min-w-0">
+								{(cusProduct as FullCusProduct).product.name}
+							</span>
+							<CustomerProductsStatus
+								status={(cusProduct as FullCusProduct).status}
+								canceled={
+									(cusProduct as FullCusProduct).canceled_at ? true : undefined
+								}
+								canceled_at={
+									(cusProduct as FullCusProduct).canceled_at ?? undefined
+								}
+								tooltip={true}
+								trialing={
+									isCustomerProductTrialing(cusProduct as FullCusProduct, {
+										nowMs: Date.now(),
+									}) || false
+								}
+								trial_ends_at={
+									(cusProduct as FullCusProduct).trial_ends_at ?? undefined
+								}
+							/>
+							{extraCount > 0 && (
+								<TooltipProvider>
+									<Tooltip delayDuration={0}>
+										<TooltipTrigger>
+											<span className="ml-1 bg-muted text-tertiary-foreground px-1 py-0.5 rounded-md font-medium shrink-0">
+												+{extraCount}
+											</span>
+										</TooltipTrigger>
+										<TooltipContent>
+											{activeProducts
+												.slice(1)
+												.map(
+													(p: (typeof activeProducts)[number]) =>
+														(p as FullCusProduct).product.name,
+												)
+												.join(", ")}
+											{extraCount > activeProducts.length - 1 &&
+												` +${extraCount - (activeProducts.length - 1)} more`}
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							)}
+						</div>
+					);
+				})}{" "}
+		</div>
+	);
+};
+
+export const createCustomerListColumns = (): ColumnDef<
+	CustomerWithProducts,
+	unknown
+>[] => [
+	{
+		id: "name",
+		header: "Name",
+		accessorKey: "name",
+		size: 130,
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			return (
+				<div className="font-medium text-foreground">{row.original.name}</div>
+			);
+		},
+	},
+	{
+		id: "customer_id",
+		header: "ID",
+		accessorKey: "id",
+		size: 130,
+		meta: { skeleton: idSkeleton },
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			const customer = row.original;
+			return (
+				<div className="font-mono justify-start flex w-full group">
+					{customer.id ? (
+						<MiniCopyButton text={customer.id} />
+					) : (
+						<span className="px-1 text-tertiary-foreground">PENDING</span>
+					)}
+				</div>
+			);
+		},
+	},
+	{
+		id: "email",
+		header: "Email",
+		accessorKey: "email",
+		size: 120,
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			const email = row.original.email;
+			if (!email) return null;
+			return (
+				<div className="truncate">
+					<MiniCopyButton text={email} />
+				</div>
+			);
+		},
+	},
+	{
+		id: "customer_products",
+		header: "Products",
+		accessorKey: "customer_products",
+		size: 110,
+		meta: { skeleton: statusSkeleton },
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			return getCusProductsInfo({
+				customer: row.original,
+			});
+		},
+	},
+	{
+		id: "created_at",
+		header: "Created At",
+		accessorKey: "created_at",
+		size: 100,
+		enableSorting: true,
+		meta: { skeleton: dateSkeleton },
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			const { date, time } = formatUnixToDateTime(row.original.created_at);
+			return (
+				<div className="text-xs text-subtle pr-4 w-full">
+					{date} <span className=" truncate">{time}</span>
+				</div>
+			);
+		},
+	},
+	{
+		id: "actions",
+		header: "",
+		accessorKey: "actions",
+		size: 40,
+		enableSorting: false,
+		enableHiding: false,
+		meta: { skeleton: hiddenSkeleton },
+		cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+			return (
+				<div
+					className="flex justify-end w-full pr-2"
+					onClick={(e) => e.stopPropagation()}
+				>
+					<CustomerListRowToolbar customer={row.original} />
+				</div>
+			);
+		},
+	},
+];
+
+/**
+ * Creates the product version column. Shows the active (non-expired,
+ * non-scheduled) product's version, prefixed with "v", in light grey.
+ */
+export const createProductVersionColumn = (): ColumnDef<
+	CustomerWithProducts,
+	unknown
+> => ({
+	id: "product_version",
+	header: "Version",
+	size: 80,
+	enableSorting: false,
+	cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+		const customer = row.original;
+		const activeProduct = customer.customer_products?.find(
+			(cusProduct) =>
+				(cusProduct as FullCusProduct).status !== CusProductStatus.Expired &&
+				(cusProduct as FullCusProduct).status !== CusProductStatus.Scheduled,
+		) as FullCusProduct | undefined;
+
+		const version = activeProduct?.product?.version;
+		if (version == null) return null;
+
+		return <span className="text-placeholder">v{version}</span>;
+	},
+});
+
+const MONTHLY_INTERVAL_FACTORS: Partial<Record<BillingInterval, number>> = {
+	[BillingInterval.Week]: 52 / 12,
+	[BillingInterval.Month]: 1,
+	[BillingInterval.Quarter]: 1 / 3,
+	[BillingInterval.SemiAnnual]: 1 / 6,
+	[BillingInterval.Year]: 1 / 12,
+};
+
+/** Mirrors resolveByBasePriceSort: active/past_due products, fixed recurring
+ * prices only, normalized to a monthly figure. */
+const computeMonthlyBasePrice = (fullCustomer: FullCustomer): number => {
+	let total = 0;
+	for (const cusProduct of fullCustomer.customer_products ?? []) {
+		const isActive =
+			cusProduct.status === CusProductStatus.Active ||
+			cusProduct.status === CusProductStatus.PastDue;
+		if (!isActive) continue;
+
+		for (const cusPrice of cusProduct.customer_prices ?? []) {
+			const config = cusPrice.price?.config as
+				| { amount?: number; interval?: string; interval_count?: number }
+				| undefined;
+			const factor =
+				MONTHLY_INTERVAL_FACTORS[config?.interval as BillingInterval];
+			if (typeof config?.amount !== "number" || factor === undefined) continue;
+			total += (config.amount * factor) / (config.interval_count || 1);
+		}
+	}
+	return total;
+};
+
+function BasePriceCell({
+	fullCustomer,
+	isFullDataLoading,
+}: {
+	fullCustomer?: FullCustomer;
+	isFullDataLoading?: boolean;
+}) {
+	const { org } = useOrg();
+
+	if (!fullCustomer) {
+		if (!isFullDataLoading) return null;
+		return <div className="h-2 w-12 bg-secondary animate-pulse rounded my-1" />;
+	}
+
+	// Server total covers ALL products; client compute only sees the
+	// cusProductLimit-capped preview, so it can undercount.
+	const total =
+		fullCustomer.base_price_total ?? computeMonthlyBasePrice(fullCustomer);
+	const formatted = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: org?.default_currency || "USD",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2,
+	}).format(total);
+
+	return (
+		<span className="text-tertiary-foreground tabular-nums">
+			{formatted}
+			<span className="text-placeholder">/mo</span>
+		</span>
+	);
+}
+
+/**
+ * Base price column (hidden by default): the same monthly-normalized total
+ * the base_price sort orders by, for eyeballing sort correctness.
+ */
+export const createBasePriceColumn = (): ColumnDef<
+	CustomerWithProducts,
+	unknown
+> => ({
+	id: "base_price",
+	header: "Base price",
+	size: 90,
+	enableSorting: false,
+	cell: ({ row }: { row: Row<CustomerWithProducts> }) => (
+		<BasePriceCell
+			fullCustomer={row.original.fullCustomer}
+			isFullDataLoading={row.original.isFullDataLoading}
+		/>
+	),
+});
+
+/**
+ * Creates a usage column for a specific metered feature
+ */
+export const createUsageColumn = ({
+	featureId,
+	featureName,
+}: {
+	featureId: string;
+	featureName: string;
+}): ColumnDef<CustomerWithProducts, unknown> => ({
+	id: `usage_${featureId}`,
+	header: featureName,
+	size: 120,
+	cell: ({ row }: { row: Row<CustomerWithProducts> }) => {
+		const customer = row.original;
+		return (
+			<FeatureUsageCell
+				fullCustomer={customer.fullCustomer}
+				featureId={featureId}
+				isLoading={customer.isFullDataLoading}
+			/>
+		);
+	},
+});
+
+export type { CustomerWithProducts };

@@ -11,7 +11,7 @@ export const metadata: Metadata = landingMetadata;
 
 const fallbackTheme = {
   displayName: "GigBlade",
-  tagline: "Página, dominio y un canal formal para bookings",
+  tagline: "Página y dominio propios, contacto por Instagram o mail",
   city: "",
 };
 

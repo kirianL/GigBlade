@@ -1,56 +1,49 @@
 import "server-only";
 
 import type { TenantRepository } from "@/application/ports/tenant-repository";
-import type { Tenant, TenantPlan, TenantStatus } from "@/domain/tenant";
+import { serviceUnavailable } from "@/domain/errors";
+import type { Tenant } from "@/domain/tenant";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
+import { failPostgrestQuery } from "@/infrastructure/supabase/postgrest";
+import { readTenantQueryResult } from "@/infrastructure/supabase/read-tenant-row";
 
-type TenantRow = {
-  id: string;
-  slug: string;
-  plan: TenantPlan;
-  theme_config: Record<string, unknown>;
-  status: TenantStatus;
-};
+const TENANT_COLUMNS = "id, slug, plan, template_id, theme_config, status";
 
 export class SupabaseTenantRepository implements TenantRepository {
   async findById(id: string): Promise<Tenant | null> {
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
+    const result = await supabase
       .from("tenants")
-      .select("id, slug, plan, theme_config, status")
+      .select(TENANT_COLUMNS)
       .eq("id", id)
       .maybeSingle();
 
-    if (error || !data) {
-      return null;
-    }
-
-    const row = data as TenantRow;
-
-    return mapTenant(row);
+    return readTenantQueryResult(result, {
+      operation: "tenants.findById",
+      tenantId: id,
+    });
   }
 
   async list(): Promise<Tenant[]> {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
       .from("tenants")
-      .select("id, slug, plan, theme_config, status")
+      .select(TENANT_COLUMNS)
       .order("slug");
 
-    if (error || !data) {
-      return [];
+    if (error) {
+      failPostgrestQuery(error, { operation: "tenants.list" });
     }
 
-    return (data as TenantRow[]).map(mapTenant);
+    return (data ?? []).map((row) => {
+      const tenant = readTenantQueryResult(
+        { data: row, error: null },
+        { operation: "tenants.list" },
+      );
+      if (!tenant) {
+        throw serviceUnavailable("Esquema de tenant incompleto");
+      }
+      return tenant;
+    });
   }
-}
-
-function mapTenant(row: TenantRow): Tenant {
-  return {
-    id: row.id,
-    slug: row.slug,
-    plan: row.plan,
-    themeConfig: row.theme_config,
-    status: row.status,
-  };
 }

@@ -1,0 +1,79 @@
+import type { FullProduct, ProductCounts, ProductV2 } from "@autumn/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryKeyFactory } from "@/hooks/common/useQueryKeyFactory";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+
+// Stable empty object reference to prevent infinite re-renders
+const EMPTY_COUNTS: Record<string, ProductCounts> = {};
+
+export type ProductListItem = ProductV2 &
+	Pick<FullProduct, "licenses" | "parent_plan_licenses">;
+
+/**
+ * Fetch all products for the current org.
+ *
+ * Pass `allVersions: true` to include every version of each plan (the default
+ * route only returns the latest per public id).
+ */
+export const useProductsQuery = ({
+	allVersions = false,
+}: {
+	allVersions?: boolean;
+} = {}) => {
+	const axiosInstance = useAxiosInstance();
+	const queryClient = useQueryClient();
+	const buildKey = useQueryKeyFactory();
+
+	const fetchProducts = async () => {
+		const { data } = await axiosInstance.get("/products/products", {
+			params: allVersions ? { all_versions: true } : undefined,
+		});
+		return data;
+	};
+
+	const fetchProductCounts = async () => {
+		const { data } = await axiosInstance.get("/products/product_counts");
+		return data;
+	};
+
+	const { data, isLoading, error, refetch } = useQuery<{
+		products: ProductListItem[];
+		groupToDefaults: Record<string, Record<string, FullProduct>>;
+	}>({
+		queryKey: buildKey(["products", allVersions ? "all" : "latest"]),
+		queryFn: fetchProducts,
+	});
+
+	const {
+		data: countsData,
+		isLoading: isCountsLoading,
+		refetch: countsRefetch,
+	} = useQuery<Record<string, ProductCounts>>({
+		queryKey: buildKey(["product_counts"]),
+		queryFn: fetchProductCounts,
+	});
+
+	/**
+	 * Invalidates all instances of products and product_counts queries across the app
+	 */
+	const invalidate = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({ queryKey: ["products"] }),
+			queryClient.invalidateQueries({ queryKey: ["product_counts"] }),
+			queryClient.invalidateQueries({ queryKey: ["product_versions"] }),
+		]);
+	};
+
+	return {
+		products: data?.products || [],
+		counts: countsData ?? EMPTY_COUNTS,
+		groupToDefaults: data?.groupToDefaults || {},
+		isLoading,
+		isCountsLoading,
+		error,
+		refetch: async () => {
+			await Promise.all([countsRefetch(), refetch()]);
+		},
+		invalidate,
+	};
+};

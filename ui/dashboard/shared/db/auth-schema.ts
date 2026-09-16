@@ -1,0 +1,392 @@
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	foreignKey,
+	index,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
+import type { AppEnv } from "../models/genModels/genEnums.js";
+import {
+	type Organization,
+	organizations,
+} from "../models/orgModels/orgTable.js";
+
+export const user = pgTable(
+	"user",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		email: text("email").notNull().unique(),
+		emailVerified: boolean("email_verified")
+			.$defaultFn(() => false)
+			.notNull(),
+		image: text("image"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => /* @__PURE__ */ new Date())
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.$defaultFn(() => /* @__PURE__ */ new Date())
+			.notNull(),
+		role: text("role"),
+		banned: boolean("banned"),
+		banReason: text("ban_reason"),
+		banExpires: timestamp("ban_expires", { withTimezone: true }),
+		createdBy: text("created_by"),
+		lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
+	},
+	(table) => [
+		index("idx_user_name_trgm")
+			.using("gin", sql`${table.name} gin_trgm_ops`)
+			.where(sql`${table.name} IS NOT NULL`),
+		index("idx_user_email_trgm")
+			.using("gin", sql`${table.email} gin_trgm_ops`)
+			.where(sql`${table.email} IS NOT NULL`),
+		index("idx_user_created_at_id").on(
+			sql`${table.createdAt} DESC`,
+			sql`${table.id} DESC`,
+		),
+		foreignKey({
+			columns: [table.createdBy],
+			foreignColumns: [organizations.id],
+			name: "user_created_by_fkey",
+		}),
+	],
+);
+
+export const session = pgTable(
+	"session",
+	{
+		id: text("id").primaryKey(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		token: text("token").notNull().unique(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+		ipAddress: text("ip_address"),
+		userAgent: text("user_agent"),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		impersonatedBy: text("impersonated_by"),
+		activeOrganizationId: text("active_organization_id"),
+		city: text("city"),
+		country: text("country"),
+	},
+	(table) => [index("session_userId_idx").on(table.userId)],
+).enableRLS();
+
+export const account = pgTable(
+	"account",
+	{
+		id: text("id").primaryKey(),
+		accountId: text("account_id").notNull(),
+		providerId: text("provider_id").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		accessToken: text("access_token"),
+		refreshToken: text("refresh_token"),
+		idToken: text("id_token"),
+		accessTokenExpiresAt: timestamp("access_token_expires_at"),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+		scope: text("scope"),
+		password: text("password"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [index("account_userId_idx").on(table.userId)],
+).enableRLS();
+
+export const verification = pgTable(
+	"verification",
+	{
+		id: text("id").primaryKey(),
+		identifier: text("identifier").notNull(),
+		value: text("value").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).$defaultFn(
+			() => /* @__PURE__ */ new Date(),
+		),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).$defaultFn(
+			() => /* @__PURE__ */ new Date(),
+		),
+	},
+	(table) => [index("verification_identifier_idx").on(table.identifier)],
+).enableRLS();
+
+export const member = pgTable(
+	"member",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		role: text("role").default("member").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		index("member_organizationId_idx").on(table.organizationId),
+		index("member_userId_idx").on(table.userId),
+	],
+).enableRLS();
+
+export const invitation = pgTable(
+	"invitation",
+	{
+		id: text("id").primaryKey(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		email: text("email").notNull(),
+		role: text("role"),
+		status: text("status").default("pending").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => /* @__PURE__ */ new Date())
+			.notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		inviterId: text("inviter_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		index("invitation_organizationId_idx").on(table.organizationId),
+		index("invitation_email_idx").on(table.email),
+	],
+).enableRLS();
+
+// OAuth Provider tables
+export const jwks = pgTable("jwks", {
+	id: text("id").primaryKey(),
+	publicKey: text("public_key").notNull(),
+	privateKey: text("private_key").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true }),
+}).enableRLS();
+
+export const oauthClient = pgTable("oauth_client", {
+	id: text("id").primaryKey(),
+	clientId: text("client_id").notNull().unique(),
+	clientSecret: text("client_secret"),
+	disabled: boolean("disabled").default(false),
+	skipConsent: boolean("skip_consent"),
+	enableEndSession: boolean("enable_end_session"),
+	scopes: text("scopes").array(),
+	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+	createdAt: timestamp("created_at", { withTimezone: true }),
+	updatedAt: timestamp("updated_at", { withTimezone: true }),
+	name: text("name"),
+	uri: text("uri"),
+	icon: text("icon"),
+	contacts: text("contacts").array(),
+	tos: text("tos"),
+	policy: text("policy"),
+	softwareId: text("software_id"),
+	softwareVersion: text("software_version"),
+	softwareStatement: text("software_statement"),
+	redirectUris: text("redirect_uris").array().notNull(),
+	postLogoutRedirectUris: text("post_logout_redirect_uris").array(),
+	tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+	grantTypes: text("grant_types").array(),
+	responseTypes: text("response_types").array(),
+	public: boolean("public"),
+	type: text("type"),
+	referenceId: text("reference_id"),
+	metadata: jsonb("metadata"),
+}).enableRLS();
+
+export const oauthConsent = pgTable("oauth_consent", {
+	id: text("id").primaryKey(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClient.clientId, { onDelete: "cascade" }),
+	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	scopes: text("scopes").array().notNull(),
+	env: text("env").$type<AppEnv>(),
+	redirectUri: text("redirect_uri"),
+	oauthApiKeyId: text("oauth_api_key_id"),
+	metadata: jsonb("metadata")
+		.$type<Record<string, unknown> | null>()
+		.default({}),
+	createdAt: timestamp("created_at", { withTimezone: true }),
+	updatedAt: timestamp("updated_at", { withTimezone: true }),
+}).enableRLS();
+
+export const oauthRefreshToken = pgTable("oauth_refresh_token", {
+	id: text("id").primaryKey(),
+	token: text("token").notNull(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClient.clientId, { onDelete: "cascade" }),
+	sessionId: text("session_id").references(() => session.id, {
+		onDelete: "set null",
+	}),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	oauthConsentId: text("oauth_consent_id").references(() => oauthConsent.id, {
+		onDelete: "cascade",
+	}),
+	expiresAt: timestamp("expires_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }),
+	revoked: timestamp("revoked", { withTimezone: true }),
+	authTime: timestamp("auth_time", { withTimezone: true }),
+	scopes: text("scopes").array().notNull(),
+	resource: text("resource"),
+}).enableRLS();
+
+export const oauthAccessToken = pgTable("oauth_access_token", {
+	id: text("id").primaryKey(),
+	token: text("token").unique(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClient.clientId, { onDelete: "cascade" }),
+	sessionId: text("session_id").references(() => session.id, {
+		onDelete: "set null",
+	}),
+	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	oauthConsentId: text("oauth_consent_id").references(() => oauthConsent.id, {
+		onDelete: "cascade",
+	}),
+	refreshId: text("refresh_id").references(() => oauthRefreshToken.id, {
+		onDelete: "cascade",
+	}),
+	expiresAt: timestamp("expires_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }),
+	scopes: text("scopes").array().notNull(),
+	resource: text("resource"),
+}).enableRLS();
+
+export const passkey = pgTable(
+	"passkey",
+	{
+		id: text("id").primaryKey(),
+		name: text("name"),
+		publicKey: text("public_key").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		credentialID: text("credential_id").notNull().unique(),
+		counter: integer("counter").notNull(),
+		deviceType: text("device_type").notNull(),
+		backedUp: boolean("backed_up").notNull(),
+		transports: text("transports"),
+		createdAt: timestamp("created_at", { withTimezone: true }).$defaultFn(
+			() => /* @__PURE__ */ new Date(),
+		),
+		aaguid: text("aaguid"),
+	},
+	(table) => [
+		index("passkey_userId_idx").on(table.userId),
+		index("passkey_credentialId_idx").on(table.credentialID),
+	],
+).enableRLS();
+
+export const ssoProvider = pgTable(
+	"sso_provider",
+	{
+		id: text("id").primaryKey(),
+		issuer: text("issuer").notNull(),
+		domain: text("domain").notNull().unique(),
+		oidcConfig: text("oidc_config"),
+		samlConfig: text("saml_config"),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		providerId: text("provider_id").notNull().unique(),
+		organizationId: text("organization_id").references(() => organizations.id, {
+			onDelete: "cascade",
+		}),
+		domainVerified: boolean("domain_verified").default(false).notNull(),
+	},
+	(table) => [
+		index("sso_provider_user_id_idx").on(table.userId).concurrently(),
+		index("sso_provider_organization_id_idx")
+			.on(table.organizationId)
+			.concurrently(),
+		index("sso_provider_domain_idx").on(table.domain).concurrently(),
+	],
+).enableRLS();
+
+export const ssoConnection = pgTable(
+	"sso_connection",
+	{
+		id: text("id").primaryKey(),
+		providerId: text("provider_id")
+			.notNull()
+			.unique()
+			.references(() => ssoProvider.providerId, { onDelete: "cascade" }),
+		organizationId: text("organization_id")
+			.notNull()
+			.unique()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		status: text("status")
+			.$type<"pending_domain_verification" | "validating" | "active">()
+			.default("pending_domain_verification")
+			.notNull(),
+		activatedAt: timestamp("activated_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.$defaultFn(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("sso_connection_organization_id_idx")
+			.on(table.organizationId)
+			.concurrently(),
+	],
+).enableRLS();
+
+export const bannedUser = pgTable("banned_user", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	banReason: text("ban_reason"),
+	banExpires: timestamp("ban_expires", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.$defaultFn(() => new Date()),
+	revokedAt: timestamp("revoked_at", { withTimezone: true }),
+}).enableRLS();
+
+export const authSchema = {
+	user,
+	session,
+	account,
+	verification,
+	member,
+	invitation,
+	bannedUser,
+	organizations,
+	jwks,
+	oauthClient,
+	oauthRefreshToken,
+	oauthAccessToken,
+	oauthConsent,
+	passkey,
+	ssoProvider,
+	ssoConnection,
+};
+
+export type User = typeof user.$inferSelect;
+export type Member = typeof member.$inferSelect;
+export type Invite = typeof invitation.$inferSelect;
+export type BannedUser = typeof bannedUser.$inferSelect;
+export type SsoProvider = typeof ssoProvider.$inferSelect;
+export type SsoConnection = typeof ssoConnection.$inferSelect;
+
+export type FullInvite = Invite & {
+	inviter: User;
+	organization: Organization;
+};

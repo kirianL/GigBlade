@@ -1,0 +1,26 @@
+{
+	"name": "gigblade-dashboard",
+	"private": true,
+	"packageManager": "bun@1.3.14",
+	"workspaces": {
+		"packages": [
+			"shared",
+			"vite",
+			"packages/atmn",
+			"packages/env",
+			"packages/ksuid",
+			"packages/autumn-js",
+			"packages/sdk",
+			"packages/render",
+			"packages/ui"
+		]
+	},
+	"type": "module",
+	"scripts": {
+		"dev": "bun -F @autumn/vite dev",
+		"build": "bun -F @autumn/vite build"
+	},
+	"devDependencies": {
+		"@types/node": "^24.9.1"
+	}
+}

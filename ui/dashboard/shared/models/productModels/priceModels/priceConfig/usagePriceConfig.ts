@@ -1,0 +1,93 @@
+import { z } from "zod/v4";
+import { AllocatedBillingBehavior } from "../../../productV2Models/productItemModels/productItemEnums.js";
+import { BillingInterval } from "../../intervals/billingInterval";
+import { Infinite } from "../../productEnums";
+
+export enum BillWhen {
+	InAdvance = "in_advance",
+	StartOfPeriod = "start_of_period",
+	EndOfPeriod = "end_of_period",
+}
+
+export enum TierBehavior {
+	Graduated = "graduated",
+	VolumeBased = "volume",
+}
+
+export const UsageTierSchema = z
+	.object({
+		to: z.number().or(z.literal(Infinite)),
+		amount: z.number().optional(),
+		flat_amount: z.number().optional(),
+	})
+	.refine((val) => val.amount !== undefined || val.flat_amount !== undefined, {
+		message: "Either amount or flat_amount, or both must be defined",
+		path: ["amount", "flat_amount"],
+	})
+	.transform((val) => ({
+		...val,
+		amount: val.amount ?? 0,
+	}))
+	// Explicit output schema so zod-openapi can serialize this in response/webhook
+	// schemas (it rejects bare transforms) while keeping `amount` a required number.
+	// zod-openapi can't serialize transforms in output schemas; pipe declares the output shape
+	.pipe(
+		z.object({
+			to: z.number().or(z.literal(Infinite)),
+			amount: z.number(),
+			flat_amount: z.number().optional(),
+		}),
+	);
+
+export type UsageTier = z.infer<typeof UsageTierSchema>;
+
+// Per-currency amount overrides stored in `config.currencies` (keyed by lowercase
+// currency). The base amount/usage_tiers stay in `base_currency`; Phase 2 adds
+// per-currency Stripe id slots here.
+export const PriceCurrencyConfigSchema = z.object({
+	amount: z.number().nullish(),
+	usage_tiers: z.array(UsageTierSchema).nullish(),
+
+	stripe_price_id: z.string().nullish(),
+	stripe_empty_price_id: z.string().nullish(),
+	stripe_placeholder_price_id: z.string().nullish(),
+	stripe_prepaid_price_v2_id: z.string().nullish(),
+});
+
+export type PriceCurrencyConfig = z.infer<typeof PriceCurrencyConfigSchema>;
+
+export const UsagePriceConfigSchema = z.object({
+	threshold_billing: z
+		.object({ threshold: z.number().finite().positive() })
+		.nullish(),
+	type: z.string(),
+	bill_when: z.nativeEnum(BillWhen),
+	billing_units: z.number().nullish(),
+
+	internal_feature_id: z.string(),
+	feature_id: z.string(),
+	usage_tiers: z.array(UsageTierSchema),
+	interval: z.enum(BillingInterval),
+	interval_count: z.number().optional(),
+
+	// Multi-currency: base amounts above are in `base_currency`; `currencies`
+	// holds per-currency overrides keyed by lowercase currency.
+	base_currency: z.string().nullish(),
+	currencies: z.record(z.string(), PriceCurrencyConfigSchema).nullish(),
+
+	// For usage in arrear
+	stripe_meter_id: z.string().nullish(),
+	stripe_price_id: z.string().nullish(),
+	stripe_empty_price_id: z.string().nullish(),
+	stripe_product_id: z.string().nullish(),
+	stripe_placeholder_price_id: z.string().nullish(),
+	stripe_event_name: z.string().nullish(),
+
+	// V2 prepaid price
+	stripe_prepaid_price_v2_id: z.string().nullish(),
+
+	should_prorate: z.boolean().optional(),
+	allocated_billing_behavior: z.enum(AllocatedBillingBehavior).optional(),
+});
+
+export type UsagePriceConfig = z.infer<typeof UsagePriceConfigSchema>;

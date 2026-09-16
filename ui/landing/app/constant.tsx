@@ -1385,7 +1385,7 @@ export const customerStoriesData: CustomerStory[] = [
 		stats: [
 			{ value: "1", label: "Dominio propio" },
 			{ value: "0", label: "Tickets de hosting" },
-			{ value: "24/7", label: "Formulario abierto" },
+			{ value: "24/7", label: "Página publicada" },
 		],
 		quote:
 			"Quería un lugar formal para que las productoras me encuentren, sin armar hosting ni pelearme con el dominio. GigBlade es eso.",
@@ -1395,7 +1395,7 @@ export const customerStoriesData: CustomerStory[] = [
 		slug: "firecrawl",
 		name: "Marco",
 		href: "/wishlist",
-		linkLabel: "Ver el canal de booking",
+		linkLabel: "Escribir a Marco",
 		logo: "/images/logos/Firecrawl.svg.svg",
 		iconLogo: "/images/logos/icons/firecrawl.svg",
 		logoClassName: "scale-95 -translate-y-0.5",
@@ -1404,16 +1404,16 @@ export const customerStoriesData: CustomerStory[] = [
 		textOn: "light",
 		founderImage: "/images/customers/firecrawl-founder.png",
 		headline: {
-			lead: "Bookings en un canal",
-			emphasis: "que es tuyo.",
+			lead: "Una página",
+			emphasis: "que es tuya.",
 		},
 		stats: [
-			{ value: "1", label: "Formulario propio" },
+			{ value: "1", label: "Dominio propio" },
 			{ value: "0", label: "DMs perdidos" },
-			{ value: "1", label: "Panel de solicitudes" },
+			{ value: "1", label: "Canal de contacto" },
 		],
 		quote:
-			"Las solicitudes dejan de llegar mezcladas entre Instagram y WhatsApp. Quien te quiere contratar completa el formulario y vos lo ves en el panel.",
+			"Las productoras te encuentran en tu dominio, no mezclado entre Instagram y WhatsApp. El contacto queda en un solo lugar.",
 		author: {
 			name: "DJ Marco",
 			title: "Artista independiente",

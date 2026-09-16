@@ -47,6 +47,7 @@ export async function submitWishlistRequest(
 
   const created = await repository.create({
     tenantId: context.tenantId,
+    artistName: input.artistName,
     name: input.name,
     email: input.email,
     eventType: input.eventType,

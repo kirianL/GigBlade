@@ -51,6 +51,18 @@ describe("joinWaitlist", () => {
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 
+  it("rechaza campos extra en el cuerpo", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+
+    await expect(
+      joinWaitlist(waitlist, {
+        artistName: "Nox",
+        email: "nox@example.com",
+        tenantId: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
   it("mantiene Estados Unidos bloqueado hasta su lanzamiento", async () => {
     const waitlist = new InMemoryWaitlistRepository();
 

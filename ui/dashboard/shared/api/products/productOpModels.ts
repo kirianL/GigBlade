@@ -1,0 +1,251 @@
+import { CustomerBillingControlsParamsSchema } from "@models/cusModels/billingControls/customerBillingControls.js";
+import { CreateFreeTrialSchema } from "@models/productModels/freeTrialModels/freeTrialModels.js";
+import { ProductConfigParamsSchema } from "@models/productModels/productConfig/productConfig.js";
+import { Infinite } from "@models/productModels/productEnums.js";
+import { ProductMetadataSchema } from "@models/productModels/productMetadata.js";
+import { ProductItemSchema } from "@models/productV2Models/productItemModels/productItemModels.js";
+import { idRegex } from "@utils/utils.js";
+import { z } from "zod/v4";
+import { AppEnv } from "../../models/genModels/genEnums.js";
+import { PlanLicenseParamsSchema } from "./crud/licenses/planLicenseParams.js";
+import { IncludedUsageParamsSchema } from "./items/crud/createPlanItemParamsV1.js";
+
+// Use the full ProductItemSchema but mark backend fields as internal
+export const CreateProductItemParamsSchema = ProductItemSchema.extend({
+	included_usage: IncludedUsageParamsSchema.or(z.literal(Infinite)).nullish(),
+});
+
+// Base product params
+
+const CREATE_PRODUCT_EXAMPLE = {
+	id: "Pro Product",
+	name: "Pro Plan",
+	is_add_on: false,
+	is_default: false,
+	items: [
+		{
+			// Price
+			price: 20,
+			interval: "month",
+		},
+		{
+			// Priced Feature
+			feature_id: "messages",
+			included_usage: 1000,
+			price: 0.5,
+			interval: "month",
+			usage_model: "pay_per_use",
+		},
+	],
+	free_trial: {
+		duration: "day",
+		length: 7,
+		unique_fingerprint: false,
+		card_required: true,
+	},
+};
+
+const descriptions = {
+	id: "The ID of the product. Used to identify the product in other API calls like checkout or update product.",
+	name: "The name of the product",
+	description: "The description of the product",
+	is_add_on:
+		"Whether the product is an add-on. Add-on products can be attached multiple times and don't to through upgrade / downgrade flows.",
+	is_default:
+		"Whether the product is the default product. Default products are enabled by default for new customers.",
+	group:
+		"Product group which this product belongs to. Products within a group have upgrade / downgrade logic when the customer moves between them.",
+	items:
+		"Array of product items that define the product's features and pricing",
+	free_trial: "Free trial configuration for this product, if available",
+	metadata:
+		"Arbitrary key-value metadata for your own use (e.g. UI copy, feature highlights). Values can be any JSON-serializable value. Metadata is shared across all versions of a plan.",
+
+	// Update only
+	archived:
+		"Archive this product using this flag. Archived products are hidden on the dashboard.",
+};
+
+export const CreateProductV2ParamsSchema = z
+	.object({
+		id: z.string().nonempty().regex(idRegex).meta({
+			description: descriptions.id,
+		}),
+
+		name: z
+			.string()
+			.refine((val) => val.length > 0, {
+				message: "name must be a non-empty string",
+			})
+			.meta({
+				description: descriptions.name,
+			}),
+
+		description: z.string().nullish().meta({
+			description: descriptions.description,
+		}),
+
+		is_add_on: z.boolean().default(false).meta({
+			description: descriptions.is_add_on,
+		}),
+
+		is_default: z.boolean().default(false).meta({
+			description: descriptions.is_default,
+		}),
+
+		group: z.string().nullable().default("").meta({
+			description: descriptions.group,
+		}),
+
+		items: z.array(CreateProductItemParamsSchema).optional().meta({
+			description: descriptions.items,
+		}),
+
+		// internal: dashboard-only license catalog surface, not part of the public product API yet.
+		licenses: z.array(PlanLicenseParamsSchema).optional().meta({
+			internal: true,
+			description:
+				"Plans offered as assignable licenses under this plan. The full set replaces existing links.",
+		}),
+
+		free_trial: CreateFreeTrialSchema.nullish().default(null).meta({
+			description: descriptions.free_trial,
+		}),
+
+		config: ProductConfigParamsSchema.optional().meta({
+			description: "Miscellaneous product-level configuration flags.",
+		}),
+		billing_controls: CustomerBillingControlsParamsSchema.optional().meta({
+			description: "Plan-level billing controls used as customer defaults.",
+		}),
+
+		metadata: ProductMetadataSchema.optional().meta({
+			description: descriptions.metadata,
+		}),
+
+		create_in_stripe: z.boolean().optional().meta({
+			internal: true,
+		}),
+
+		archived: z.boolean().optional().meta({
+			internal: true,
+		}),
+
+		base_internal_product_id: z.string().nullable().optional().meta({
+			internal: true,
+		}),
+	})
+	.meta({
+		examples: [CREATE_PRODUCT_EXAMPLE],
+	});
+
+export const UpdateProductV2ParamsSchema = z.object({
+	id: z.string().nonempty().regex(idRegex).optional().meta({
+		description: descriptions.id,
+	}),
+	name: z
+		.string()
+		.refine((val) => val.length > 0, {
+			message: "name must be a non-empty string",
+		})
+		.optional()
+		.meta({
+			description: descriptions.name,
+		}),
+
+	is_add_on: z.boolean().optional().meta({
+		description: descriptions.is_add_on,
+	}),
+	is_default: z.boolean().optional().meta({
+		description: descriptions.is_default,
+	}),
+	base_plan_id: z
+		.string()
+		.nonempty()
+		.regex(idRegex)
+		.nullable()
+		.optional()
+		.meta({
+			description:
+				"The base plan this plan should be linked to as a variant. Set to null to detach it from its base plan.",
+		}),
+
+	description: z.string().nullish().optional().meta({
+		description: descriptions.description,
+	}),
+	// version: z.number().optional().meta({
+	// 	internal: true,
+	// }),
+	group: z.string().nonempty().nullable().optional().meta({
+		description: descriptions.group,
+	}),
+	archived: z.boolean().optional().meta({
+		description: descriptions.archived,
+	}),
+
+	items: z.array(CreateProductItemParamsSchema).optional(),
+	licenses: z.array(PlanLicenseParamsSchema).optional().meta({
+		internal: true,
+		description:
+			"Plans offered as assignable licenses under this plan. The full set replaces existing links.",
+	}),
+	free_trial: CreateFreeTrialSchema.nullish().meta({
+		description: descriptions.free_trial,
+	}),
+
+	config: ProductConfigParamsSchema.optional().meta({
+		description: "Miscellaneous product-level configuration flags.",
+	}),
+	billing_controls: CustomerBillingControlsParamsSchema.optional().meta({
+		description: "Plan-level billing controls used as customer defaults.",
+	}),
+
+	metadata: ProductMetadataSchema.optional().meta({
+		description: descriptions.metadata,
+	}),
+});
+
+export const UpdateProductQuerySchema = z.object({
+	version: z.string().optional(),
+	upsert: z.boolean().optional(),
+	disable_version: z.boolean().optional(),
+});
+
+export type CreateProductV2Params = z.infer<typeof CreateProductV2ParamsSchema>;
+export type CreateProductV2ParamsInput = z.input<
+	typeof CreateProductV2ParamsSchema
+>;
+export type UpdateProductV2Params = z.infer<typeof UpdateProductV2ParamsSchema>;
+
+// Copy Product Schema
+export const CopyProductParamsSchema = z.object({
+	id: z.string().nonempty().regex(idRegex).meta({
+		description: "New product ID in the target environment",
+	}),
+	name: z.string().nonempty().meta({
+		description: "New product name in the target environment",
+	}),
+	env: z.enum(AppEnv).meta({
+		description: "Target environment to copy the product to",
+	}),
+});
+
+export type CopyProductParams = z.infer<typeof CopyProductParamsSchema>;
+
+// Migrate Product Schema
+export const MigrateProductParamsSchema = z.object({
+	from_product_id: z.string().nonempty().meta({
+		description: "ID of the product to migrate from",
+	}),
+	from_version: z.number().optional().meta({
+		description: "Version of the product to migrate from",
+	}),
+	to_product_id: z.string().nonempty().meta({
+		description: "ID of the product to migrate to",
+	}),
+	to_version: z.number().optional().meta({
+		description: "Version of the product to migrate to",
+	}),
+});
+
+export type MigrateProductParams = z.infer<typeof MigrateProductParamsSchema>;

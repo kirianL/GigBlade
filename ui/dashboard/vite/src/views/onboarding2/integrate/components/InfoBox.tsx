@@ -1,0 +1,40 @@
+import { InfoIcon } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
+
+export const InfoBox = ({
+	classNames,
+	children,
+	action,
+	variant = "note",
+}: {
+	classNames?: {
+		infoIcon?: string;
+		infoBox?: string;
+	};
+	children: React.ReactNode;
+	action?: React.ReactNode;
+	variant?: "info" | "warning" | "error" | "note" | "success";
+}) => {
+	return (
+		<div
+			className={cn(
+				"px-4 py-2 text-sandbox flex gap-2 rounded-lg text-sm",
+				variant === "note" && "bg-sandbox/10 text-sandbox",
+				variant === "info" &&
+					"bg-tertiary-foreground/10 text-tertiary-foreground",
+				variant === "warning" && "bg-yellow-500/10 text-yellow-500",
+				variant === "error" && "bg-red-500/10 text-red-500",
+				variant === "success" && "bg-green-500/10 text-green-500",
+				classNames?.infoBox,
+			)}
+		>
+			<div className={cn("pt-0.25 mr-1 shrink-0", classNames?.infoIcon)}>
+				<InfoIcon size={16} className="" weight="fill" />
+			</div>
+			<div className="flex min-w-0 flex-col gap-2">
+				<span className="whitespace-pre-wrap">{children}</span>
+				{action && <div className="self-start">{action}</div>}
+			</div>
+		</div>
+	);
+};

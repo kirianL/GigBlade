@@ -1,0 +1,79 @@
+import { CurrencyCodeSchema } from "@api/products/components/additionalCurrencies";
+import { z } from "zod/v4";
+import { PlanTimingSchema } from "../../../models/billingModels/context/attachBillingContext";
+import { ProductItemSchema } from "../../../models/productV2Models/productItemModels/productItemModels";
+import { BillingBehaviorSchema } from "../common/billingBehavior";
+import { BillingCycleAnchorSchema } from "../common/billingCycleAnchor";
+import { BillingParamsBaseV0Schema } from "../common/billingParamsBase/billingParamsBaseV0";
+import { LicenseQuantityParamsSchema } from "../common/licenseQuantityParams";
+import { UnixMsTimestampSchema } from "../common/unixMsTimestamp";
+import { AttachDiscountSchema } from "./attachDiscount";
+
+export const ExtAttachParamsV0Schema = BillingParamsBaseV0Schema.extend({
+	// Product identification
+	product_id: z.string(),
+
+	// Invoice mode
+	invoice: z.boolean().optional(),
+	enable_product_immediately: z.boolean().optional(),
+	finalize_invoice: z.boolean().optional(),
+	invoice_template_id: z.string().optional(),
+	net_terms_days: z.number().int().positive().optional(),
+
+	success_url: z.string().optional(),
+
+	new_billing_subscription: z.boolean().optional(),
+	billing_cycle_anchor: BillingCycleAnchorSchema.optional(),
+
+	plan_schedule: PlanTimingSchema.optional(),
+	starts_at: UnixMsTimestampSchema.optional(),
+	ends_at: UnixMsTimestampSchema.optional(),
+
+	// Discounts to apply (Stripe coupon IDs or human-readable promo code strings)
+	discounts: z.array(AttachDiscountSchema).optional(),
+	// Billing behavior for attach operations (product transitions):
+	// - 'prorate_immediately' (default): Invoice line items are charged immediately
+	// - 'next_cycle_only': Do NOT create any charges due to the attach
+	billing_behavior: BillingBehaviorSchema.optional(),
+
+	// For importing an existing subscription...?
+	processor_subscription_id: z.string().optional(),
+	no_billing_changes: z.boolean().optional(),
+
+	tax_rate_id: z.string().optional(),
+
+	license_quantities: z.array(LicenseQuantityParamsSchema).optional(),
+	currency: CurrencyCodeSchema.optional().meta({
+		description:
+			"Currency to bill this attach in (e.g. usd, eur). Must match the customer's currency if they are already locked to one, and the plan must offer a paid price in it. Defaults to the customer's currency, then the org default.",
+	}),
+});
+
+export const AttachParamsV0Schema = ExtAttachParamsV0Schema.extend({
+	// Custom product configuration
+	items: z.array(ProductItemSchema).optional(),
+
+	checkout_session_params: z.record(z.string(), z.unknown()).optional(),
+
+	long_lived_checkout: z.boolean().optional(),
+
+	carry_over_balances: z
+		.object({
+			enabled: z.boolean(),
+			feature_ids: z.array(z.string()).optional(),
+		})
+		.optional(),
+
+	carry_over_usages: z
+		.object({
+			enabled: z.boolean(),
+			feature_ids: z.array(z.string()).optional(),
+		})
+		.optional(),
+
+	remove_plan_ids: z.array(z.string()).optional(),
+});
+
+export type ExtAttachParamsV0 = z.input<typeof ExtAttachParamsV0Schema>;
+export type AttachParamsV0 = z.infer<typeof AttachParamsV0Schema>;
+export type AttachParamsV0Input = z.input<typeof AttachParamsV0Schema>;

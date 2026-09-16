@@ -1,0 +1,47 @@
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	IconButton,
+} from "@autumn/ui";
+import { EllipsisVertical } from "lucide-react";
+import { useState } from "react";
+import { useMigrationsQueryState } from "@/views/migrations/hooks/useMigrationsQueryState";
+
+export function MigrationListMenuButton() {
+	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const { queryStates, setQueryStates } = useMigrationsQueryState();
+
+	return (
+		<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+			<DropdownMenuTrigger asChild>
+				<IconButton
+					icon={<EllipsisVertical />}
+					variant="skeleton"
+					size="default"
+					iconOrientation="center"
+					className="!h-7"
+				/>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="text-muted-foreground">
+				<DropdownMenuItem
+					className="flex items-center cursor-pointer"
+					onClick={() => {
+						setQueryStates({
+							showArchived: !queryStates.showArchived,
+							page: 1,
+						});
+						setDropdownOpen(false);
+					}}
+				>
+					<div className="flex items-center text-sm justify-between w-full gap-2">
+						{queryStates.showArchived
+							? "Show active migrations"
+							: "Show archived migrations"}
+					</div>
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}

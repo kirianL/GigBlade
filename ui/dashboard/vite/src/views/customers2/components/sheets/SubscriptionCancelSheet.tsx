@@ -1,0 +1,176 @@
+import {
+	CusProductStatus,
+	cp,
+	type FullCusProduct,
+	type ProductV2,
+} from "@autumn/shared";
+import { useMemo } from "react";
+import { CancelAdvancedSection } from "@/components/forms/cancel-subscription/components/CancelAdvancedSection";
+import { CancelFooter } from "@/components/forms/cancel-subscription/components/CancelFooter";
+import { CancelModeSection } from "@/components/forms/cancel-subscription/components/CancelModeSection";
+import { CancelPreviewSection } from "@/components/forms/cancel-subscription/components/CancelPreviewSection";
+import { RefundBehaviorSection } from "@/components/forms/cancel-subscription/components/RefundBehaviorSection";
+import {
+	type UpdateSubscriptionFormContext,
+	UpdateSubscriptionFormProvider,
+	useUpdateSubscriptionFormContext,
+} from "@/components/forms/update-subscription-v2";
+import {
+	LayoutGroup,
+	SheetHeader,
+} from "@/components/v2/sheets/SharedSheetComponents";
+import { usePrepaidItems } from "@/hooks/stores/useProductStore";
+import { useSheetStore } from "@/hooks/stores/useSheetStore";
+import { useSubscriptionById } from "@/hooks/stores/useSubscriptionStore";
+import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
+import { useSettleApprovalOnApply } from "@/views/approvals/hooks/useSettleApprovalOnApply";
+import { approvalSeedFromSheetData } from "@/views/approvals/utils/approvalSheetIntegration";
+import { useCusQuery } from "@/views/customers/customer/hooks/useCusQuery";
+import { InfoBox } from "@/views/onboarding2/integrate/components/InfoBox";
+
+function SheetContent() {
+	const { formContext } = useUpdateSubscriptionFormContext();
+	const { customerProduct } = formContext;
+
+	const product = customerProduct.product;
+	const isDefault = product?.is_default ?? false;
+	const isScheduled = customerProduct.status === CusProductStatus.Scheduled;
+	const isPending = customerProduct.status === CusProductStatus.Pending;
+	const { valid: isFreeOrOneOff } = cp(customerProduct).free().or.oneOff();
+	const isFreeDefault = isDefault && isFreeOrOneOff;
+
+	const productName = product?.name ?? "Plan";
+
+	return (
+		<LayoutGroup>
+			<div className="flex flex-col h-full overflow-y-auto">
+				<SheetHeader
+					title="Cancel Subscription"
+					description={`Cancel ${productName} for this customer`}
+					breadcrumbs={[
+						{
+							name: productName,
+							sheet: "subscription-detail",
+						},
+					]}
+					itemId={customerProduct.id}
+				/>
+
+				{isPending && (
+					<div className="px-4 pt-4">
+						<InfoBox variant="warning" classNames={{ infoBox: "w-full" }}>
+							This plan is waiting on payment. Cancelling will void the payment
+							and remove the plan.
+						</InfoBox>
+					</div>
+				)}
+
+				{isScheduled && (
+					<div className="px-4 pt-4">
+						<InfoBox variant="warning" classNames={{ infoBox: "w-full" }}>
+							This plan is scheduled to start on{" "}
+							{formatUnixToDateTime(customerProduct.starts_at).date}. Cancelling
+							will remove this schedule.
+						</InfoBox>
+					</div>
+				)}
+
+				{isFreeDefault && (
+					<div className="px-4 pt-4">
+						<InfoBox variant="warning" classNames={{ infoBox: "w-full" }}>
+							This is the default plan. Cancelling it means this customer will
+							be left without a plan.
+						</InfoBox>
+					</div>
+				)}
+
+				{!isPending && (
+					<>
+						<CancelModeSection />
+						<RefundBehaviorSection />
+						<CancelAdvancedSection />
+						<CancelPreviewSection />
+					</>
+				)}
+				<CancelFooter />
+			</div>
+		</LayoutGroup>
+	);
+}
+
+export function SubscriptionCancelSheet() {
+	const itemId = useSheetStore((s) => s.itemId);
+	const sheetData = useSheetStore((s) => s.data);
+	const { closeSheet } = useSheetStore();
+	const approvalSeed = approvalSeedFromSheetData(sheetData);
+	const onApplied = useSettleApprovalOnApply();
+	const { customer } = useCusQuery();
+
+	const { cusProduct, productV2 } = useSubscriptionById({ itemId });
+	const { prepaidItems } = usePrepaidItems({ product: productV2 });
+
+	const currentVersion = cusProduct?.product?.version ?? 1;
+
+	const formContext = useMemo(
+		(): UpdateSubscriptionFormContext | null =>
+			cusProduct && customer
+				? {
+						customerId: customer.id ?? customer.internal_id,
+						product: productV2 as ProductV2 | undefined,
+						entityId: cusProduct.entity_id ?? undefined,
+						customerProduct: cusProduct as FullCusProduct,
+						prepaidItems,
+						numVersions: 1,
+						currentVersion,
+					}
+				: null,
+		[customer, cusProduct, productV2, prepaidItems, currentVersion],
+	);
+
+	// Free products and one-time plans (no subscription) must use "cancel_immediately"
+	// Products with subscriptions default to "cancel_end_of_cycle" to allow end-of-cycle cancellation
+	// const hasSubscription =
+	// 	cusProduct?.subscription_ids && cusProduct.subscription_ids.length > 0;
+	const { valid: isFreeOrOneOff } = cp(cusProduct).free().or.oneOff();
+	const defaultCancelAction = isFreeOrOneOff
+		? "cancel_immediately"
+		: "cancel_end_of_cycle";
+
+	if (!cusProduct) {
+		return (
+			<div className="flex flex-col h-full">
+				<SheetHeader
+					title="Cancel Subscription"
+					description="Loading subscription..."
+				/>
+				<div className="p-4 text-sm text-tertiary-foreground">Loading...</div>
+			</div>
+		);
+	}
+
+	if (!formContext) {
+		return (
+			<div className="flex flex-col h-full">
+				<SheetHeader title="Cancel Subscription" description="Loading..." />
+				<div className="p-4 text-sm text-tertiary-foreground">Loading...</div>
+			</div>
+		);
+	}
+
+	return (
+		<UpdateSubscriptionFormProvider
+			formContext={formContext}
+			originalItems={undefined}
+			defaultOverrides={{
+				cancelAction: defaultCancelAction,
+				...(approvalSeed?.defaultOverrides as
+					| Partial<UpdateSubscriptionForm>
+					| undefined),
+			}}
+			onApplied={onApplied}
+			onSuccess={closeSheet}
+		>
+			<SheetContent />
+		</UpdateSubscriptionFormProvider>
+	);
+}

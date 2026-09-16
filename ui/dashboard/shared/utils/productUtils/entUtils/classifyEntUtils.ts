@@ -1,0 +1,63 @@
+import type { Entity } from "../../../models/cusModels/entityModels/entityModels";
+import { FeatureType } from "../../../models/featureModels/featureEnums";
+import {
+	AllowanceType,
+	type EntitlementWithFeature,
+} from "../../../models/productModels/entModels/entModels";
+import { EntInterval } from "../../../models/productModels/intervals/entitlementInterval";
+import { notNullish } from "../../utils";
+
+export const isBooleanEntitlement = ({
+	entitlement,
+}: {
+	entitlement: EntitlementWithFeature;
+}) => {
+	return entitlement.feature.type === FeatureType.Boolean;
+};
+
+export const isUnlimitedEntitlement = ({
+	entitlement,
+}: {
+	entitlement: EntitlementWithFeature;
+}) => {
+	return entitlement.allowance_type === AllowanceType.Unlimited;
+};
+
+export const isEntityScopedEntitlement = ({
+	entitlement,
+}: {
+	entitlement: EntitlementWithFeature;
+}) => {
+	return notNullish(entitlement.entity_feature_id);
+};
+
+export const isLifetimeEntitlement = ({
+	entitlement,
+}: {
+	entitlement: EntitlementWithFeature;
+}) => {
+	return !entitlement.interval || entitlement.interval === EntInterval.Lifetime;
+};
+
+/** Grants an allowance that refreshes on a cycle — i.e. has a real `next_reset_at`. */
+export const isResettingEntitlement = ({
+	entitlement,
+}: {
+	entitlement: EntitlementWithFeature;
+}) => {
+	return (
+		!isBooleanEntitlement({ entitlement }) &&
+		!isUnlimitedEntitlement({ entitlement }) &&
+		!isLifetimeEntitlement({ entitlement })
+	);
+};
+
+export const entitlementHasEntityFeature = ({
+	entitlement,
+	entity,
+}: {
+	entitlement: EntitlementWithFeature;
+	entity: Entity;
+}) => {
+	return entitlement.entity_feature_id === entity.feature_id;
+};

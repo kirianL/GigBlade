@@ -1,0 +1,13 @@
+{
+	"name": "atmn",
+	"version": "1.1.14",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./skills": {
+			"types": "./src/prompts/skills/index.ts",
+			"import": "./src/prompts/skills/index.ts",
+			"default": "./src/prompts/skills/index.ts"
+		}
+	}
+}

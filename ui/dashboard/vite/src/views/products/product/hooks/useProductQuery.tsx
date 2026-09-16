@@ -1,0 +1,128 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+	parseAsInteger,
+	parseAsString,
+	parseAsStringLiteral,
+	useQueryStates,
+} from "nuqs";
+import { useMemo } from "react";
+import { useParams } from "react-router";
+import { useQueryKeyFactory } from "@/hooks/common/useQueryKeyFactory";
+import type { PlanVariant } from "@/services/products/ProductService";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+
+import { throwBackendError } from "@/utils/genUtils";
+
+import type { ProductDataResponse } from "../productDataTypes";
+import { useCachedProduct } from "./getCachedProduct";
+import { useProductCountsQuery } from "./queries/useProductCountsQuery";
+
+type ProductQueryResponse = ProductDataResponse & {
+	variants: PlanVariant[];
+	numVersions: number;
+	versionCounts: Record<
+		number,
+		{ active: number; canceled: number; custom: number; trialing: number }
+	>;
+};
+
+// Product query state...
+export const ALL_VARIANTS_VIEW = "all-variants" as const;
+
+export const useProductQueryState = () => {
+	const [queryStates, setQueryStates] = useQueryStates(
+		{
+			version: parseAsInteger,
+			productId: parseAsString,
+			view: parseAsStringLiteral([ALL_VARIANTS_VIEW]),
+		},
+		{
+			history: "push",
+		},
+	);
+
+	return { queryStates, setQueryStates };
+};
+
+export const useAllVariantsView = () => {
+	const { queryStates } = useProductQueryState();
+	return queryStates.view === ALL_VARIANTS_VIEW;
+};
+
+export const useProductQuery = () => {
+	const { product_id } = useParams();
+	const { queryStates } = useProductQueryState();
+	const productId = queryStates.productId || product_id;
+
+	const axiosInstance = useAxiosInstance();
+	const queryClient = useQueryClient();
+	const buildKey = useQueryKeyFactory();
+	const { getCachedProduct } = useCachedProduct({ productId: productId });
+
+	const cachedProduct = useMemo(getCachedProduct, []);
+
+	const fetcher = async () => {
+		if (!productId) return null;
+
+		try {
+			const url = `/products/${productId}/data`;
+			const queryParams = {
+				version: queryStates.version,
+			};
+
+			const { data } = await axiosInstance.get<ProductQueryResponse>(url, {
+				params: queryParams,
+			});
+			return data;
+		} catch (error) {
+			throwBackendError(error);
+		}
+	};
+
+	const { data, isLoading, refetch, error } = useQuery({
+		queryKey: buildKey(["product", productId, queryStates.version]),
+		queryFn: fetcher,
+		retry: false, // Don't retry on error (e.g., product not found)
+		enabled: !!productId, // Only run query if productId exists
+	});
+
+	const { refetch: refetchCounts } = useProductCountsQuery();
+
+	const product = data?.product || cachedProduct;
+	const variants = (data?.variants || []) as PlanVariant[];
+	const isLoadingWithCache = cachedProduct ? false : isLoading;
+
+	/**
+	 * Invalidates all individual product queries across the app
+	 */
+	const invalidate = async () => {
+		await queryClient.invalidateQueries({ queryKey: ["product"] });
+		await Promise.all([
+			queryClient.invalidateQueries({ queryKey: ["product_counts"] }),
+			queryClient.invalidateQueries({ queryKey: ["product_versions"] }),
+			queryClient.invalidateQueries({ queryKey: ["migrations"] }),
+		]);
+	};
+
+	return {
+		product,
+		catalogLicenses: data?.catalogLicenses ?? [],
+		variants,
+		numVersions: data?.numVersions || cachedProduct?.version || 1,
+		versionCounts: (data?.versionCounts || {}) as Record<
+			number,
+			{ active: number; canceled: number; custom: number; trialing: number }
+		>,
+		isLoading: isLoadingWithCache,
+		refetch: async () => {
+			await refetch();
+			await Promise.all([
+				queryClient.invalidateQueries({ queryKey: ["migrations"] }),
+				refetchCounts(),
+			]);
+		},
+		invalidate,
+		error,
+	};
+};

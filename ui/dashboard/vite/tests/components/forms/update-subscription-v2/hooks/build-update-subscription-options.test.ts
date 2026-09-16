@@ -1,0 +1,412 @@
+import { describe, expect, test } from "bun:test";
+import {
+	type ProductItem,
+	ProductItemFeatureType,
+	ProductItemInterval,
+} from "@autumn/shared";
+import { normalizeBillingRequestItems } from "@/components/forms/shared/utils/normalizeBillingRequestItems";
+import { buildUpdateSubscriptionOptions } from "@/components/forms/update-subscription-v2/hooks/useUpdateSubscriptionRequestBody";
+
+describe("buildUpdateSubscriptionOptions — included usage handling", () => {
+	test("should pass display quantities through, not multiply by billing_units", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: 0 }],
+			prepaidOptions: { messages: 5000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		expect(result).toEqual([{ feature_id: "messages", quantity: 5000 }]);
+	});
+
+	test("should not multiply or divide quantity by billing_units", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: 0 }],
+			prepaidOptions: { messages: 5000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		// Must NOT be 5,000,000 (5000 * 1000) or 5 (5000 / 1000)
+		expect(result[0]?.quantity).toBe(5000);
+	});
+
+	test("should pass inclusive quantities through unchanged", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: 200 }],
+			prepaidOptions: { messages: 5000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 800 },
+		});
+
+		expect(result).toEqual([{ feature_id: "messages", quantity: 5000 }]);
+	});
+
+	test("should skip unchanged inclusive quantities", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "AI_CREDITS", included_usage: 250 }],
+			prepaidOptions: { AI_CREDITS: 750 },
+			initialPrepaidOptions: { AI_CREDITS: 750 },
+			initialBackendQuantities: { AI_CREDITS: 500 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should serialize inclusive 750 as 750", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "AI_CREDITS", included_usage: 250 }],
+			prepaidOptions: { AI_CREDITS: 750 },
+			initialPrepaidOptions: { AI_CREDITS: 500 },
+			initialBackendQuantities: { AI_CREDITS: 250 },
+		});
+
+		expect(result).toEqual([{ feature_id: "AI_CREDITS", quantity: 750 }]);
+	});
+
+	test("should serialize inclusive 1000 as 1000", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "AI_CREDITS", included_usage: 250 }],
+			prepaidOptions: { AI_CREDITS: 1000 },
+			initialPrepaidOptions: { AI_CREDITS: 750 },
+			initialBackendQuantities: { AI_CREDITS: 500 },
+		});
+
+		expect(result).toEqual([{ feature_id: "AI_CREDITS", quantity: 1000 }]);
+	});
+
+	test("should skip items where quantity has not changed", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: 0 }],
+			prepaidOptions: { messages: 1000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should handle multiple features with different billing_units", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "messages", included_usage: 0 },
+				{ feature_id: "tokens", included_usage: 100 },
+			],
+			prepaidOptions: { messages: 10000, tokens: 2500 },
+			initialPrepaidOptions: { messages: 5000, tokens: 1000 },
+			initialBackendQuantities: { messages: 5000, tokens: 900 },
+		});
+
+		expect(result).toEqual([
+			{ feature_id: "messages", quantity: 10000 },
+			{ feature_id: "tokens", quantity: 2500 },
+		]);
+	});
+
+	test("should include new prepaid items from the current plan", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "messages", included_usage: 0 },
+				{ feature_id: "tokens", included_usage: 50 },
+			],
+			prepaidOptions: { messages: 5000, tokens: 3000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		expect(result).toEqual([
+			{ feature_id: "messages", quantity: 5000 },
+			{ feature_id: "tokens", quantity: 3000 },
+		]);
+	});
+
+	test("should resend the same total when included usage changes", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "AI_CREDITS", included_usage: 500 }],
+			prepaidOptions: { AI_CREDITS: 750 },
+			initialPrepaidOptions: { AI_CREDITS: 750 },
+			initialBackendQuantities: { AI_CREDITS: 500 },
+		});
+
+		expect(result).toEqual([{ feature_id: "AI_CREDITS", quantity: 750 }]);
+	});
+
+	test("should ignore prepaid options for removed current items", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [],
+			prepaidOptions: { storage: 100 },
+			initialPrepaidOptions: {},
+			initialBackendQuantities: { storage: 100 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should return empty array when no quantities changed", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "messages", included_usage: 0 },
+				{ feature_id: "tokens", included_usage: 0 },
+			],
+			prepaidOptions: { messages: 1000, tokens: 500 },
+			initialPrepaidOptions: { messages: 1000, tokens: 500 },
+			initialBackendQuantities: { messages: 1000, tokens: 500 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should handle included_usage as 'inf' by treating as 0", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: "inf" }],
+			prepaidOptions: { messages: 5000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		// typeof "inf" !== "number", so includedUsage defaults to 0
+		expect(result).toEqual([{ feature_id: "messages", quantity: 5000 }]);
+	});
+
+	test("should clamp totals below the current included usage", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [{ feature_id: "messages", included_usage: 200 }],
+			prepaidOptions: { messages: 150 },
+			initialPrepaidOptions: { messages: 0 },
+			initialBackendQuantities: { messages: 0 },
+		});
+
+		expect(result).toEqual([{ feature_id: "messages", quantity: 200 }]);
+	});
+
+	test("should use feature.internal_id as fallback when feature_id is null", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{
+					feature_id: null,
+					feature: { internal_id: "int_messages" },
+					included_usage: 0,
+				},
+			],
+			prepaidOptions: { int_messages: 3000 },
+			initialPrepaidOptions: { int_messages: 1000 },
+			initialBackendQuantities: { int_messages: 1000 },
+		});
+
+		expect(result).toEqual([{ feature_id: "int_messages", quantity: 3000 }]);
+	});
+
+	test("should NOT resubmit a one-off item when its quantity has not changed", () => {
+		// A one-off top-up is a fresh purchase the backend ADDS — resubmitting the
+		// unchanged total would re-buy the whole balance on every update.
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "credits", included_usage: 0, interval: null },
+			],
+			prepaidOptions: { credits: 1000 },
+			initialPrepaidOptions: { credits: 1000 },
+			initialBackendQuantities: { credits: 1000 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should send only the increase (delta) when a one-off quantity grows", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "credits", included_usage: 0, interval: null },
+			],
+			prepaidOptions: { credits: 1500 },
+			initialPrepaidOptions: { credits: 1000 },
+			initialBackendQuantities: { credits: 1000 },
+		});
+
+		expect(result).toEqual([{ feature_id: "credits", quantity: 500 }]);
+	});
+
+	test("should NOT resubmit a one-off item when its quantity decreases", () => {
+		// One-off top-ups can't be negative — a lower total is not a purchase.
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{ feature_id: "credits", included_usage: 0, interval: null },
+			],
+			prepaidOptions: { credits: 800 },
+			initialPrepaidOptions: { credits: 1000 },
+			initialBackendQuantities: { credits: 1000 },
+		});
+
+		expect(result).toEqual([]);
+	});
+
+	test("should send the absolute total for a non-consumable item (interval null, continuous use)", () => {
+		// Non-consumables are continuous-use levels that happen to have interval null.
+		// They must send the selected total, never the delta.
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{
+					feature_id: "mailable_contacts",
+					included_usage: 0,
+					interval: null,
+					feature_type: ProductItemFeatureType.ContinuousUse,
+				},
+			],
+			prepaidOptions: { mailable_contacts: 352 },
+			initialPrepaidOptions: { mailable_contacts: 350 },
+			initialBackendQuantities: { mailable_contacts: 350 },
+		});
+
+		expect(result).toEqual([
+			{ feature_id: "mailable_contacts", quantity: 352 },
+		]);
+	});
+
+	test("should still send the delta for a consumable one-off item (interval null, single use)", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{
+					feature_id: "credits",
+					included_usage: 0,
+					interval: null,
+					feature_type: ProductItemFeatureType.SingleUse,
+				},
+			],
+			prepaidOptions: { credits: 1500 },
+			initialPrepaidOptions: { credits: 1000 },
+			initialBackendQuantities: { credits: 1000 },
+		});
+
+		expect(result).toEqual([{ feature_id: "credits", quantity: 500 }]);
+	});
+
+	test("should resubmit a decreased non-consumable total (no delta clamping)", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{
+					feature_id: "mailable_contacts",
+					included_usage: 0,
+					interval: null,
+					feature_type: ProductItemFeatureType.ContinuousUse,
+				},
+			],
+			prepaidOptions: { mailable_contacts: 300 },
+			initialPrepaidOptions: { mailable_contacts: 350 },
+			initialBackendQuantities: { mailable_contacts: 350 },
+		});
+
+		expect(result).toEqual([
+			{ feature_id: "mailable_contacts", quantity: 300 },
+		]);
+	});
+
+	test("should still skip recurring items when quantity has not changed", () => {
+		const result = buildUpdateSubscriptionOptions({
+			prepaidItems: [
+				{
+					feature_id: "messages",
+					included_usage: 0,
+					interval: ProductItemInterval.Month,
+				},
+			],
+			prepaidOptions: { messages: 1000 },
+			initialPrepaidOptions: { messages: 1000 },
+			initialBackendQuantities: { messages: 1000 },
+		});
+
+		expect(result).toEqual([]);
+	});
+});
+
+describe("normalizeBillingRequestItems", () => {
+	test("drops empty fixed-price draft rows before serialization", () => {
+		const items = [
+			{
+				feature_id: "AI_CREDITS",
+				price: null,
+				tiers: [{ amount: 0.01, to: "inf" }],
+			},
+			{
+				price: "" as unknown as number,
+				feature_id: null,
+				price_id: null,
+				entitlement_id: null,
+				interval: ProductItemInterval.Month,
+				interval_count: 1,
+				tiers: null,
+				billing_units: null,
+				usage_model: null,
+				included_usage: null,
+				config: null,
+				feature_type: null,
+				entity_feature_id: null,
+				price_config: null,
+			},
+			{
+				price: "" as unknown as number,
+				feature_id: null,
+				price_id: null,
+				entitlement_id: null,
+				interval: ProductItemInterval.Month,
+				interval_count: 1,
+				tiers: null,
+				billing_units: null,
+				usage_model: null,
+				included_usage: null,
+				config: null,
+				feature_type: null,
+				entity_feature_id: null,
+				price_config: null,
+			},
+			{
+				feature_id: "SSO",
+				price: null,
+			},
+		] satisfies ProductItem[];
+
+		expect(normalizeBillingRequestItems({ items })).toEqual([
+			items[0],
+			items[3],
+		]);
+	});
+
+	test("omits draft string prices from non-empty items", () => {
+		const items = [
+			{
+				feature_id: "seats",
+				price: "" as unknown as number,
+				included_usage: 10,
+				interval: ProductItemInterval.Month,
+			},
+		] satisfies ProductItem[];
+
+		expect(normalizeBillingRequestItems({ items })).toEqual([
+			{
+				feature_id: "seats",
+				included_usage: 10,
+				interval: ProductItemInterval.Month,
+			},
+		]);
+	});
+
+	test("returns undefined when only empty draft rows are present", () => {
+		const items = [
+			{
+				price: "" as unknown as number,
+				feature_id: null,
+				price_id: null,
+				entitlement_id: null,
+				interval: ProductItemInterval.Month,
+				interval_count: 1,
+				tiers: null,
+				billing_units: null,
+				usage_model: null,
+				included_usage: null,
+				config: null,
+				feature_type: null,
+				entity_feature_id: null,
+				price_config: null,
+			},
+		] satisfies ProductItem[];
+
+		expect(normalizeBillingRequestItems({ items })).toBeUndefined();
+	});
+});

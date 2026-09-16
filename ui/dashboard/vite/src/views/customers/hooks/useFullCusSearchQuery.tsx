@@ -1,0 +1,70 @@
+import type { FullCustomer } from "@autumn/shared";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQueryKeyFactory } from "@/hooks/common/useQueryKeyFactory";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import {
+	balanceFilterQueryKey,
+	buildCustomerFilterPayload,
+	featureSortQueryKey,
+	useCustomerFilters,
+} from "./useCustomerFilters";
+
+export const FULL_CUSTOMERS_QUERY_KEY = "full_customers";
+
+export const useFullCusSearchQuery = () => {
+	const { queryStates, isInitialized, currentCursor } = useCustomerFilters();
+	const axiosInstance = useAxiosInstance();
+	const buildKey = useQueryKeyFactory();
+
+	return useQuery<{
+		fullCustomers: FullCustomer[];
+		next_cursor: string | null;
+	}>({
+		queryKey: buildKey([
+			FULL_CUSTOMERS_QUERY_KEY,
+			currentCursor,
+			queryStates.pageSize,
+			queryStates.status,
+			queryStates.version,
+			queryStates.none,
+			queryStates.processor,
+			queryStates.interval,
+			queryStates.joinedFrom,
+			queryStates.joinedTo,
+			queryStates.sort,
+			queryStates.sortBy,
+			featureSortQueryKey(queryStates),
+			balanceFilterQueryKey(queryStates),
+			queryStates.q,
+		]),
+		queryFn: async ({ signal }) => {
+			const { data } = await axiosInstance.post(
+				`/customers/all/full_customers`,
+				{
+					search: queryStates.q,
+					cursor: currentCursor,
+					limit: queryStates.pageSize,
+					filters: buildCustomerFilterPayload(queryStates),
+					sort_by: queryStates.sortBy,
+					sort_feature_id:
+						queryStates.sortBy === "feature_balance"
+							? queryStates.sortFeature || undefined
+							: undefined,
+					sort_basis:
+						queryStates.sortBy === "feature_balance"
+							? queryStates.sortBasis
+							: undefined,
+					sort_order: queryStates.sort,
+				},
+				{ signal },
+			);
+			return {
+				fullCustomers: data.fullCustomers,
+				next_cursor: data.next_cursor ?? null,
+			};
+		},
+		enabled: isInitialized,
+		placeholderData: keepPreviousData,
+		refetchOnWindowFocus: false,
+	});
+};

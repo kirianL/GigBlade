@@ -1,0 +1,204 @@
+import type {
+	FullCusProduct,
+	FullCustomer,
+	FullCustomerSchedule,
+} from "@autumn/shared";
+import {
+	keepPreviousData,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { parseAsArrayOf, parseAsStringEnum, useQueryState } from "nuqs";
+import { useMemo } from "react";
+import { useParams } from "react-router";
+import { useQueryKeyFactory } from "@/hooks/common/useQueryKeyFactory";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useProductsQuery } from "@/hooks/queries/useProductsQuery";
+import { useEntity } from "@/hooks/stores/useSubscriptionStore";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { throwBackendError } from "@/utils/genUtils";
+import {
+	type CustomerProductsStatusOption,
+	DEFAULT_PRODUCT_STATUSES,
+} from "@/views/customers2/hooks/useCustomerProductsTableState";
+import { useCachedCustomer } from "./useCachedCustomer";
+
+type UseCusQueryOptions = {
+	enabled?: boolean;
+	/**
+	 * When true, fetches the customer's persisted schedule from the dedicated
+	 * schedule endpoint and includes its loading state in `isLoading`.
+	 *
+	 * Callers that don't need schedule data should leave this false (the default)
+	 * to avoid an extra network request and unnecessary loading latency.
+	 */
+	schedule?: boolean;
+};
+
+type ScheduleResponse = {
+	schedule: unknown | null;
+	entity_schedules: Record<string, unknown>;
+};
+
+export const useCusQuery = ({
+	enabled = true,
+	schedule: fetchSchedule = false,
+}: UseCusQueryOptions = {}) => {
+	const { customer_id } = useParams();
+	const axiosInstance = useAxiosInstance();
+	const buildKey = useQueryKeyFactory();
+	const { getCachedCustomer } = useCachedCustomer(customer_id);
+	const { entityId } = useEntity();
+
+	const queryClient = useQueryClient();
+	const cachedCustomer = useMemo(getCachedCustomer, [getCachedCustomer]);
+
+	const baseKey = buildKey(["customer", customer_id, null]);
+	const cachedData = queryClient.getQueryData<{ customer?: FullCustomer }>(
+		baseKey,
+	);
+	const currentCustomer = cachedData?.customer ?? cachedCustomer;
+
+	const entityAlreadyLoaded =
+		!entityId ||
+		(currentCustomer as FullCustomer)?.customer_products?.some(
+			(cp: FullCusProduct) =>
+				cp.entity_id === entityId || cp.internal_entity_id === entityId,
+		);
+
+	const effectiveEntityId = entityAlreadyLoaded ? null : entityId;
+
+	// Same nuqs key as the Plans filter.
+	const [productStatuses] = useQueryState(
+		"customerProductsStatuses",
+		parseAsArrayOf(
+			parseAsStringEnum<CustomerProductsStatusOption>(["active", "expired"]),
+		).withDefault(DEFAULT_PRODUCT_STATUSES),
+	);
+	const includeExpiredLoose = productStatuses.includes("expired");
+
+	const fetcher = async () => {
+		try {
+			const searchParams = new URLSearchParams();
+			if (includeExpiredLoose) {
+				searchParams.set("include_expired_loose", "true");
+			}
+			if (effectiveEntityId) searchParams.set("entity_id", effectiveEntityId);
+			const query = searchParams.toString();
+			const { data } = await axiosInstance.get(
+				`/customers/${customer_id}${query ? `?${query}` : ""}`,
+			);
+			return data;
+		} catch (error) {
+			throwBackendError(error);
+		}
+	};
+
+	const {
+		data,
+		isLoading: customerLoading,
+		isFetching: customerFetching,
+		isPlaceholderData,
+		error,
+		refetch,
+	} = useQuery({
+		queryKey: buildKey([
+			"customer",
+			customer_id,
+			effectiveEntityId,
+			includeExpiredLoose,
+		]),
+		queryFn: fetcher,
+		enabled: enabled && !!customer_id,
+		retry: false,
+		placeholderData: keepPreviousData,
+	});
+
+	const scheduleFetcher = async (): Promise<ScheduleResponse> => {
+		try {
+			const { data: scheduleData } = await axiosInstance.get(
+				`/customers/${customer_id}/schedule`,
+			);
+			return scheduleData;
+		} catch (error) {
+			throwBackendError(error);
+			// throwBackendError always throws — this return is unreachable but
+			// keeps TypeScript happy about the declared return type.
+			return { schedule: null, entity_schedules: {} };
+		}
+	};
+
+	const {
+		data: scheduleData,
+		isLoading: scheduleLoading,
+		refetch: refetchSchedule,
+	} = useQuery({
+		queryKey: buildKey(["customer-schedule", customer_id]),
+		queryFn: scheduleFetcher,
+		enabled: fetchSchedule && enabled && !!customer_id,
+		retry: false,
+	});
+
+	const { products, isLoading: productsLoading } = useProductsQuery();
+	const { features, isLoading: featuresLoading } = useFeaturesQuery();
+
+	const customer = data?.customer || cachedCustomer;
+
+	// Merge schedule(s) onto the customer object in-memory so downstream consumers
+	// (which historically read `customer.schedule` and `entity.schedule`) keep
+	// working without having to plumb a second data source through every caller.
+	const customerWithSchedules = useMemo(() => {
+		if (!fetchSchedule || !customer) return customer;
+		const entitySchedules = scheduleData?.entity_schedules ?? {};
+		const entities = (customer as any).entities?.map((entity: any) => ({
+			...entity,
+			schedule: entitySchedules[entity.internal_id] ?? undefined,
+		}));
+		return {
+			...customer,
+			schedule: scheduleData?.schedule ?? undefined,
+			...(entities ? { entities } : {}),
+		};
+	}, [customer, scheduleData, fetchSchedule]);
+
+	const schedule = fetchSchedule ? scheduleData?.schedule : undefined;
+
+	// Entity schedules come from the schedule endpoint rather than
+	// `customer.entities`, which is paginated and may omit scheduled entities.
+	const schedules = useMemo(() => {
+		if (!fetchSchedule) return [];
+		const all = [
+			scheduleData?.schedule,
+			...Object.values(scheduleData?.entity_schedules ?? {}),
+		].filter(Boolean) as FullCustomerSchedule[];
+		return [...new Map(all.map((s) => [s.id, s])).values()];
+	}, [scheduleData, fetchSchedule]);
+
+	const testClockFrozenTimeMs: number | undefined =
+		data?.test_clock_frozen_time_ms ?? undefined;
+	const cusWithCacheLoading = cachedCustomer ? false : customerLoading;
+
+	// Only hang on schedule loading when the caller explicitly opted in —
+	// otherwise unrelated consumers would pay the latency cost.
+	const isLoading =
+		cusWithCacheLoading ||
+		productsLoading ||
+		featuresLoading ||
+		(fetchSchedule && scheduleLoading);
+
+	return {
+		customer: customerWithSchedules,
+		schedule,
+		schedules,
+		testClockFrozenTimeMs,
+		entities: customerWithSchedules?.entities,
+		products,
+		features,
+		isLoading,
+		isFetching: customerFetching,
+		isPlaceholderData,
+		error,
+		refetch,
+		refetchSchedule,
+	};
+};

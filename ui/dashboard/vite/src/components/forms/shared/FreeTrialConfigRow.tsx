@@ -1,0 +1,98 @@
+import type { FreeTrialDuration, TrialOnEnd } from "@autumn/shared";
+import { Switch, TextCheckbox } from "@autumn/ui";
+import type { UseAttachForm } from "@/components/forms/attach-v2/hooks/useAttachForm";
+import { TRIAL_DURATION_OPTIONS } from "@/components/forms/update-subscription-v2/constants/trialConstants";
+import type { UseUpdateSubscriptionForm } from "@/components/forms/update-subscription-v2/hooks/useUpdateSubscriptionForm";
+import { ConfigRow } from "./ConfigRow";
+import { TrialOnEndSelect } from "./TrialOnEndSelect";
+
+const DEFAULT_TRIAL_LENGTH = 7;
+
+export function FreeTrialConfigRow({
+	form,
+	expanded,
+	checked,
+	trialCardRequired,
+	trialOnEnd,
+	onTrialOnEndChange,
+	onToggle,
+	description = "Let the customer try the plan before being charged",
+}: {
+	form: UseAttachForm | UseUpdateSubscriptionForm;
+	expanded: boolean;
+	checked: boolean;
+	trialCardRequired: boolean;
+	trialOnEnd?: TrialOnEnd;
+	onTrialOnEndChange?: (value: TrialOnEnd) => void;
+	onToggle: (enabled: boolean) => void;
+	description?: string;
+}) {
+	const showTrialOnEnd = !!onTrialOnEndChange;
+
+	return (
+		<ConfigRow
+			title="Free Trial"
+			description={description}
+			expanded={expanded}
+			action={<Switch checked={checked} onCheckedChange={onToggle} />}
+		>
+			<div className="flex flex-col gap-3">
+				<div className="flex items-center gap-2">
+					<form.AppField name="trialLength">
+						{(field) => (
+							<field.NumberField
+								label=""
+								placeholder={String(DEFAULT_TRIAL_LENGTH)}
+								min={1}
+								className="w-20"
+								inputClassName="placeholder:opacity-50"
+								hideFieldInfo
+							/>
+						)}
+					</form.AppField>
+					<form.AppField name="trialDuration">
+						{(field) => (
+							<field.SelectField
+								label=""
+								placeholder="Days"
+								options={
+									TRIAL_DURATION_OPTIONS as unknown as {
+										label: string;
+										value: FreeTrialDuration;
+									}[]
+								}
+								className="w-28"
+								hideFieldInfo
+							/>
+						)}
+					</form.AppField>
+					{!showTrialOnEnd && (
+						<div className="mx-2">
+							<TextCheckbox
+								checked={trialCardRequired}
+								onCheckedChange={(checked) =>
+									form.setFieldValue("trialCardRequired", checked as boolean)
+								}
+							>
+								Card Required
+							</TextCheckbox>
+						</div>
+					)}
+				</div>
+				{showTrialOnEnd && (
+					<TrialOnEndSelect
+						value={trialOnEnd ?? "revert"}
+						onChange={(value) => {
+							onTrialOnEndChange(value);
+							if (value === "revert") {
+								form.setFieldValue("trialCardRequired", false);
+							}
+						}}
+					/>
+				)}
+			</div>
+		</ConfigRow>
+	);
+}
+
+FreeTrialConfigRow.DEFAULT_TRIAL_LENGTH = DEFAULT_TRIAL_LENGTH;

@@ -1,0 +1,75 @@
+import type {
+	FullCusProduct,
+	FullProduct,
+	InsertPlanLicenseSpec,
+} from "@autumn/shared";
+import { z } from "zod/v4";
+import type { BillingContext } from "./billingContext";
+
+// Plan timing for attach operations
+export const PlanTimingSchema = z.enum(["immediate", "end_of_cycle"]).meta({
+	title: "PlanSchedule",
+	description:
+		"When the plan change should take effect. 'immediate' applies now, 'end_of_cycle' schedules for the end of the current billing cycle.",
+});
+export type PlanTiming = z.infer<typeof PlanTimingSchema>;
+
+// Checkout mode for attach operations
+export const CheckoutModeSchema = z
+	.enum(["stripe_checkout", "autumn_checkout"])
+	.nullable();
+
+export type CheckoutMode = z.infer<typeof CheckoutModeSchema>;
+
+export interface AttachBillingContext extends BillingContext {
+	// The product being attached
+	attachProduct: FullProduct;
+
+	// Resolved billing currency for this attach (requested -> customer -> org default).
+	// Optional so multi-attach/schedule contexts spread into this type without it.
+	currency?: string;
+
+	// Transition context (only for main recurring products)
+	currentCustomerProduct?: FullCusProduct; // To transition from
+	scheduledCustomerProduct?: FullCusProduct; // To delete
+
+	// Source for usage/balance carry-over. Same as currentCustomerProduct for
+	// in-group transitions; falls back to a removed cross-group plan otherwise.
+	carryOverSourceCustomerProduct?: FullCusProduct;
+
+	// Timing
+	planTiming: PlanTiming;
+	endOfCycleMs?: number; // Only needed if planTiming === "end_of_cycle"
+
+	// Checkout
+	checkoutMode: CheckoutMode;
+
+	// User-provided subscription ID for targeting
+	externalId?: string;
+
+	// Custom plan_license definitions resolved at setup from
+	// customize.upsert_licenses; execute inserts them before pools.
+	insertPlanLicenses?: InsertPlanLicenseSpec[];
+}
+
+// export interface AttachBillingContextOverride {
+// 	fullCustomer?: FullCustomer;
+
+// 	stripeBillingContext?: StripeBillingContextOverride;
+
+// 	productContext?: {
+// 		attachProduct: FullProduct;
+// 		customPrices?: Price[];
+// 		customEnts?: Entitlement[];
+// 	};
+
+// 	// transitionContext?: {
+// 	// 	currentCustomerProduct?: FullCusProduct;
+// 	// 	scheduledCustomerProduct?: FullCusProduct;
+// 	// 	planTiming: PlanTiming;
+// 	// };
+
+// 	featureQuantities?: FeatureOptions[];
+// 	transitionConfigs?: TransitionConfig[];
+// 	billingVersion?: BillingVersion;
+// }

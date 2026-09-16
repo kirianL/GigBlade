@@ -1,0 +1,473 @@
+import type {
+	BillingInterval,
+	FrontendProduct,
+	ProductItem,
+	UpdatePlanOp,
+} from "@autumn/shared";
+import { productV2ToBasePrice } from "@autumn/shared";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@autumn/ui";
+import {
+	CurrencyCircleDollarIcon,
+	GitBranchIcon,
+	PlusIcon,
+} from "@phosphor-icons/react";
+import { useState } from "react";
+import { LicenseIcon } from "@/components/v2/icons/LicenseIcon";
+import { RemoveButton } from "@/components/v2/rule-builder/RemoveButton";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useLicenseProductsQuery } from "@/hooks/queries/useLicenseProductsQuery";
+import { useProductsQuery } from "@/hooks/queries/useProductsQuery";
+import {
+	parsePlanKey,
+	planFilterToPlanKeys,
+	planKeysToFilter,
+} from "../filters/filterRowTypes";
+import { DASHED_BUTTON_CLASS } from "../shared/AddButton";
+import {
+	migrationItemToProductItem,
+	productItemToMigrationItem,
+} from "../shared/migrationItemUtils";
+import { PlanVersionPicker } from "../shared/PlanVersionPicker";
+import { ItemSummaryRow } from "./ItemSummaryRow";
+import {
+	MigrationOperationSheet,
+	type OperationSheetMode,
+} from "./MigrationOperationSheet";
+import { RemoveItemRows } from "./RemoveItemRows";
+import { UpsertLicenseRows } from "./UpsertLicenseRows";
+
+function useVersionOptions(planFilter: UpdatePlanOp["plan_filter"]) {
+	const { products } = useProductsQuery({ allVersions: true });
+
+	const targetIds = planIdsFromFilter(planFilter);
+	const idSet = new Set(targetIds);
+
+	const matchingProducts =
+		idSet.size > 0 ? products.filter((p) => idSet.has(p.id)) : [];
+
+	const seen = new Set<number>();
+	return matchingProducts
+		.filter((p) => {
+			if (seen.has(p.version)) return false;
+			seen.add(p.version);
+			return true;
+		})
+		.map((p) => ({
+			value: String(p.version),
+			label: `v${p.version}`,
+		}))
+		.sort((a, b) => Number(a.value) - Number(b.value));
+}
+
+export function UpdatePlanOpForm({
+	value,
+	onChange,
+	onRemove,
+	defaultOpenPicker = false,
+}: {
+	value: UpdatePlanOp;
+	onChange: (value: UpdatePlanOp) => void;
+	onRemove: () => void;
+	defaultOpenPicker?: boolean;
+}) {
+	const versionOptions = useVersionOptions(value.plan_filter);
+	const { features } = useFeaturesQuery();
+	const { licenseProducts } = useLicenseProductsQuery();
+
+	const [sheetOpen, setSheetOpen] = useState(false);
+	const [sheetMode, setSheetMode] = useState<OperationSheetMode>("add-feature");
+	const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+
+	const update = (patch: Partial<UpdatePlanOp>) =>
+		onChange({ ...value, ...patch });
+
+	const selectedPlanKeys = planFilterToPlanKeys(value.plan_filter) ?? [];
+	const selectedPlanIds = planIdsFromFilter(value.plan_filter);
+
+	const customize = value.customize;
+	const addItems = customize?.add_items ?? [];
+	const planVersionActionLabel = getPlanVersionActionLabel(value);
+
+	const customizedLicenseIds = new Set(
+		(customize?.upsert_licenses ?? []).map(
+			(license) => license.license_plan_id,
+		),
+	);
+	const licenseSuggestions = licenseProducts.filter(
+		(license) => !customizedLicenseIds.has(license.id),
+	);
+
+	const openSheet = (mode: OperationSheetMode, itemIndex?: number) => {
+		setSheetMode(mode);
+		setEditingItemIndex(itemIndex ?? null);
+		setSheetOpen(true);
+	};
+
+	const editItem: ProductItem | undefined =
+		editingItemIndex !== null && addItems[editingItemIndex]
+			? migrationItemToProductItem(addItems[editingItemIndex], features)
+			: undefined;
+
+	const initialProduct = buildInitialProduct(value);
+
+	const handleSheetSave = (product: FrontendProduct) => {
+		if (sheetMode === "edit-price") {
+			const basePrice = productV2ToBasePrice({ product });
+			if (basePrice) {
+				const amount =
+					((basePrice as Record<string, unknown>).price as number) ??
+					basePrice.tiers?.[0]?.amount ??
+					0;
+				update({
+					customize: {
+						...customize,
+						price: {
+							amount,
+							interval: (basePrice.interval as BillingInterval) ?? "month",
+						},
+					},
+				});
+			} else if (product.planType === "free") {
+				update({
+					customize: {
+						...customize,
+						price: undefined,
+					},
+				});
+			}
+		} else {
+			const newItems = (product.items ?? [])
+				.filter((pi) => pi.feature_id)
+				.map(productItemToMigrationItem);
+
+			if (newItems.length === 0) return;
+
+			const items = [...addItems];
+			if (editingItemIndex !== null) {
+				items[editingItemIndex] = newItems[0];
+			} else {
+				items.push(...newItems);
+			}
+			update({ customize: { ...customize, add_items: items } });
+		}
+	};
+
+	const handleRemoveItem = (index: number) => {
+		const items = addItems.filter((_, i) => i !== index);
+		update({
+			customize: {
+				...customize,
+				add_items: items.length > 0 ? items : undefined,
+			},
+		});
+	};
+
+	return (
+		<div className="flex flex-col gap-2">
+			<div className="flex items-center justify-between group/row">
+				<div className="flex items-center gap-2">
+					<span className="text-sm font-medium text-foreground">
+						{selectedPlanIds.length > 1 ? "Update Plans" : "Update Plan"}
+					</span>
+					{selectedPlanIds.length > 0 && (
+						<span className="text-xs text-tertiary-foreground">
+							{selectedPlanIds.length}{" "}
+							{selectedPlanIds.length === 1 ? "plan" : "plans"}
+						</span>
+					)}
+				</div>
+				<RemoveButton onClick={onRemove} />
+			</div>
+
+			<div className="flex items-center gap-2 group/row">
+				<PlanVersionPicker
+					values={selectedPlanKeys}
+					onChange={(next) =>
+						update({
+							plan_filter: replacePlanSelection(value.plan_filter, next),
+						})
+					}
+					className="flex-1"
+					defaultOpen={defaultOpenPicker}
+				/>
+			</div>
+
+			{value.version !== undefined && (
+				<div className="flex items-center gap-2 group/row">
+					<span className="text-xs text-subtle w-14 shrink-0 select-none">
+						Version
+					</span>
+					<Select
+						value={String(value.version)}
+						onValueChange={(v) => update({ version: Number(v) })}
+						items={Object.fromEntries(
+							versionOptions.map((o) => [o.value, o.label]),
+						)}
+					>
+						<SelectTrigger className="h-8 rounded-xl flex-1">
+							<GitBranchIcon
+								size={16}
+								weight="duotone"
+								className="text-violet-500 shrink-0"
+							/>
+							<span className="flex-1 text-left text-sm">
+								<SelectValue />
+							</span>
+						</SelectTrigger>
+						<SelectContent>
+							{versionOptions.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<RemoveButton onClick={() => update({ version: undefined })} />
+				</div>
+			)}
+
+			{customize?.price !== undefined && (
+				<div className="flex items-center gap-2 group/row">
+					<span className="text-xs text-subtle w-14 shrink-0 select-none">
+						Price
+					</span>
+					<button
+						type="button"
+						onClick={() => openSheet("edit-price")}
+						className="flex items-center gap-2 h-8 px-3 rounded-xl input-base input-state-open-tiny cursor-pointer flex-1 min-w-0"
+					>
+						<CurrencyCircleDollarIcon
+							size={16}
+							weight="duotone"
+							className="text-yellow-500 shrink-0"
+						/>
+						<span className="text-body">
+							${customize.price?.amount ?? 0} per{" "}
+							{customize.price?.interval ?? "month"}
+						</span>
+					</button>
+					<RemoveButton
+						onClick={() =>
+							update({ customize: { ...customize, price: undefined } })
+						}
+					/>
+				</div>
+			)}
+
+			{addItems.map((item, index) => (
+				<div key={`add-${index}`} className="flex items-center gap-2 group/row">
+					<span className="text-xs text-green-500/60 w-14 shrink-0 select-none">
+						Add
+					</span>
+					<ItemSummaryRow
+						item={item}
+						onClick={() => openSheet("edit-feature", index)}
+					/>
+					<RemoveButton onClick={() => handleRemoveItem(index)} />
+				</div>
+			))}
+
+			{(customize?.upsert_licenses ?? []).map((license, index) => (
+				<UpsertLicenseRows
+					initialProduct={initialProduct}
+					key={`license-${license.license_plan_id}`}
+					license={license}
+					onChange={(updated) => {
+						const licenses = [...(customize?.upsert_licenses ?? [])];
+						licenses[index] = updated;
+						update({ customize: { ...customize, upsert_licenses: licenses } });
+					}}
+					onRemove={() => {
+						const licenses = (customize?.upsert_licenses ?? []).filter(
+							(_, i) => i !== index,
+						);
+						update({
+							customize: {
+								...customize,
+								upsert_licenses: licenses.length > 0 ? licenses : undefined,
+							},
+						});
+					}}
+				/>
+			))}
+
+			{(customize?.remove_items ?? []).map((item, index) => (
+				<RemoveItemRows
+					key={`remove-${index}`}
+					item={item}
+					onChange={(updated) => {
+						const items = [...(customize?.remove_items ?? [])];
+						items[index] = updated;
+						update({ customize: { ...customize, remove_items: items } });
+					}}
+					onRemove={() => {
+						const items = (customize?.remove_items ?? []).filter(
+							(_, i) => i !== index,
+						);
+						update({
+							customize: {
+								...customize,
+								remove_items: items.length > 0 ? items : undefined,
+							},
+						});
+					}}
+				/>
+			))}
+
+			<DropdownMenu>
+				<DropdownMenuTrigger className={DASHED_BUTTON_CLASS}>
+					<PlusIcon size={10} />
+					Add a modification to this plan
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start" className="w-(--anchor-width)">
+					{value.version === undefined && (
+						<DropdownMenuItem
+							closeOnClick
+							onClick={() => update({ version: 1 })}
+						>
+							{planVersionActionLabel}
+						</DropdownMenuItem>
+					)}
+					{(!customize || customize.price === undefined) && (
+						<DropdownMenuItem
+							closeOnClick
+							onClick={() => openSheet("edit-price")}
+						>
+							Base Price
+						</DropdownMenuItem>
+					)}
+					<DropdownMenuItem
+						closeOnClick
+						onClick={() => openSheet("add-feature")}
+					>
+						Add Item
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						closeOnClick
+						onClick={() =>
+							update({
+								customize: {
+									...customize,
+									remove_items: [
+										...(customize?.remove_items ?? []),
+										{} as Record<string, unknown>,
+									],
+								},
+							})
+						}
+					>
+						Remove Item
+					</DropdownMenuItem>
+					{licenseSuggestions.map((license) => (
+						<DropdownMenuItem
+							closeOnClick
+							key={license.id}
+							onClick={() =>
+								update({
+									customize: {
+										...customize,
+										upsert_licenses: [
+											...(customize?.upsert_licenses ?? []),
+											{ license_plan_id: license.id, customize: {} },
+										],
+									},
+								})
+							}
+						>
+							<LicenseIcon size={14} className="shrink-0" />
+							Customize {license.name ?? license.id}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<MigrationOperationSheet
+				open={sheetOpen}
+				onOpenChange={setSheetOpen}
+				mode={sheetMode}
+				initialProduct={initialProduct}
+				editItem={editItem}
+				onSave={handleSheetSave}
+			/>
+		</div>
+	);
+}
+
+export function planIdsFromFilter(
+	filter: UpdatePlanOp["plan_filter"],
+): string[] {
+	const keys = planFilterToPlanKeys(filter);
+	if (keys) return [...new Set(keys.map((key) => parsePlanKey(key).planId))];
+	return extractPlanIds(filter.plan_id);
+}
+
+export function extractPlanIds(
+	planId: UpdatePlanOp["plan_filter"]["plan_id"],
+): string[] {
+	if (!planId) return [];
+	if (typeof planId === "string") return planId ? [planId] : [];
+	if (planId.$in)
+		return planId.$in.filter((v): v is string => typeof v === "string");
+	if (planId.$eq) return typeof planId.$eq === "string" ? [planId.$eq] : [];
+	return [];
+}
+
+function replacePlanSelection(
+	filter: UpdatePlanOp["plan_filter"],
+	keys: string[],
+): UpdatePlanOp["plan_filter"] {
+	const { custom, paid, recurring, price } = filter;
+	return {
+		...planKeysToFilter(keys),
+		...(custom !== undefined ? { custom } : {}),
+		...(paid !== undefined ? { paid } : {}),
+		...(recurring !== undefined ? { recurring } : {}),
+		...(price !== undefined ? { price } : {}),
+	};
+}
+
+export function isSameVersionReset(value: UpdatePlanOp): boolean {
+	const filteredVersion = value.plan_filter.version;
+	const selectedVersion = value.version ?? 1;
+
+	return (
+		typeof filteredVersion === "number" && filteredVersion === selectedVersion
+	);
+}
+
+export function getPlanVersionActionLabel(value: UpdatePlanOp): string {
+	return isSameVersionReset(value)
+		? "Reset to Plan Version"
+		: "Set Plan Version";
+}
+
+function buildInitialProduct(value: UpdatePlanOp): Partial<FrontendProduct> {
+	const items: ProductItem[] = [];
+
+	if (value.customize?.price) {
+		const amount = value.customize.price.amount ?? 0;
+		items.push({
+			price: amount,
+			tiers: [{ to: "inf", amount }],
+			interval: value.customize.price.interval ?? "month",
+			billing_units: 1,
+		} as ProductItem);
+	}
+
+	return {
+		version: value.version ?? 1,
+		planType: value.customize?.price ? "paid" : "free",
+		basePriceType: "recurring",
+		items,
+	};
+}

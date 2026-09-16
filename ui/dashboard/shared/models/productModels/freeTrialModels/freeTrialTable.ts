@@ -1,0 +1,35 @@
+import {
+	boolean,
+	foreignKey,
+	index,
+	numeric,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
+import { products } from "../productTable";
+
+export const freeTrials = pgTable(
+	"free_trials",
+	{
+		id: text().primaryKey().notNull(),
+		created_at: numeric({ mode: "number" }).notNull(),
+		internal_product_id: text("internal_product_id"),
+		duration: text().default("day"),
+		length: numeric({ mode: "number" }),
+		unique_fingerprint: boolean("unique_fingerprint"),
+		is_custom: boolean("is_custom").default(false),
+		card_required: boolean("card_required").default(false),
+		on_end: text("on_end"),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.internal_product_id],
+			foreignColumns: [products.internal_id],
+			name: "free_trials_internal_product_id_fkey",
+		}).onDelete("cascade"),
+		index("idx_free_trials_internal_product_id").on(table.internal_product_id),
+	],
+);
+
+export type DbFreeTrial = typeof freeTrials.$inferSelect;
+export type InsertDbFreeTrial = typeof freeTrials.$inferInsert;

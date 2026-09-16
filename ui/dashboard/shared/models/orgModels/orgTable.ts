@@ -1,0 +1,165 @@
+import type { ProcessorConfigs } from "@models/genModels/processorSchemas.js";
+import type { PendingMigration } from "@models/migrationV2Models/pendingMigrationModel.js";
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	index,
+	jsonb,
+	numeric,
+	pgTable,
+	text,
+	timestamp,
+	unique,
+} from "drizzle-orm/pg-core";
+import type { CustomButton } from "./customButton.js";
+import type { IdempotencyConfig } from "./idempotencyConfig.js";
+import type { OrgConfig } from "./orgConfig.js";
+
+export type SvixConfig = {
+	sandbox_app_id: string;
+	live_app_id: string;
+};
+
+export type StripeConfig = {
+	test_api_key?: string | null;
+	live_api_key?: string | null;
+	test_webhook_secret?: string | null;
+	live_webhook_secret?: string | null;
+	sandbox_success_url?: string;
+	success_url?: string;
+
+	test_connect_webhook_secret?: string | null;
+	live_connect_webhook_secret?: string | null;
+};
+export interface VersionConfig {
+	sandbox?: string;
+	live?: string;
+	// sandbox_webhooks: string;
+	// live_webhooks: string;
+}
+
+export type StripeConnectConfig = {
+	default_account_id?: string;
+	account_id?: string;
+	master_org_id?: string;
+};
+
+export type OrgRedisConfig = {
+	/** AES-256-CBC encrypted full Redis connection string via encryptData() */
+	connectionString: string;
+	/**
+	 * AES-256-CBC encrypted public/reachable-from-outside-the-VPC connection
+	 * string, used off-AWS (local dev, trigger.dev) in place of `connectionString`.
+	 */
+	publicConnectionString?: string;
+	/** Plain domain/host only, used for pool URL-change detection */
+	url: string;
+	/** Percentage of customers routed to the dedicated Redis (0-100) */
+	migrationPercent: number;
+	/** The migrationPercent before the last change, used for staleness detection */
+	previousMigrationPercent: number;
+	/** Epoch ms when migrationPercent was last changed */
+	migrationChangedAt: number;
+};
+
+export const organizations = pgTable(
+	"organizations",
+	{
+		id: text().primaryKey(),
+		slug: text().notNull().unique(),
+
+		// Better Auth
+		name: text("name").notNull(),
+		logo: text("logo"),
+		createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
+		metadata: text("metadata"),
+
+		// Stripe
+		default_currency: text("default_currency").default("usd"),
+
+		stripe_connected: boolean("stripe_connected").default(false),
+		stripe_config: jsonb("stripe_config").$type<StripeConfig>(),
+
+		test_stripe_connect: jsonb("test_stripe_connect")
+			.$type<StripeConnectConfig>()
+			.default({} as StripeConnectConfig),
+
+		live_stripe_connect: jsonb("live_stripe_connect")
+			.$type<StripeConnectConfig>()
+			.default({} as StripeConnectConfig),
+
+		// stripe_connect: jsonb("stripe_connect")
+		// 	.$type<StripeConnectConfig>()
+		// 	.default({} as StripeConnectConfig)
+		// 	.notNull(),
+
+		processor_configs: jsonb("processor_configs").$type<ProcessorConfigs>(),
+
+		test_pkey: text("test_pkey"),
+		live_pkey: text("live_pkey"),
+
+		svix_config: jsonb("svix_config")
+			.$type<SvixConfig>()
+			.default(sql`'{}'::jsonb`),
+
+		created_at: numeric({ mode: "number" }),
+		config: jsonb().default({}).notNull().$type<OrgConfig>(),
+		idempotency_config: jsonb(
+			"idempotency_config",
+		).$type<IdempotencyConfig | null>(),
+		custom_buttons: jsonb("custom_buttons")
+			.default(sql`'[]'::jsonb`)
+			.notNull()
+			.$type<CustomButton[]>(),
+		created_by: text("created_by"),
+		onboarded: boolean("onboarded").default(false),
+		deployed: boolean("deployed").default(false),
+		is_sandbox: boolean("is_sandbox").default(false).notNull(),
+		sandbox_color: text("sandbox_color"),
+		sandbox_icon: text("sandbox_icon"),
+
+		redis_config: jsonb("redis_config").$type<OrgRedisConfig>(),
+	},
+	(table) => [
+		index("idx_organizations_name_trgm")
+			.using("gin", sql`${table.name} gin_trgm_ops`)
+			.where(sql`${table.name} IS NOT NULL`),
+		index("idx_organizations_slug_trgm")
+			.using("gin", sql`${table.slug} gin_trgm_ops`)
+			.where(sql`${table.slug} IS NOT NULL`),
+		index("idx_organizations_created_at_id").on(
+			sql`${table.createdAt} DESC`,
+			sql`${table.id} DESC`,
+		),
+		// Stripe Connect webhooks resolve an org by external account id. Without
+		// these, the three OR'd ->> predicates in OrgService.getByAccountId force a
+		// seq scan; Postgres turns them into a BitmapOr instead. The table is only
+		// ~531 rows but its wide jsonb columns bloat it to ~37MB, so a scan cost
+		// ~20ms per webhook.
+		index("idx_orgs_test_connect_default_account")
+			.on(sql`(${table.test_stripe_connect}->>'default_account_id')`)
+			.concurrently(),
+		index("idx_orgs_test_connect_account")
+			.on(sql`(${table.test_stripe_connect}->>'account_id')`)
+			.concurrently(),
+		index("idx_orgs_live_connect_account")
+			.on(sql`(${table.live_stripe_connect}->>'account_id')`)
+			.concurrently(),
+		unique("organizations_test_pkey_key").on(table.test_pkey),
+		unique("organizations_live_pkey_key").on(table.live_pkey),
+	],
+);
+
+export type Organization = typeof organizations.$inferSelect & {
+	master: Organization | null;
+	pendingMigrations?: PendingMigration[];
+	/** alias_id → live plan id. Empty (or omitted) for orgs with no renames. */
+	planAliases?: Record<string, string>;
+};
+
+// Multi tenancy flow <-> stripe connect...
+// Create org in Autumn, don't need stripe connect key, we create an Autumn connect account for them.
+// Connect own stripe to sandbox / prod
+// 1. OAuth to link their stripe account (?) -> need to use access token though
+// 2. Paste in their secret key
+// 3. Onboard onto Stripe connect (?)

@@ -1,0 +1,143 @@
+// import { CustomerExpand } from "@useautumn/sdk";
+import { z } from "zod/v4";
+import {
+	attachParamsSchema,
+	createReferralCodeParamsSchema,
+	eventsAggregateParamsSchema,
+	eventsListParamsSchema,
+	listPlansParamsSchema,
+	multiAttachParamsSchema,
+	openCustomerPortalParamsSchema,
+	previewAttachParamsSchema,
+	previewMultiAttachParamsSchema,
+	previewUpdateParamsSchema,
+	redeemReferralCodeParamsSchema,
+	setupPaymentParamsSchema,
+	updateSubscriptionParamsSchema,
+} from "../../../generated";
+import type { RouteDefinition, RouteName } from "../types";
+import {
+	backendError,
+	backendSuccess,
+	CUSTOMER_PROTECTED_BODY_FIELDS,
+	sanitizeBody,
+} from "../utils";
+
+const getEntityBodySchema = z.object({
+	entityId: z.string(),
+});
+
+/** Route configurations for autumn-js backend */
+export const routeConfigs: RouteDefinition<RouteName>[] = [
+	{
+		route: "getOrCreateCustomer",
+		sdkMethod: (autumn, args) => autumn.customers.getOrCreate(args),
+		requireCustomer: false, // customHandler handles auth logic for errorOnNotFound
+		bodySchema: z.object({
+			errorOnNotFound: z.boolean().optional().default(true),
+			// expand: z.array(z.enum(CustomerExpand)).optional(),
+			expand: z.array(z.string()).optional(),
+		}),
+		protectedBodyFields: CUSTOMER_PROTECTED_BODY_FIELDS,
+		customHandler: async ({ autumn, identity, body }) => {
+			const sanitizedBody = sanitizeBody(body, CUSTOMER_PROTECTED_BODY_FIELDS);
+
+			// Special case: if no customer and errorOnNotFound is false, return 204
+			if (!identity?.customerId && sanitizedBody.errorOnNotFound === false) {
+				return backendSuccess({ statusCode: 204, body: null });
+			}
+
+			// Otherwise require customerId
+			if (!identity?.customerId) {
+				return backendError({
+					message: "customerId not found",
+					code: "no_customer_id",
+					statusCode: 401,
+				});
+			}
+
+			// Build args and call SDK
+			const existingExpand = Array.isArray(sanitizedBody.expand)
+				? sanitizedBody.expand
+				: [];
+			const args = {
+				customerId: identity.customerId,
+				...identity.customerData,
+				...sanitizedBody,
+				expand: [...existingExpand, "balances.feature"],
+			};
+			return autumn.customers.getOrCreate(args);
+		},
+	},
+	{
+		route: "getEntity",
+		sdkMethod: (autumn, args) => autumn.entities.get(args),
+		bodySchema: getEntityBodySchema,
+	},
+	{
+		route: "attach",
+		sdkMethod: (autumn, args) => autumn.billing.attach(args),
+		bodySchema: attachParamsSchema,
+	},
+	{
+		route: "previewAttach",
+		sdkMethod: (autumn, args) => autumn.billing.previewAttach(args),
+		bodySchema: previewAttachParamsSchema,
+	},
+	{
+		route: "updateSubscription",
+		sdkMethod: (autumn, args) => autumn.billing.update(args),
+		bodySchema: updateSubscriptionParamsSchema,
+	},
+	{
+		route: "previewUpdateSubscription",
+		sdkMethod: (autumn, args) => autumn.billing.previewUpdate(args),
+		bodySchema: previewUpdateParamsSchema,
+	},
+	{
+		route: "openCustomerPortal",
+		sdkMethod: (autumn, args) => autumn.billing.openCustomerPortal(args),
+		bodySchema: openCustomerPortalParamsSchema,
+	},
+	{
+		route: "createReferralCode",
+		sdkMethod: (autumn, args) => autumn.referrals.createCode(args),
+		bodySchema: createReferralCodeParamsSchema,
+	},
+	{
+		route: "redeemReferralCode",
+		sdkMethod: (autumn, args) => autumn.referrals.redeemCode(args),
+		bodySchema: redeemReferralCodeParamsSchema,
+	},
+	{
+		route: "multiAttach",
+		sdkMethod: (autumn, args) => autumn.billing.multiAttach(args),
+		bodySchema: multiAttachParamsSchema,
+	},
+	{
+		route: "previewMultiAttach",
+		sdkMethod: (autumn, args) => autumn.billing.previewMultiAttach(args),
+		bodySchema: previewMultiAttachParamsSchema,
+	},
+	{
+		route: "setupPayment",
+		sdkMethod: (autumn, args) => autumn.billing.setupPayment(args),
+		bodySchema: setupPaymentParamsSchema,
+	},
+	{
+		route: "listPlans",
+		sdkMethod: (autumn, args) => autumn.plans.list(args),
+		requireCustomer: false,
+		bodySchema: listPlansParamsSchema.optional(),
+	},
+	{
+		route: "listEvents",
+		sdkMethod: (autumn, args) => autumn.events.list(args),
+		bodySchema: eventsListParamsSchema.optional(),
+	},
+	{
+		route: "aggregateEvents",
+		sdkMethod: (autumn, args) => autumn.events.aggregate(args),
+		bodySchema: eventsAggregateParamsSchema,
+	},
+];

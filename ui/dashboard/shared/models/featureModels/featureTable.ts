@@ -1,0 +1,63 @@
+import { sql } from "drizzle-orm";
+import {
+	boolean,
+	foreignKey,
+	index,
+	jsonb,
+	numeric,
+	pgTable,
+	text,
+	unique,
+} from "drizzle-orm/pg-core";
+import { collatePgColumn } from "../../db/utils";
+import { organizations } from "../orgModels/orgTable";
+import type {
+	CreditSystemConfig,
+	ModelMarkups,
+} from "./featureConfig/creditConfig";
+import type { MeteredConfig } from "./featureConfig/meteredConfig";
+
+type FeatureDisplay = {
+	singular: string;
+	plural: string;
+};
+
+export type FeatureStripeMeter = {
+	id: string;
+	event_name: string;
+};
+
+export const features = pgTable(
+	"features",
+	{
+		internal_id: text("internal_id").primaryKey().notNull(),
+		org_id: text("org_id").notNull(),
+		created_at: numeric({ mode: "number" }),
+		env: text(),
+
+		id: text().notNull(),
+		name: text(),
+		type: text().notNull(),
+		config: jsonb().$type<MeteredConfig | CreditSystemConfig>(),
+		display: jsonb().default(sql`null`).$type<FeatureDisplay>(),
+		archived: boolean("archived").notNull().default(false),
+		event_names: text("event_names").array().default([]),
+		model_markups: jsonb().$type<ModelMarkups>().default(sql`null`),
+		stripe_meter: jsonb().$type<FeatureStripeMeter>().default(sql`null`),
+		stripe_product_id: text("stripe_product_id"),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.org_id],
+			foreignColumns: [organizations.id],
+			name: "features_org_id_fkey",
+		}).onDelete("cascade"),
+		unique("feature_id_constraint").on(table.org_id, table.id, table.env),
+		index("idx_features_composite").on(table.org_id, table.env).concurrently(),
+	],
+);
+
+collatePgColumn(features.internal_id, "C");
+
+export type DbFeature = typeof features.$inferSelect;
+export type InsertDbFeature = typeof features.$inferInsert;

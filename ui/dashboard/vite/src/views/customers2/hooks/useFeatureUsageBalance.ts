@@ -1,0 +1,117 @@
+import {
+	ACTIVE_STATUSES,
+	cusEntsToAllowance,
+	cusEntsToBalance,
+	cusEntsToGrantedBalance,
+	cusEntsToPrepaidQuantity,
+	cusEntsToUnlimitedUsage,
+	type FullCusEntWithFullCusProduct,
+	type FullCustomer,
+	fullCustomerToCustomerEntitlements,
+	getRolloverFields,
+	nullish,
+	sumValues,
+} from "@autumn/shared";
+
+export interface FeatureUsageBalanceParams {
+	fullCustomer: FullCustomer | null | undefined;
+	featureId: string;
+	entityId?: string | null;
+	customerEntitlements?: FullCusEntWithFullCusProduct[];
+}
+
+export interface FeatureUsageBalanceResult {
+	allowance: number;
+	initialAllowance: number;
+	balance: number;
+	rolloverBalance: number;
+	shouldShowOutOfBalance: boolean;
+	shouldShowUsed: boolean;
+	isUnlimited: boolean;
+	unlimitedUsage: number;
+	usageType: string | undefined;
+	quantity: number;
+	cusEntsCount: number;
+}
+
+/**
+ * Calculates feature usage balance metrics from full customer (includes extra entitlements)
+ */
+export function useFeatureUsageBalance({
+	fullCustomer,
+	featureId,
+	entityId,
+	customerEntitlements,
+}: FeatureUsageBalanceParams): FeatureUsageBalanceResult {
+	const cusEnts = customerEntitlements
+		? customerEntitlements
+		: fullCustomer
+			? fullCustomerToCustomerEntitlements({
+					fullCustomer,
+					featureId,
+					inStatuses: ACTIVE_STATUSES,
+				})
+			: [];
+
+	//without manual update adjustment, no rollovers
+	const initialAllowance = cusEntsToAllowance({
+		cusEnts,
+		entityId: entityId ?? undefined,
+		withRollovers: false,
+	});
+
+	//includes manual update adjustment
+	const allowance = cusEntsToGrantedBalance({
+		cusEnts,
+		entityId: entityId ?? undefined,
+		withRollovers: false,
+	});
+
+	const prepaidAllowance = cusEntsToPrepaidQuantity({
+		cusEnts,
+		sumAcrossEntities: nullish(entityId),
+	});
+
+	const balance = cusEntsToBalance({
+		cusEnts,
+		entityId: entityId ?? undefined,
+		withRollovers: false,
+	});
+
+	const totalAllowance = allowance + prepaidAllowance;
+	const shouldShowOutOfBalance = totalAllowance > 0 || balance >= 0;
+	const shouldShowUsed = balance < 0;
+
+	const rolloverBalance = sumValues(
+		cusEnts.map(
+			(cusEnt) =>
+				getRolloverFields({ cusEnt, entityId: entityId ?? undefined })
+					?.balance ?? 0,
+		),
+	);
+
+	const isUnlimited = cusEnts.some((e) => e.unlimited);
+	const unlimitedUsage = cusEntsToUnlimitedUsage({
+		cusEnts,
+		entityId: entityId ?? undefined,
+	});
+	const usageType = cusEnts[0]?.entitlement?.feature?.config?.usage_type;
+	const quantity = cusEnts.reduce(
+		(sum, e) => sum + (e.customer_product?.quantity ?? 1),
+		0,
+	);
+
+	return {
+		allowance: allowance + prepaidAllowance,
+		initialAllowance: initialAllowance + prepaidAllowance,
+		balance: balance ?? 0,
+		rolloverBalance,
+		shouldShowOutOfBalance,
+		shouldShowUsed,
+		isUnlimited,
+		unlimitedUsage,
+		usageType,
+		quantity,
+		cusEntsCount: cusEnts.length,
+	};
+}

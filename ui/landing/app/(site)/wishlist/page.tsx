@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import WishlistSections from "@/components/wishlist-sections";
 
 export const metadata: Metadata = {
-	title: "Solicitar fecha",
+	title: "Contacto",
 	description:
-		"Dejá tu solicitud de booking en la lista de espera. Un canal formal, sin DMs sueltos.",
+		"El formulario de solicitudes no está abierto. Escribile al DJ por Instagram o mail.",
 	alternates: { canonical: "/wishlist" },
 };
 
@@ -16,7 +16,7 @@ type WishlistPageProps = {
 
 export default function WishlistPage({
 	artistName = "GigBlade",
-	tagline = "Página, dominio y un canal formal para bookings",
+	tagline = "Página y dominio propios, contacto por Instagram o mail",
 	city = "",
 }: Partial<WishlistPageProps> = {}) {
 	return (

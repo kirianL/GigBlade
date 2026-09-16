@@ -1,0 +1,162 @@
+import {
+	Button,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@autumn/ui";
+import { TrashIcon } from "@phosphor-icons/react";
+import { parseAsInteger } from "nuqs";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { getBackendErr } from "@/utils/genUtils";
+import { useCustomerFilters } from "../../hooks/useCustomerFilters";
+
+interface SavedView {
+	id: string;
+	name: string;
+	filters: string; // base64 encoded
+	created_at: string;
+}
+
+export const SavedViews = ({
+	views,
+	mutateViews,
+	setDropdownOpen,
+}: {
+	views: SavedView[];
+	mutateViews: any;
+	setDropdownOpen: (open: boolean) => void;
+}) => {
+	const { setFilters } = useCustomerFilters();
+	const axiosInstance = useAxiosInstance();
+	const [deletingViewId, setDeletingViewId] = useState<string | null>(null);
+
+	const applyView = async (view: SavedView) => {
+		try {
+			// Decode base64 filters
+			const decodedParams = atob(view.filters);
+			const params = new URLSearchParams(decodedParams);
+
+			// Apply all parameters using setFilters (this will reset pagination automatically)
+			const statusParam = params.get("status") || "";
+			const versionParam = params.get("version") || "";
+			const noneParam = params.get("none");
+			const processorParam = params.get("processor") || "";
+			const intervalParam = params.get("interval") || "";
+
+			setFilters({
+				q: params.get("q") || "",
+				status: statusParam ? statusParam.split(",").filter(Boolean) : [],
+				version: versionParam ? versionParam.split(",").filter(Boolean) : [],
+				none: noneParam === "true",
+				processor: processorParam
+					? processorParam.split(",").filter(Boolean)
+					: [],
+				interval: intervalParam ? intervalParam.split(",").filter(Boolean) : [],
+				joinedFrom: parseAsInteger.parseServerSide(
+					params.get("joinedFrom") ?? undefined,
+				),
+				joinedTo: parseAsInteger.parseServerSide(
+					params.get("joinedTo") ?? undefined,
+				),
+			});
+
+			toast.success(`Applied filters from ${view.name} view`);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to apply view");
+		}
+	};
+
+	const deleteView = async (viewId: string, viewName: string) => {
+		setDeletingViewId(viewId);
+		try {
+			await axiosInstance.delete(`/saved_views/${viewId}`);
+			toast.success(`Deleted ${viewName} view`);
+			await mutateViews();
+		} catch (error) {
+			console.error(error);
+			toast.error(getBackendErr(error, "Failed to delete view"));
+		} finally {
+			setDeletingViewId(null);
+		}
+	};
+
+	if (views.length === 0) return null;
+
+	return (
+		<>
+			<DropdownMenuGroup className="p-1">
+				<DropdownMenuLabel className="p-0 pt-1 px-3">
+					<span className="text-tertiary-foreground text-xs">Saved views</span>
+				</DropdownMenuLabel>
+				{views.map((view: SavedView) => (
+					<div
+						key={view.id}
+						className="flex items-center justify-between cursor-pointer px-2 hover:bg-accent rounded-sm min-w-0"
+						onClick={async () => {
+							await applyView(view);
+							setDropdownOpen(false);
+						}}
+					>
+						<DropdownMenuItem
+							key={view.id}
+							className="px-0 hover:bg-transparent min-w-0 flex-1 transition-none"
+						>
+							<span className="truncate">{view.name}</span>
+						</DropdownMenuItem>
+						<Popover>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+									}}
+									className="ml-2 p-1 hover:bg-destructive/10 rounded group"
+								>
+									<TrashIcon
+										size={12}
+										className="text-tertiary-foreground group-hover:text-red-500"
+									/>
+								</button>
+							</PopoverTrigger>
+							<PopoverContent
+								sideOffset={2}
+								align="start"
+								className="border w-64 z-200"
+								onOpenAutoFocus={(e) => e.preventDefault()}
+								onCloseAutoFocus={(e) => e.preventDefault()}
+							>
+								<div className="flex flex-col gap-3 text-sm">
+									<p className="text-tertiary-foreground">
+										Are you sure you want to delete the view "{view.name}"?
+									</p>
+									<div className="flex gap-2">
+										<Button
+											variant="destructive"
+											size="sm"
+											className="flex-1"
+											onClick={async (e) => {
+												e.stopPropagation();
+												await deleteView(view.id, view.name);
+											}}
+											isLoading={deletingViewId === view.id}
+										>
+											Delete
+										</Button>
+									</div>
+								</div>
+							</PopoverContent>
+						</Popover>
+					</div>
+				))}
+			</DropdownMenuGroup>
+			<DropdownMenuSeparator className="m-0" />
+		</>
+	);
+};

@@ -1,0 +1,250 @@
+import { FeatureType, type Reward, RewardType } from "@autumn/shared";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	Sheet,
+	SheetContent,
+	ShortcutButton,
+} from "@autumn/ui";
+import type { AxiosError } from "axios";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+	SheetFooter,
+	SheetHeader,
+} from "@/components/v2/sheets/SharedSheetComponents";
+import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
+import { useRewardsQuery } from "@/hooks/queries/useRewardsQuery";
+import { useRewardStore } from "@/hooks/stores/useRewardStore";
+import { RewardService } from "@/services/products/RewardService";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { getBackendErr } from "@/utils/genUtils";
+import {
+	mapApiToFrontendReward,
+	mapFrontendToApiReward,
+} from "../../utils/rewardMappers";
+import { DiscountRewardConfig } from "./DiscountRewardConfig";
+import { FeatureGrantRewardConfig } from "./FeatureGrantRewardConfig";
+import { FreeProductRewardConfig } from "./FreeProductRewardConfig";
+import { RewardDetails } from "./RewardDetails";
+import { SelectRewardType } from "./SelectRewardType";
+
+interface UpdateRewardSheetProps {
+	open: boolean;
+	setOpen: (open: boolean) => void;
+	selectedReward: Reward | null;
+}
+
+export function UpdateRewardSheet({
+	open,
+	setOpen,
+	selectedReward,
+}: UpdateRewardSheetProps) {
+	const axiosInstance = useAxiosInstance();
+	const { refetch } = useRewardsQuery();
+	const { features } = useFeaturesQuery();
+
+	const [loading, setLoading] = useState(false);
+	const [confirmCouponOpen, setConfirmCouponOpen] = useState(false);
+
+	const reward = useRewardStore((s) => s.reward);
+	const setReward = useRewardStore((s) => s.setReward);
+	const setBaseReward = useRewardStore((s) => s.setBaseReward);
+
+	// Initialize reward store when selectedReward changes
+	useEffect(() => {
+		if (open && selectedReward) {
+			const frontendReward = mapApiToFrontendReward({
+				apiReward: selectedReward,
+				features,
+			});
+
+			setReward(frontendReward);
+			setBaseReward(frontendReward);
+		}
+	}, [open, selectedReward, setReward, setBaseReward]);
+
+	const isFormValid = () => {
+		if (!reward.name || !reward.id) return false;
+		if (!reward.rewardCategory) return false;
+
+		if (reward.rewardCategory === "discount") {
+			if (!reward.discountType) return false;
+			const config = reward.discount_config;
+			if (
+				!config?.apply_to_all &&
+				(!config?.price_ids || config.price_ids.length === 0)
+			) {
+				return false;
+			}
+		}
+
+		if (reward.rewardCategory === "free_product" && !reward.free_product_id) {
+			return false;
+		}
+
+		if (reward.rewardCategory === "feature_grant") {
+			if (reward.featureGrantEntitlements.length === 0) return false;
+			const featureIds = features.map((f) => f.id);
+			if (
+				reward.featureGrantEntitlements.some(
+					(e) => !e.feature_id || !featureIds.includes(e.feature_id),
+				)
+			)
+				return false;
+			if (
+				reward.featureGrantEntitlements.some((e) => {
+					// Boolean features grant on/off access with no allowance
+					const isBoolean =
+						features.find((f) => f.id === e.feature_id)?.type ===
+						FeatureType.Boolean;
+					return !isBoolean && (e.allowance == null || e.allowance < 0);
+				})
+			)
+				return false;
+			if (
+				!reward.promo_codes?.length ||
+				!reward.promo_codes.some((pc) => pc.code)
+			)
+				return false;
+		}
+
+		return true;
+	};
+
+	const performUpdate = async () => {
+		if (!selectedReward) return;
+
+		setLoading(true);
+		try {
+			const apiReward = mapFrontendToApiReward({
+				frontendReward: reward,
+				features,
+			});
+
+			await RewardService.updateReward({
+				axiosInstance,
+				internalId: selectedReward.id,
+				data: apiReward,
+			});
+
+			await refetch();
+			toast.success("Reward updated successfully");
+			setConfirmCouponOpen(false);
+			setOpen(false);
+		} catch (error: unknown) {
+			toast.error(
+				getBackendErr(error as AxiosError, "Failed to update reward"),
+			);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleUpdate = async () => {
+		if (!selectedReward || !isFormValid()) return;
+
+		// Stripe can't update coupons in place, so discount updates delete & recreate.
+		if (reward.rewardCategory === "discount") {
+			setConfirmCouponOpen(true);
+			return;
+		}
+
+		await performUpdate();
+	};
+
+	const handleCancel = () => {
+		setOpen(false);
+	};
+
+	return (
+		<>
+			<Sheet open={open} onOpenChange={setOpen}>
+				<SheetContent className="flex flex-col overflow-hidden">
+					<SheetHeader
+						title="Update Reward"
+						description="Modify your discount or free plan reward"
+					/>
+
+					<div className="flex-1 overflow-y-auto">
+						<RewardDetails reward={reward} setReward={setReward} />
+						<SelectRewardType
+							reward={reward}
+							setReward={setReward}
+							showFreeProduct={selectedReward?.type === RewardType.FreeProduct}
+						/>
+
+						{reward.rewardCategory === "discount" && (
+							<DiscountRewardConfig reward={reward} setReward={setReward} />
+						)}
+
+						{reward.rewardCategory === "free_product" && (
+							<FreeProductRewardConfig reward={reward} setReward={setReward} />
+						)}
+
+						{reward.rewardCategory === "feature_grant" && (
+							<FeatureGrantRewardConfig reward={reward} setReward={setReward} />
+						)}
+					</div>
+
+					<SheetFooter>
+						<ShortcutButton
+							variant="secondary"
+							className="w-full"
+							onClick={handleCancel}
+							singleShortcut="escape"
+						>
+							Cancel
+						</ShortcutButton>
+						<ShortcutButton
+							className="w-full"
+							onClick={handleUpdate}
+							metaShortcut="enter"
+							isLoading={loading}
+							disabled={!isFormValid()}
+						>
+							Update reward
+						</ShortcutButton>
+					</SheetFooter>
+				</SheetContent>
+			</Sheet>
+
+			<Dialog open={confirmCouponOpen} onOpenChange={setConfirmCouponOpen}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>Update coupon?</DialogTitle>
+						<DialogDescription>
+							Stripe doesn't have functionality to update coupons. This will
+							delete it and recreate it. Existing customers that have this
+							coupon will be unaffected.
+						</DialogDescription>
+					</DialogHeader>
+
+					<DialogFooter className="grid grid-cols-2 gap-2">
+						<ShortcutButton
+							variant="secondary"
+							className="w-full"
+							onClick={() => setConfirmCouponOpen(false)}
+							singleShortcut="escape"
+							disabled={loading}
+						>
+							Cancel
+						</ShortcutButton>
+						<ShortcutButton
+							className="w-full"
+							onClick={performUpdate}
+							metaShortcut="enter"
+							isLoading={loading}
+						>
+							Confirm
+						</ShortcutButton>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
+	);
+}

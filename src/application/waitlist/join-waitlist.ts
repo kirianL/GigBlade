@@ -1,8 +1,9 @@
 import type { WaitlistRepository } from "@/application/ports/waitlist-repository";
-import { serviceUnavailable } from "@/domain/errors";
+import { serviceUnavailable, validationError } from "@/domain/errors";
 import {
   isWaitlistDraft,
   normalizeWaitlistDraft,
+  waitlistRequestSchema,
   type WaitlistJoinResult,
 } from "@/domain/waitlist";
 
@@ -10,11 +11,13 @@ export async function joinWaitlist(
   waitlist: WaitlistRepository,
   rawInput: unknown,
 ): Promise<WaitlistJoinResult> {
-  const input =
-    rawInput && typeof rawInput === "object"
-      ? (rawInput as Record<string, unknown>)
-      : {};
-  const draft = normalizeWaitlistDraft(input);
+  const parsed = waitlistRequestSchema.safeParse(
+    rawInput && typeof rawInput === "object" ? rawInput : {},
+  );
+  if (!parsed.success) {
+    throw validationError("La solicitud no es válida");
+  }
+  const draft = normalizeWaitlistDraft(parsed.data);
 
   if (!isWaitlistDraft(draft)) {
     return { alreadyJoined: false };

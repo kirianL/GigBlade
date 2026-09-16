@@ -1,0 +1,16 @@
+import type { AxiosInstance } from "axios";
+
+export class DevService {
+	static async createAPIKey(
+		axiosInstance: AxiosInstance,
+		data: { name: string; scopes?: string[] },
+	) {
+		const { data: resBody } = await axiosInstance.post("/dev/api_key", data);
+		return resBody;
+	}
+
+	static async deleteAPIKey(axiosInstance: AxiosInstance, id: string) {
+		const { data: resBody } = await axiosInstance.delete(`/dev/api_key/${id}`);
+		return resBody;
+	}
+}

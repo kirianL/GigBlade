@@ -1,0 +1,37 @@
+import { CustomLineItemSchema } from "@api/billing/common/customLineItem";
+import { FeatureQuantityParamsV0Schema } from "@api/billing/common/featureQuantity/featureQuantityParamsV0";
+import { TransitionRulesSchema } from "@api/billing/common/transitionRules";
+import { FreeTrialParamsV0Schema } from "@api/common/freeTrial/freeTrialParamsV0";
+import { CustomerBillingControlsParamsSchema } from "@models/cusModels/billingControls/customerBillingControls";
+import { CustomizePlanLicenseSchema } from "@models/licenseModels/licenseModels";
+import { ProductItemSchema } from "@models/productV2Models/productItemModels/productItemModels";
+import { z } from "zod/v4";
+import { CustomerDataSchema } from "../../../common/customerData";
+import { EntityDataSchema } from "../../../common/entityData";
+import { RedirectModeSchema } from "../redirectMode";
+
+export const BillingParamsBaseV0Schema = z.object({
+	customer_id: z.string(),
+	entity_id: z.string().optional(),
+	customer_data: CustomerDataSchema.optional(),
+	entity_data: EntityDataSchema.optional(),
+
+	// Used for both update and attach
+	options: z.array(FeatureQuantityParamsV0Schema).optional(),
+	version: z.number().optional(),
+	free_trial: FreeTrialParamsV0Schema.nullable().optional(),
+	items: z.array(ProductItemSchema).optional(),
+	// Upserts license links for this subscription, keyed by license_plan_id
+	upsert_licenses: z.array(CustomizePlanLicenseSchema).optional(),
+	billing_controls: CustomerBillingControlsParamsSchema.optional(),
+
+	transition_rules: TransitionRulesSchema.optional(),
+	subscription_id: z.string().optional(),
+
+	custom_line_items: z.array(CustomLineItemSchema).optional(),
+
+	// Checkout behavior
+	redirect_mode: RedirectModeSchema.default("if_required"),
+});
+
+export type BillingParamsBaseV0 = z.infer<typeof BillingParamsBaseV0Schema>;

@@ -1,0 +1,67 @@
+import { BillingMethod } from "../../../api/products/components/billingMethod.js";
+import type { PlanItemFilter } from "../../../api/products/items/filter/planItemFilter.js";
+import type { ResetInterval } from "../../../models/productModels/intervals/resetInterval.js";
+import {
+	type ProductItem,
+	UsageModel,
+} from "../../../models/productV2Models/productItemModels/productItemModels.js";
+import { resetIntvToItemIntv } from "./convertProductItem/planItemIntervals.js";
+import {
+	billingToItemInterval,
+	itemToBillingInterval,
+	itemToBillingIntervalCount,
+} from "./itemIntervalUtils.js";
+
+export const itemToBillingMethod = ({
+	item,
+}: {
+	item: ProductItem;
+}): BillingMethod | undefined => {
+	if (item.usage_model === UsageModel.Prepaid) return BillingMethod.Prepaid;
+	if (item.usage_model === UsageModel.PayPerUse)
+		return BillingMethod.UsageBased;
+	return undefined;
+};
+
+export const matchesPlanItemFilter = ({
+	item,
+	filter,
+}: {
+	item: ProductItem;
+	filter: PlanItemFilter;
+}): boolean => {
+	if (filter.feature_id !== undefined && item.feature_id !== filter.feature_id)
+		return false;
+
+	if (filter.billing_method !== undefined) {
+		const itemBillingMethod = itemToBillingMethod({ item });
+		if (itemBillingMethod !== filter.billing_method) return false;
+	}
+
+	if (
+		filter.interval !== undefined &&
+		billingToItemInterval({
+			billingInterval: itemToBillingInterval({ item }),
+		}) !== resetIntvToItemIntv(filter.interval as ResetInterval)
+	)
+		return false;
+
+	if (
+		filter.interval_count !== undefined &&
+		itemToBillingIntervalCount({ item }) !== filter.interval_count
+		// itemToEntIntervalCount({ item }) !== filter.interval_count
+	)
+		return false;
+
+	if (filter.included !== undefined) {
+		const grant =
+			typeof item.included_usage === "number"
+				? item.included_usage
+				: item.included_usage == null
+					? 0
+					: null;
+		if (grant !== filter.included) return false;
+	}
+
+	return true;
+};

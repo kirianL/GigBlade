@@ -1,0 +1,886 @@
+import { AppEnv, type Customer } from "@autumn/shared";
+import {
+	CommandDialog,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandList,
+	Skeleton,
+} from "@autumn/ui";
+import {
+	ArrowsClockwiseIcon,
+	AtIcon,
+	FingerprintIcon,
+	GearIcon,
+	StarIcon,
+} from "@phosphor-icons/react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import {
+	CircleUserRoundIcon,
+	Monitor,
+	Moon,
+	PackageIcon,
+	Sun,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { useTheme } from "@/contexts/ThemeProvider";
+import { useOrg } from "@/hooks/common/useOrg";
+import { useQueryKeyFactory } from "@/hooks/common/useQueryKeyFactory";
+import { useProductsQuery } from "@/hooks/queries/useProductsQuery";
+import { useCommandBarStore } from "@/hooks/stores/useCommandBarStore";
+import { useImpersonationFavouritesStore } from "@/hooks/stores/useImpersonationFavouritesStore";
+import { useListOrganizations } from "@/lib/auth-client";
+import { useAxiosInstance } from "@/services/useAxiosInstance";
+import { useEnv } from "@/utils/envUtils";
+import { navigateTo } from "@/utils/genUtils";
+import { impersonateUser } from "@/views/admin/adminUtils";
+import { useAdmin } from "@/views/admin/hooks/useAdmin";
+import { CommandRow } from "@/views/command-bar/command-row";
+import { calculateRelevanceScore } from "@/views/command-bar/commandUtils";
+import { useCommandBarHotkeys } from "@/views/command-bar/useCommandBarHotkeys";
+import { useOrgSwitch } from "@/views/main-sidebar/components/OrgDropdown";
+import { useEnvChange } from "@/views/main-sidebar/EnvDropdown";
+
+type User = {
+	id: string;
+	name: string;
+	email: string;
+	createdAt: string;
+	lastSignedIn: string;
+	role?: string | null;
+};
+
+type Org = {
+	id: string;
+	name: string;
+	slug: string;
+	createdAt: string;
+	users: User[];
+};
+
+const CommandBar = () => {
+	const open = useCommandBarStore((state) => state.open);
+	const setOpen = useCommandBarStore((state) => state.setOpen);
+	const [search, setSearch] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
+	const [currentPage, setCurrentPage] = useState<
+		"main" | "impersonate" | "orgs"
+	>("main");
+	const [favouritesPage, setFavouritesPage] = useState(0);
+
+	// Favourites store
+	const favourites = useImpersonationFavouritesStore((s) => s.favourites);
+	const addOrg = useImpersonationFavouritesStore((s) => s.addOrg);
+	const removeOrg = useImpersonationFavouritesStore((s) => s.removeOrg);
+	const addUser = useImpersonationFavouritesStore((s) => s.addUser);
+	const removeUser = useImpersonationFavouritesStore((s) => s.removeUser);
+	const isOrgFav = useImpersonationFavouritesStore((s) => s.isOrgFav);
+	const isUserFav = useImpersonationFavouritesStore((s) => s.isUserFav);
+
+	// Refs to persist content during close animation
+	const closeTimeoutRef = useRef<NodeJS.Timeout>();
+	const lastRenderedContentRef = useRef<React.ReactNode>(null);
+	const isTransitioningRef = useRef(false);
+
+	const navigate = useNavigate();
+	const env = useEnv();
+	const handleEnvChange = useEnvChange();
+	const switchOrg = useOrgSwitch();
+	const buildKey = useQueryKeyFactory();
+	const { data: orgs, isPending: isLoadingOrgs } = useListOrganizations();
+	const axiosInstance = useAxiosInstance();
+	const { isAdmin, isCurrentlyImpersonating } = useAdmin();
+	const { org } = useOrg();
+	const { theme, setTheme } = useTheme();
+
+	const cycleTheme = useCallback(() => {
+		const themeOrder = ["light", "dark", "system"] as const;
+		const currentIndex = themeOrder.indexOf(theme);
+		const nextIndex = (currentIndex + 1) % themeOrder.length;
+		setTheme(themeOrder[nextIndex]);
+	}, [theme, setTheme]);
+
+	const getThemeIcon = () => {
+		if (theme === "light") return <Sun />;
+		if (theme === "dark") return <Moon />;
+		return <Monitor />;
+	};
+
+	const getThemeLabel = () => {
+		if (theme === "light") return "Light";
+		if (theme === "dark") return "Dark";
+		return "System";
+	};
+
+	// Improved close dialog function with proper timing
+	const closeDialog = useCallback(() => {
+		// Mark that we're transitioning to prevent state updates during close
+		isTransitioningRef.current = true;
+
+		// Close the dialog immediately
+		setOpen(false);
+
+		// Clear any existing timeout
+		if (closeTimeoutRef.current) {
+			clearTimeout(closeTimeoutRef.current);
+		}
+
+		// Delay state reset to after dialog animation completes (300ms typical for dialog animations)
+		closeTimeoutRef.current = setTimeout(() => {
+			setSearch("");
+			setDebouncedSearch("");
+			setCurrentPage("main");
+			isTransitioningRef.current = false;
+			lastRenderedContentRef.current = null;
+		}, 300);
+	}, [
+		// Close the dialog immediately
+		setOpen,
+	]);
+
+	// Helper to switch pages without causing flash
+	const switchToPage = useCallback((page: "main" | "impersonate" | "orgs") => {
+		if (!isTransitioningRef.current) {
+			// Batch state updates to prevent multiple re-renders
+			setCurrentPage(page);
+			setSearch("");
+			setDebouncedSearch("");
+		}
+	}, []);
+
+	const { products, isLoading: productsLoading } = useProductsQuery();
+
+	// Debounce search for backend query
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearch(search);
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [search]);
+
+	// Search customers from backend with debounced search term
+	const { data: searchedCustomersData, isLoading: searchCustomersLoading } =
+		useQuery<{
+			customers: Customer[];
+		}>({
+			queryKey: buildKey(["command-palette-customers-search", debouncedSearch]),
+			queryFn: async () => {
+				// Always use the search term in the backend query
+				const { data } = await axiosInstance.post(`/customers/all/search`, {
+					search: debouncedSearch,
+					filters: {},
+					cursor: "",
+					limit: 50,
+				});
+				return { customers: data.customers };
+			},
+			enabled: open && debouncedSearch.length > 0 && currentPage === "main",
+		});
+
+	// Search orgs and users for impersonation (concurrent requests)
+	const impersonateEnabled =
+		open &&
+		debouncedSearch.length > 0 &&
+		currentPage === "impersonate" &&
+		isAdmin;
+
+	const [orgsQuery, usersQuery] = useQueries({
+		queries: [
+			{
+				queryKey: buildKey(["command-palette-orgs-search", debouncedSearch]),
+				queryFn: async () => {
+					const params = new URLSearchParams();
+					if (debouncedSearch) params.append("search", debouncedSearch);
+					const { data } = await axiosInstance.get<{ rows: Org[] }>(
+						`/admin/orgs?${params.toString()}`,
+					);
+					return data;
+				},
+				enabled: impersonateEnabled,
+			},
+			{
+				queryKey: buildKey(["command-palette-users-search", debouncedSearch]),
+				queryFn: async () => {
+					const params = new URLSearchParams();
+					if (debouncedSearch) params.append("search", debouncedSearch);
+					const { data } = await axiosInstance.get<{ rows: User[] }>(
+						`/admin/users?${params.toString()}`,
+					);
+					return data;
+				},
+				enabled: impersonateEnabled,
+			},
+		],
+	});
+
+	const searchedOrgsData = orgsQuery.data;
+	const searchOrgsLoading = orgsQuery.isLoading;
+	const searchedUsersData = usersQuery.data;
+	const searchUsersLoading = usersQuery.isLoading;
+
+	const rawUsers = searchedUsersData?.rows || [];
+	const rawOrgs = searchedOrgsData?.rows || [];
+
+	const FAVOURITES_PAGE_SIZE = 10;
+	const totalFavouritesPages = Math.max(
+		1,
+		Math.ceil(favourites.length / FAVOURITES_PAGE_SIZE),
+	);
+	const paginatedFavourites = favourites.slice(
+		favouritesPage * FAVOURITES_PAGE_SIZE,
+		(favouritesPage + 1) * FAVOURITES_PAGE_SIZE,
+	);
+
+	// Reset favourites page when search becomes non-empty or page changes away
+	useEffect(() => {
+		if (search !== "" || currentPage !== "impersonate") {
+			setFavouritesPage(0);
+		}
+	}, [search, currentPage]);
+
+	// Initialize hotkeys (only active when command bar is open)
+	useCommandBarHotkeys({
+		isOpen: open,
+		closeDialog,
+		cycleTheme,
+		switchToOrgsPage: () => switchToPage("orgs"),
+		switchToImpersonatePage: () => switchToPage("impersonate"),
+	});
+
+	useHotkeys("meta+k", () => {
+		setOpen(true);
+	});
+
+	useHotkeys(
+		"escape",
+		(e) => {
+			if (currentPage === "impersonate" || currentPage === "orgs") {
+				e.preventDefault(); // Prevent default ESC behavior (closing dialog)
+				switchToPage("main");
+			}
+		},
+		{ enableOnFormTags: true },
+	);
+
+	useHotkeys(
+		"ctrl+f",
+		(e) => {
+			e.preventDefault();
+			const selected = document.querySelector(
+				'[cmdk-item][data-selected="true"]',
+			) as HTMLElement | null;
+			const value = selected?.getAttribute("data-value");
+			if (!value) return;
+			// value format is "org:<org_id>" or "user:<user_id>"
+			const [kind, id] = value.split(":");
+			if (!id) return;
+			if (kind === "org") {
+				if (isOrgFav(id)) {
+					removeOrg(id);
+					return;
+				}
+				const orgFromSearch = rawOrgs.find((o) => o.id === id);
+				if (!orgFromSearch) return;
+				const firstNonAdminUser = orgFromSearch.users?.find(
+					(u) => u.role !== "admin",
+				);
+				if (!firstNonAdminUser) return;
+				addOrg({
+					kind: "org",
+					org_id: id,
+					org_slug: orgFromSearch.slug,
+					org_name: orgFromSearch.name,
+					impersonation_user_id: firstNonAdminUser.id,
+				});
+			} else if (kind === "user") {
+				if (isUserFav(id)) {
+					removeUser(id);
+					return;
+				}
+				const userFromSearch = rawUsers.find((u) => u.id === id);
+				if (!userFromSearch) return;
+				addUser({
+					kind: "user",
+					user_id: id,
+					user_email: userFromSearch.email,
+					user_name: userFromSearch.name,
+				});
+			}
+		},
+		{
+			enabled: open && currentPage === "impersonate",
+			enableOnFormTags: true,
+			preventDefault: true,
+		},
+	);
+
+	// ←/→ pagination is wired via CommandInput.onKeyDown (below) so that the
+	// browser's default caret-move on the focused input is suppressed BEFORE
+	// it fires. useHotkeys can't reliably win that race when the input is focused.
+	const handleInputKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLInputElement>) => {
+			const paginatable =
+				open &&
+				currentPage === "impersonate" &&
+				search === "" &&
+				favourites.length > FAVOURITES_PAGE_SIZE;
+			if (!paginatable) return;
+			if (e.key === "ArrowLeft") {
+				e.preventDefault();
+				setFavouritesPage((p) => Math.max(0, p - 1));
+			} else if (e.key === "ArrowRight") {
+				e.preventDefault();
+				setFavouritesPage((p) => Math.min(totalFavouritesPages - 1, p + 1));
+			}
+		},
+		[open, currentPage, search, favourites.length, totalFavouritesPages],
+	);
+
+	// Clean up timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current);
+			}
+		};
+	}, []);
+
+	// Only reset states when dialog opens (not when it closes)
+	useEffect(() => {
+		if (open) {
+			// Reset transitioning state when opening
+			isTransitioningRef.current = false;
+			lastRenderedContentRef.current = null;
+		}
+	}, [open]);
+
+	const showResults = search.length > 0;
+	const rawCustomers = searchedCustomersData?.customers || [];
+
+	// Combine and sort all results by relevance
+	const sortedResults = useMemo(() => {
+		if (!search) return [];
+
+		if (currentPage === "main") {
+			const customerResults = rawCustomers.map((customer) => {
+				const nameScore = calculateRelevanceScore(search, customer.name || "");
+				const emailScore = calculateRelevanceScore(
+					search,
+					customer.email || "",
+				);
+				const idScore = calculateRelevanceScore(search, customer.id || "");
+				const internalIdScore = calculateRelevanceScore(
+					search,
+					customer.internal_id || "",
+				);
+				const score = Math.min(nameScore, emailScore, idScore, internalIdScore);
+				return { type: "customer" as const, data: customer, score };
+			});
+
+			const lowerSearch = search.toLowerCase();
+			const productResults = products
+				.filter((product) => {
+					const name = product.name?.toLowerCase() || "";
+					const id = product.id?.toLowerCase() || "";
+					return name.includes(lowerSearch) || id.includes(lowerSearch);
+				})
+				.map((product) => {
+					const nameScore = calculateRelevanceScore(search, product.name || "");
+					const idScore = calculateRelevanceScore(search, product.id || "");
+					const score = Math.min(nameScore, idScore);
+					return { type: "product" as const, data: product, score };
+				});
+
+			// Combine and sort all results together
+			return [...customerResults, ...productResults]
+				.sort((a, b) => a.score - b.score)
+				.slice(0, 15);
+		}
+
+		if (currentPage === "impersonate") {
+			const userResults = rawUsers.map((user) => {
+				const nameScore = calculateRelevanceScore(search, user.name || "");
+				const emailScore = calculateRelevanceScore(search, user.email || "");
+				const idScore = calculateRelevanceScore(search, user.id || "");
+				const score = Math.min(nameScore, emailScore, idScore);
+				return { type: "user" as const, data: user, score };
+			});
+
+			const orgResults = rawOrgs.map((org) => {
+				const nameScore = calculateRelevanceScore(search, org.name || "");
+				const slugScore = calculateRelevanceScore(search, org.slug || "");
+				const idScore = calculateRelevanceScore(search, org.id || "");
+				const score = Math.min(nameScore, slugScore, idScore);
+				return { type: "org" as const, data: org, score };
+			});
+			return [...orgResults, ...userResults]
+				.sort((a, b) => a.score - b.score)
+				.slice(0, 15);
+		}
+
+		return [];
+	}, [rawCustomers, products, rawUsers, rawOrgs, search, currentPage]);
+
+	// Show loading if:
+	// 1. Products are loading, OR
+	// 2. User is typing and we're waiting for debounce, OR
+	// 3. Query is actively loading
+	const isWaitingForDebounce = search !== debouncedSearch;
+	const isLoading =
+		currentPage === "main"
+			? productsLoading || searchCustomersLoading || isWaitingForDebounce
+			: searchUsersLoading || searchOrgsLoading || isWaitingForDebounce;
+
+	const navigationItems = [
+		{
+			title: "Go to Plans",
+			icon: <PackageIcon />,
+			shortcutKey: "1",
+			onSelect: () => {
+				navigateTo("/products", navigate, env);
+				closeDialog();
+			},
+		},
+		{
+			title: "Go to Features",
+			icon: <GearIcon className="scale-[110%]" />,
+			shortcutKey: "2",
+			onSelect: () => {
+				navigateTo("/products?tab=features", navigate, env);
+				closeDialog();
+			},
+		},
+		{
+			title: "Go to Customers",
+			icon: <CircleUserRoundIcon />,
+			shortcutKey: "3",
+			onSelect: () => {
+				navigateTo("/customers", navigate, env);
+				closeDialog();
+			},
+		},
+		...(org?.deployed
+			? [
+					{
+						title: `Go to ${env === AppEnv.Sandbox ? "Production" : "Sandbox"}`,
+						icon: <ArrowsClockwiseIcon />,
+						shortcutKey: "4",
+						onSelect: () => {
+							handleEnvChange(
+								env === AppEnv.Sandbox ? AppEnv.Live : AppEnv.Sandbox,
+								true,
+							);
+							closeDialog();
+						},
+					},
+				]
+			: []),
+		{
+			title: `Theme: ${getThemeLabel()}`,
+			icon: getThemeIcon(),
+			shortcutKey: "5",
+			onSelect: () => {
+				cycleTheme();
+			},
+		},
+		...(!isLoadingOrgs && orgs && orgs.length > 1
+			? [
+					{
+						title: "Switch Organization",
+						icon: <AtIcon className="scale-[105%]" />,
+						shortcutKey: "6",
+						onSelect: () => switchToPage("orgs"),
+					},
+				]
+			: []),
+		...(isAdmin
+			? [
+					{
+						title: "Impersonate",
+						icon: <FingerprintIcon />,
+						shortcutKey: "7",
+						onSelect: () => switchToPage("impersonate"),
+					},
+				]
+			: []),
+	];
+
+	const filteredNavigationItems = showResults
+		? navigationItems.filter((item) =>
+				item.title.toLowerCase().includes(search.toLowerCase()),
+			)
+		: navigationItems;
+
+	const renderMainPage = () => (
+		<>
+			{filteredNavigationItems.length > 0 && (
+				<CommandGroup className="p-1.5">
+					{filteredNavigationItems.map((item) => (
+						<CommandRow
+							key={item.title}
+							icon={item.icon}
+							title={item.title}
+							shortcutKey={item.shortcutKey}
+							onSelect={item.onSelect}
+						/>
+					))}
+				</CommandGroup>
+			)}
+
+			{showResults && (
+				<>
+					{sortedResults.length > 0 && (
+						<CommandGroup heading="Results" className="p-1.5">
+							{sortedResults.map((result) => {
+								if (result.type === "customer") {
+									const customer = result.data;
+									const displayName =
+										customer.name ||
+										customer.email ||
+										customer.id ||
+										customer.internal_id;
+									const subtext =
+										customer.email && customer.name
+											? customer.email
+											: undefined;
+
+									return (
+										<CommandRow
+											key={`customer-${customer.internal_id}`}
+											icon={<CircleUserRoundIcon />}
+											title={displayName}
+											subtext={subtext}
+											onSelect={() => {
+												navigateTo(
+													`/customers/${customer.internal_id}`,
+													navigate,
+													env,
+												);
+												closeDialog();
+											}}
+										/>
+									);
+								}
+
+								const product = result.data;
+								const productTitle = `${product.name}${product.is_add_on ? " (Add-on)" : ""}`;
+
+								return (
+									<CommandRow
+										key={`product-${product.id}`}
+										icon={<PackageIcon />}
+										title={productTitle}
+										onSelect={() => {
+											navigateTo(`/products/${product.id}`, navigate, env);
+											closeDialog();
+										}}
+									/>
+								);
+							})}
+						</CommandGroup>
+					)}
+
+					{isLoading && sortedResults.length === 0 && (
+						<div className="py-2 px-4">
+							{[...Array(2)].map((_, i) => (
+								<div key={i} className="flex items-center gap-3 py-2">
+									<div className="shrink-0">
+										<Skeleton className="h-5 w-5 rounded-full" />
+									</div>
+									<div className="flex flex-col gap-1 w-full">
+										<Skeleton className="h-4 w-3/5" />
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+
+					{!isLoading && sortedResults.length === 0 && (
+						<CommandEmpty>No results found.</CommandEmpty>
+					)}
+				</>
+			)}
+		</>
+	);
+
+	const renderImpersonatePage = () => {
+		// Favourites view: search is empty and we have favourites
+		if (search === "" && favourites.length >= 1) {
+			const heading =
+				favourites.length > FAVOURITES_PAGE_SIZE
+					? `Favourites · Page ${favouritesPage + 1} of ${totalFavouritesPages}`
+					: "Favourites";
+			return (
+				<CommandGroup heading={heading} className="p-1.5">
+					{paginatedFavourites.map((fav) => {
+						if (fav.kind === "org") {
+							return (
+								<CommandRow
+									key={`fav-org-${fav.org_id}`}
+									value={`org:${fav.org_id}`}
+									icon={<StarIcon weight="fill" className="text-yellow-500" />}
+									title={fav.org_name}
+									subtext={fav.org_slug}
+									onSelect={async () => {
+										try {
+											closeDialog();
+											await impersonateUser({
+												userId: fav.impersonation_user_id,
+												organizationId: fav.org_id,
+												isCurrentlyImpersonating,
+											});
+										} catch (error) {
+											// Never delete the favourite here: impersonateUser
+											// reports a genuinely stale target by returning, so
+											// anything thrown is transient (a network blip, or a
+											// request aborted by its own page reload).
+											console.error("Failed to impersonate user:", error);
+											toast.error("Failed to impersonate — please try again");
+										}
+									}}
+								/>
+							);
+						}
+						return (
+							<CommandRow
+								key={`fav-user-${fav.user_id}`}
+								value={`user:${fav.user_id}`}
+								icon={<StarIcon weight="fill" className="text-yellow-500" />}
+								title={fav.user_name || fav.user_email}
+								subtext={fav.user_name ? fav.user_email : undefined}
+								onSelect={async () => {
+									try {
+										closeDialog();
+										await impersonateUser({
+											userId: fav.user_id,
+											isCurrentlyImpersonating,
+										});
+									} catch (error) {
+										console.error("Failed to impersonate user:", error);
+									}
+								}}
+							/>
+						);
+					})}
+				</CommandGroup>
+			);
+		}
+
+		const userResults = sortedResults.filter((r) => r.type === "user");
+		const orgResults = sortedResults.filter((r) => r.type === "org");
+
+		// Wait for orgs to load before showing anything so first org gets auto-selected
+		const waitingForOrgs = showResults && searchOrgsLoading;
+
+		return (
+			<>
+				{showResults && !waitingForOrgs && (
+					<>
+						{orgResults.length > 0 && (
+							<CommandGroup heading="Organizations" className="p-1.5">
+								{orgResults.map((result) => {
+									const org = result.data as Org;
+									const firstNonAdminUser = org.users?.find(
+										(user) => user.role !== "admin",
+									);
+									if (!firstNonAdminUser) return null;
+
+									return (
+										<CommandRow
+											key={`org-${org.id}`}
+											value={`org:${org.id}`}
+											icon={
+												isOrgFav(org.id) ? (
+													<StarIcon weight="fill" className="text-yellow-500" />
+												) : (
+													<AtIcon />
+												)
+											}
+											title={org.name}
+											subtext={org.slug}
+											onSelect={async () => {
+												try {
+													await impersonateUser({
+														userId: firstNonAdminUser.id,
+														organizationId: org.id,
+														isCurrentlyImpersonating,
+													});
+													closeDialog();
+												} catch (error) {
+													console.error("Failed to impersonate user:", error);
+												}
+											}}
+										/>
+									);
+								})}
+							</CommandGroup>
+						)}
+
+						{userResults.length > 0 && (
+							<CommandGroup heading="Users" className="p-1.5">
+								{userResults.map((result) => {
+									const user = result.data as User;
+									const displayName = user.name || user.email || user.id;
+									const subtext =
+										user.email && user.name ? user.email : undefined;
+
+									return (
+										<CommandRow
+											key={`user-${user.id}`}
+											value={`user:${user.id}`}
+											icon={
+												isUserFav(user.id) ? (
+													<StarIcon weight="fill" className="text-yellow-500" />
+												) : (
+													<CircleUserRoundIcon />
+												)
+											}
+											title={displayName}
+											subtext={subtext}
+											onSelect={async () => {
+												try {
+													closeDialog();
+													await impersonateUser({
+														userId: user.id,
+														isCurrentlyImpersonating,
+													});
+												} catch (error) {
+													console.error("Failed to impersonate user:", error);
+												}
+											}}
+										/>
+									);
+								})}
+							</CommandGroup>
+						)}
+
+						{isLoading && sortedResults.length === 0 && (
+							<div className="py-2 px-4">
+								{[...Array(2)].map((_, i) => (
+									<div key={i} className="flex items-center gap-3 py-2">
+										<div className="shrink-0">
+											<Skeleton className="h-5 w-5 rounded-full" />
+										</div>
+										<div className="flex flex-col gap-1 w-full">
+											<Skeleton className="h-4 w-3/5" />
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+
+						{!isLoading && sortedResults.length === 0 && (
+							<CommandEmpty>No users or organizations found.</CommandEmpty>
+						)}
+					</>
+				)}
+			</>
+		);
+	};
+
+	const renderOrgsPage = () => {
+		return (
+			<>
+				{orgs && orgs.length > 0 && (
+					<CommandGroup className="p-1.5">
+						{orgs
+							.filter((org) => {
+								if (!search) return true;
+								const lowerSearch = search.toLowerCase();
+								return (
+									org.name?.toLowerCase().includes(lowerSearch) ||
+									org.slug?.toLowerCase().includes(lowerSearch)
+								);
+							})
+							.map((org) => (
+								<CommandRow
+									key={`org-${org.id}`}
+									icon={<AtIcon />}
+									title={org.name}
+									subtext={org.slug}
+									onSelect={() => {
+										switchOrg({ orgId: org.id });
+									}}
+								/>
+							))}
+					</CommandGroup>
+				)}
+
+				{(!orgs || orgs.length === 0) && !isLoadingOrgs && (
+					<CommandEmpty>No organizations found.</CommandEmpty>
+				)}
+
+				{isLoadingOrgs && (
+					<div className="py-2 px-4">
+						{[...Array(2)].map((_, i) => (
+							<div key={i} className="flex items-center gap-3 py-2">
+								<div className="shrink-0">
+									<Skeleton className="h-5 w-5 rounded-full" />
+								</div>
+								<div className="flex flex-col gap-1 w-full">
+									<Skeleton className="h-4 w-3/5" />
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</>
+		);
+	};
+
+	// Memoize the current content to prevent flashes during re-renders
+	// Using a simpler approach to avoid complex dependency issues
+	const currentContent =
+		currentPage === "main"
+			? renderMainPage()
+			: currentPage === "impersonate"
+				? renderImpersonatePage()
+				: renderOrgsPage();
+
+	// Store the last rendered content when we have valid content
+	useEffect(() => {
+		if (currentContent && !isTransitioningRef.current) {
+			lastRenderedContentRef.current = currentContent;
+		}
+	}, [currentContent]);
+
+	// Handle dialog open/close with our improved logic
+	const handleOpenChange = useCallback(
+		(newOpen: boolean) => {
+			if (!newOpen) {
+				closeDialog();
+			} else {
+				setOpen(true);
+			}
+		},
+		[closeDialog, setOpen],
+	);
+
+	return (
+		<CommandDialog open={open} onOpenChange={handleOpenChange}>
+			<CommandInput
+				placeholder={
+					currentPage === "main"
+						? "Search customers and plans..."
+						: currentPage === "impersonate"
+							? "Search users and organizations to impersonate..."
+							: "Search organizations..."
+				}
+				value={search}
+				onValueChange={setSearch}
+				onKeyDown={handleInputKeyDown}
+			/>
+			<CommandList>
+				{/* Use last rendered content during transition to prevent flash */}
+				{isTransitioningRef.current && lastRenderedContentRef.current
+					? lastRenderedContentRef.current
+					: currentContent}
+			</CommandList>
+		</CommandDialog>
+	);
+};
+
+export default CommandBar;

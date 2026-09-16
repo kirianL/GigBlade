@@ -1,0 +1,573 @@
+/** biome-ignore-all lint/suspicious/noDoubleEquals: need to compare null / undefined for different fields */
+
+import { FeatureUsageType } from "../../../models/featureModels/featureEnums.js";
+import type { Feature } from "../../../models/featureModels/featureModels.js";
+import type { UsageTier } from "../../../models/productModels/priceModels/priceConfig/usagePriceConfig.js";
+import type { FeatureItem } from "../../../models/productV2Models/productItemModels/featureItem.js";
+import type { FeaturePriceItem } from "../../../models/productV2Models/productItemModels/featurePriceItem.js";
+import type { PriceItem } from "../../../models/productV2Models/productItemModels/priceItem.js";
+import {
+	AllocatedBillingBehavior,
+	OnDecrease,
+	OnIncrease,
+} from "../../../models/productV2Models/productItemModels/productItemEnums.js";
+import type {
+	ProductItem,
+	ProductItemConfig,
+	RolloverConfig,
+} from "../../../models/productV2Models/productItemModels/productItemModels.js";
+import { intervalsSame } from "../../intervalUtils/priceIntervalUtils.js";
+import { entIntervalsSame } from "../../intervalUtils.js";
+import { featureOverridesAreSame } from "../../productUtils/entUtils/compareEnt/entsAreSame.js";
+import { notNullish } from "../../utils.js";
+import { itemToFeature } from "../productItemUtils/convertItemUtils.js";
+import {
+	isFeatureItem,
+	isFeaturePriceItem,
+	isPriceItem,
+} from "../productItemUtils/getItemType.js";
+import {
+	itemToBillingInterval,
+	itemToBillingIntervalCount,
+	itemToEntInterval,
+	itemToEntIntervalCount,
+} from "../productItemUtils/itemIntervalUtils.js";
+
+export const findSimilarItem = ({
+	item,
+	items,
+}: {
+	item: ProductItem;
+	items: ProductItem[];
+}) => {
+	if (isFeatureItem(item)) {
+		return items.find(
+			(i) =>
+				isFeatureItem(i) &&
+				i.feature_id === item.feature_id &&
+				i.entity_feature_id == item.entity_feature_id &&
+				entIntervalsSame({
+					intervalA: {
+						interval: itemToEntInterval({ item: i }),
+						intervalCount: itemToEntIntervalCount({ item: i }),
+					},
+					intervalB: {
+						interval: itemToEntInterval({ item }),
+						intervalCount: itemToEntIntervalCount({ item }),
+					},
+				}),
+		);
+	}
+
+	if (isFeaturePriceItem(item)) {
+		return items.find(
+			(i) =>
+				isFeaturePriceItem(i) &&
+				i.feature_id === item.feature_id &&
+				i.entity_feature_id == item.entity_feature_id &&
+				intervalsSame({
+					intervalA: {
+						interval: itemToBillingInterval({ item: i }),
+						intervalCount: itemToBillingIntervalCount({ item: i }),
+					},
+					intervalB: {
+						interval: itemToBillingInterval({ item }),
+						intervalCount: itemToBillingIntervalCount({ item }),
+					},
+				}) &&
+				item.usage_model == i.usage_model,
+		);
+	}
+
+	// 2. If price item
+	if (isPriceItem(item)) {
+		return items.find((i) => {
+			return (
+				isPriceItem(i) &&
+				i.price == item.price &&
+				itemToBillingInterval({ item: i }) == itemToBillingInterval({ item }) &&
+				itemToBillingIntervalCount({ item: i }) ==
+					itemToBillingIntervalCount({ item })
+			);
+		});
+	}
+
+	return null;
+};
+
+type CurrencyEntryLike = {
+	currency: string;
+	amount?: number | null;
+	flat_amount?: number | null;
+};
+
+type TierLike = {
+	to: number | "inf";
+	amount: number;
+	flat_amount?: number | null;
+	additional_currencies?: CurrencyEntryLike[] | null;
+};
+
+const additionalCurrenciesAreSame = (
+	entries1: CurrencyEntryLike[] | null | undefined,
+	entries2: CurrencyEntryLike[] | null | undefined,
+) => {
+	const list1 = entries1 ?? [];
+	const list2 = entries2 ?? [];
+	if (list1.length !== list2.length) {
+		return false;
+	}
+
+	const byCurrency = (a: CurrencyEntryLike, b: CurrencyEntryLike) =>
+		a.currency.localeCompare(b.currency);
+	const sorted1 = [...list1].sort(byCurrency);
+	const sorted2 = [...list2].sort(byCurrency);
+
+	return sorted1.every(
+		(entry, index) =>
+			entry.currency === sorted2[index].currency &&
+			(entry.amount ?? null) === (sorted2[index].amount ?? null) &&
+			(entry.flat_amount ?? null) === (sorted2[index].flat_amount ?? null),
+	);
+};
+
+const tiersAreSame = (tiers1: TierLike[] | null, tiers2: TierLike[] | null) => {
+	if (!tiers1 && !tiers2) {
+		return true;
+	}
+
+	if (!tiers1 || !tiers2) {
+		return false;
+	}
+
+	if (tiers1.length !== tiers2.length) {
+		return false;
+	}
+
+	return tiers1.every(
+		(tier, index) =>
+			tier.amount === tiers2[index].amount &&
+			tier.to === tiers2[index].to &&
+			(tier.flat_amount ?? null) === (tiers2[index].flat_amount ?? null) &&
+			additionalCurrenciesAreSame(
+				tier.additional_currencies,
+				tiers2[index].additional_currencies,
+			),
+	);
+};
+
+/** A flat per-unit price and a single infinite tier describe the same
+ * pricing — canonicalize to tiers so the two shapes compare equal. */
+const itemPricingTiers = (item: FeaturePriceItem): TierLike[] | null => {
+	if (item.tiers?.length) return item.tiers as TierLike[];
+	if (item.price != null) return [{ amount: item.price, to: "inf" }];
+	return null;
+};
+
+// Helper to normalize included_usage for comparison (null and 0 are equivalent)
+const normalizeIncludedUsage = (value: number | "inf" | null | undefined) => {
+	if (value === null || value === undefined) return 0;
+	return value;
+};
+
+export const featureItemsAreSame = ({
+	item1,
+	item2,
+	logDifferences = false,
+}: {
+	item1: FeatureItem;
+	item2: FeatureItem;
+	logDifferences?: boolean;
+}) => {
+	const checks = {
+		feature_id: {
+			condition: item1.feature_id === item2.feature_id,
+			message: `Feature ID different: ${item1.feature_id} != ${item2.feature_id}`,
+		},
+		included_usage: {
+			// Normalize null/undefined to 0 for comparison since they're semantically equivalent
+			condition:
+				normalizeIncludedUsage(item1.included_usage) ==
+				normalizeIncludedUsage(item2.included_usage),
+			message: `Included usage different: ${item1.included_usage} != ${item2.included_usage}`,
+		},
+		interval: {
+			condition: item1.interval == item2.interval,
+			message: `Interval different: ${item1.interval} != ${item2.interval}`,
+		},
+		interval_count: {
+			condition: (item1.interval_count || 1) == (item2.interval_count || 1),
+			message: `Interval count different: ${item1.interval_count} != ${item2.interval_count}`,
+		},
+		entity_feature_id: {
+			condition: item1.entity_feature_id == item2.entity_feature_id,
+			message: `Entity feature ID different: ${item1.entity_feature_id} != ${item2.entity_feature_id}`,
+		},
+		pooled: {
+			condition: (item1.pooled ?? false) === (item2.pooled ?? false),
+			message: `Pooled different: ${item1.pooled} != ${item2.pooled}`,
+		},
+		reset_usage_when_enabled: {
+			condition:
+				(item1.reset_usage_when_enabled ?? false) ===
+				(item2.reset_usage_when_enabled ?? false),
+			message: `Reset usage when enabled different: ${item1.reset_usage_when_enabled} !== ${item2.reset_usage_when_enabled}`,
+		},
+		rollover_config: {
+			condition: rolloversAreSame({
+				rollover1: item1.config?.rollover || undefined,
+				rollover2: item2.config?.rollover || undefined,
+			}),
+			message: `Rollover config different: ${JSON.stringify(item1.config?.rollover)} !== ${JSON.stringify(item2.config?.rollover)}`,
+		},
+		feature_override: {
+			condition: featureOverridesAreSame({
+				override1: item1.config?.feature_override,
+				override2: item2.config?.feature_override,
+			}),
+			message: `Feature override different: ${JSON.stringify(item1.config?.feature_override)} !== ${JSON.stringify(item2.config?.feature_override)}`,
+		},
+		threshold_billing: {
+			condition:
+				(item1.config?.threshold_billing?.threshold ?? null) ===
+				(item2.config?.threshold_billing?.threshold ?? null),
+			message: `Threshold billing different: ${JSON.stringify(item1.config?.threshold_billing)} !== ${JSON.stringify(item2.config?.threshold_billing)}`,
+		},
+		// config: {
+		// 	condition: JSON.stringify(item1.config) === JSON.stringify(item2.config),
+		// 	message: `Config different: ${JSON.stringify(item1.config)} !== ${JSON.stringify(item2.config)}`,
+		// },
+	};
+
+	const same = Object.values(checks).every((d) => d.condition);
+
+	if (!same && logDifferences) {
+		console.log(
+			"Feature items different:",
+			Object.values(checks)
+				.filter((d) => !d.condition)
+				.map((d) => d.message),
+		);
+	}
+
+	return same;
+};
+
+export const priceItemsAreSame = ({
+	item1,
+	item2,
+	logDifferences = false,
+}: {
+	item1: PriceItem;
+	item2: PriceItem;
+	logDifferences?: boolean;
+}) => {
+	const same =
+		item1.price === item2.price &&
+		itemToBillingInterval({ item: item1 }) ==
+			itemToBillingInterval({ item: item2 }) &&
+		itemToBillingIntervalCount({ item: item1 }) ==
+			itemToBillingIntervalCount({ item: item2 }) &&
+		additionalCurrenciesAreSame(
+			item1.additional_currencies,
+			item2.additional_currencies,
+		);
+
+	if (!same && logDifferences) {
+		console.log(`Price items different: ${item1.price}`);
+	}
+
+	return same;
+};
+
+const prorationConfigsAreSame = ({
+	config1,
+	config2,
+}: {
+	config1?: ProductItemConfig;
+	config2?: ProductItemConfig;
+}) => {
+	return (
+		(config1?.on_increase ?? OnIncrease.ProrateImmediately) ===
+			(config2?.on_increase ?? OnIncrease.ProrateImmediately) &&
+		(config1?.on_decrease ?? OnDecrease.Prorate) ===
+			(config2?.on_decrease ?? OnDecrease.Prorate)
+	);
+};
+
+const itemToExplicitAllocatedBillingBehavior = (item: ProductItem) => {
+	if (notNullish(item.config?.allocated_billing_behavior)) {
+		return item.config.allocated_billing_behavior;
+	}
+	const hasProrationKnobs =
+		notNullish(item.config?.on_increase) ||
+		notNullish(item.config?.on_decrease);
+	if (hasProrationKnobs) {
+		return AllocatedBillingBehavior.Prorated;
+	}
+	return AllocatedBillingBehavior.Prorated;
+};
+
+const allocatedBillingBehaviorAreSame = ({
+	item1,
+	item2,
+}: {
+	item1: ProductItem;
+	item2: ProductItem;
+}) => {
+	const behavior1 = itemToExplicitAllocatedBillingBehavior(item1);
+	const behavior2 = itemToExplicitAllocatedBillingBehavior(item2);
+	return behavior1 === behavior2;
+};
+
+const rolloversAreSame = ({
+	rollover1,
+	rollover2,
+}: {
+	rollover1?: RolloverConfig;
+	rollover2?: RolloverConfig;
+}) => {
+	if (rollover1 && !rollover2) {
+		return false;
+	}
+	if (!rollover1 && rollover2) {
+		return false;
+	}
+	return (
+		(rollover1?.max ?? null) === (rollover2?.max ?? null) &&
+		(rollover1?.max_percentage ?? null) ===
+			(rollover2?.max_percentage ?? null) &&
+		rollover1?.duration === rollover2?.duration &&
+		rollover1?.length === rollover2?.length
+	);
+};
+
+export const featurePriceItemsAreSame = ({
+	item1,
+	item2,
+	logDifferences = false,
+}: {
+	item1: FeaturePriceItem;
+	item2: FeaturePriceItem;
+	logDifferences?: boolean;
+}) => {
+	// console.log("Item 1 config:", item1.config);
+	// console.log("Item 2 config:", item2.config);
+	const entsSame = {
+		included_usage: {
+			// Normalize null/undefined to 0 for comparison since they're semantically equivalent
+			condition:
+				normalizeIncludedUsage(item1.included_usage) ==
+				normalizeIncludedUsage(item2.included_usage),
+			message: `Included usage different: ${item1.included_usage} != ${item2.included_usage}`,
+		},
+		usage_limit: {
+			condition: item1.usage_limit == item2.usage_limit,
+			message: `Usage limit different: ${item1.usage_limit} !== ${item2.usage_limit}`,
+		},
+		reset_usage_when_enabled: {
+			condition:
+				(item1.reset_usage_when_enabled ?? false) ===
+				(item2.reset_usage_when_enabled ?? false),
+			message: `Reset usage when enabled different: ${item1.reset_usage_when_enabled} !== ${item2.reset_usage_when_enabled}`,
+		},
+		proration_config: {
+			condition: prorationConfigsAreSame({
+				config1: item1.config || undefined,
+				config2: item2.config || undefined,
+			}),
+			message: `Proration config different: ${JSON.stringify(item1.config)} !== ${JSON.stringify(item2.config)}`,
+		},
+		allocated_billing_behavior: {
+			condition: allocatedBillingBehaviorAreSame({ item1, item2 }),
+			message: `Allocated billing behavior different: ${item1.config?.allocated_billing_behavior} !== ${item2.config?.allocated_billing_behavior}`,
+		},
+		rollover_config: {
+			condition: rolloversAreSame({
+				rollover1: item1.config?.rollover || undefined,
+				rollover2: item2.config?.rollover || undefined,
+			}),
+			message: `Rollover config different: ${JSON.stringify(item1.config?.rollover)} !== ${JSON.stringify(item2.config?.rollover)}`,
+		},
+		feature_override: {
+			condition: featureOverridesAreSame({
+				override1: item1.config?.feature_override,
+				override2: item2.config?.feature_override,
+			}),
+			message: `Feature override different: ${JSON.stringify(item1.config?.feature_override)} !== ${JSON.stringify(item2.config?.feature_override)}`,
+		},
+		threshold_billing: {
+			condition:
+				(item1.config?.threshold_billing?.threshold ?? null) ===
+				(item2.config?.threshold_billing?.threshold ?? null),
+			message: `Threshold billing different: ${JSON.stringify(item1.config?.threshold_billing)} !== ${JSON.stringify(item2.config?.threshold_billing)}`,
+		},
+		entity_feature_id: {
+			condition: item1.entity_feature_id == item2.entity_feature_id,
+			message: `Entity feature ID different: ${item1.entity_feature_id} != ${item2.entity_feature_id}`,
+		},
+		pooled: {
+			condition: (item1.pooled ?? false) === (item2.pooled ?? false),
+			message: `Pooled different: ${item1.pooled} != ${item2.pooled}`,
+		},
+
+		// config: {
+		// 	condition: JSON.stringify(item1.config) === JSON.stringify(item2.config),
+		// 	message: `Config different: ${JSON.stringify(item1.config)} !== ${JSON.stringify(item2.config)}`,
+		// },
+	};
+
+	const pricesSame = {
+		feature_id: {
+			condition: item1.feature_id === item2.feature_id,
+			message: `Feature ID different: ${item1.feature_id} != ${item2.feature_id}`,
+		},
+		interval: {
+			condition:
+				itemToBillingInterval({ item: item1 }) ==
+				itemToBillingInterval({ item: item2 }),
+			message: `Billing interval different: ${itemToBillingInterval({ item: item1 })} != ${itemToBillingInterval({ item: item2 })}`,
+		},
+		interval_count: {
+			condition:
+				itemToBillingIntervalCount({ item: item1 }) ==
+				itemToBillingIntervalCount({ item: item2 }),
+			message: `Billing interval count different: ${itemToBillingIntervalCount({ item: item1 })} != ${itemToBillingIntervalCount({ item: item2 })}`,
+		},
+		usage_model: {
+			condition: item1.usage_model === item2.usage_model,
+			message: `Usage model different: ${item1.usage_model} != ${item2.usage_model}`,
+		},
+		pricing: {
+			condition: tiersAreSame(itemPricingTiers(item1), itemPricingTiers(item2)),
+			message: `Pricing different: ${JSON.stringify(itemPricingTiers(item1))} != ${JSON.stringify(itemPricingTiers(item2))}`,
+		},
+		additional_currencies: {
+			condition: additionalCurrenciesAreSame(
+				item1.additional_currencies,
+				item2.additional_currencies,
+			),
+			message: `Additional currencies different`,
+		},
+		tier_behavior: {
+			condition:
+				(itemPricingTiers(item1)?.length ?? 0) <= 1 &&
+				(itemPricingTiers(item2)?.length ?? 0) <= 1
+					? true
+					: item1.tier_behavior == item2.tier_behavior,
+			message: `Tiers type different: ${item1.tier_behavior} != ${item2.tier_behavior}`,
+		},
+		billing_units: {
+			condition: item1.billing_units == item2.billing_units,
+			message: `Billing units different: ${item1.billing_units} !== ${item2.billing_units}`,
+		},
+		reset_usage_when_enabled: {
+			condition:
+				(item1.reset_usage_when_enabled ?? false) ===
+				(item2.reset_usage_when_enabled ?? false),
+			message: `Reset usage when enabled different: ${item1.reset_usage_when_enabled} !== ${item2.reset_usage_when_enabled}`,
+		},
+	};
+
+	const same =
+		Object.values(pricesSame).every((d) => d.condition) &&
+		Object.values(entsSame).every((d) => d.condition);
+
+	const pricesChanged = Object.values(pricesSame).some((d) => !d.condition);
+
+	if (!same && logDifferences) {
+		console.log(
+			"Feature price items different:",
+			Object.values(entsSame)
+				.filter((d) => !d.condition)
+				.map((d) => d.message),
+			Object.values(pricesSame)
+				.filter((d) => !d.condition)
+				.map((d) => d.message),
+		);
+	}
+
+	return {
+		same,
+		pricesChanged,
+	};
+};
+
+export const itemsAreSame = ({
+	item1,
+	item2,
+	features,
+	logDifferences = false,
+}: {
+	item1: ProductItem;
+	item2: ProductItem;
+	features?: Feature[];
+	logDifferences?: boolean;
+}) => {
+	// 1. If feature item
+	let same = false;
+	let pricesChanged = false;
+
+	if (isFeatureItem(item1)) {
+		if (!isFeatureItem(item2)) {
+			return {
+				same: false,
+				pricesChanged: true,
+			};
+		}
+
+		same = featureItemsAreSame({
+			item1: item1 as FeatureItem,
+			item2: item2 as FeatureItem,
+			logDifferences,
+		});
+
+		pricesChanged = false;
+	}
+
+	if (isFeaturePriceItem(item1)) {
+		if (!isFeaturePriceItem(item2)) {
+			return {
+				same: false,
+				pricesChanged: true,
+			};
+		}
+
+		const { same: same_, pricesChanged: pricesChanged_ } =
+			featurePriceItemsAreSame({
+				item1: item1 as FeaturePriceItem,
+				item2: item2 as FeaturePriceItem,
+				logDifferences,
+			});
+
+		same = same_;
+
+		const feature = itemToFeature({
+			item: item1,
+			features: features || [],
+		});
+
+		if (feature?.config?.usage_type === FeatureUsageType.Continuous) {
+			pricesChanged = true;
+		} else {
+			pricesChanged = pricesChanged_;
+		}
+	}
+
+	// 2. If price item
+	if (isPriceItem(item1)) {
+		same = priceItemsAreSame({
+			item1: item1 as PriceItem,
+			item2: item2 as PriceItem,
+			logDifferences,
+		});
+		if (!same) {
+			pricesChanged = true;
+		}
+	}
+
+	return {
+		same,
+		pricesChanged: !same && pricesChanged,
+	};
+};

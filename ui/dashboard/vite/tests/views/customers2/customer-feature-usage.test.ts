@@ -1,0 +1,107 @@
+import { describe, expect, test } from "bun:test";
+import {
+	CusProductStatus,
+	type FullCusEntWithFullCusProduct,
+	type FullCustomerEntitlement,
+} from "@autumn/shared";
+import { filterCustomerFeatureUsage } from "@/views/customers2/components/table/customer-feature-usage/customerFeatureUsageTableFilters";
+import { flattenStandaloneCustomerEntitlements } from "@/views/customers2/components/table/customer-feature-usage/customerFeatureUsageUtils";
+
+const buildCustomerEntitlement = ({
+	id,
+	pooled,
+	isPooledBalance = false,
+}: {
+	id: string;
+	pooled: boolean;
+	isPooledBalance?: boolean;
+}) =>
+	({
+		id,
+		created_at: 0,
+		is_pooled_balance: isPooledBalance,
+		entitlement: {
+			pooled,
+			feature: { id: "messages" },
+		},
+		customer_product: {
+			status: CusProductStatus.Active,
+		},
+	}) as FullCusEntWithFullCusProduct;
+
+describe("customer feature usage pooled balances", () => {
+	test("shows consumed standalone balances in the expired view", () => {
+		const consumed = {
+			...buildCustomerEntitlement({ id: "consumed", pooled: false }),
+			balance: 0,
+			unlimited: false,
+			next_reset_at: null,
+			customer_product: null,
+		};
+
+		const filtered = filterCustomerFeatureUsage({
+			entitlements: [consumed],
+			statuses: ["expired"],
+		});
+
+		expect(filtered.map(({ id }) => id)).toEqual(["consumed"]);
+	});
+
+	test("keeps consumed resetting balances out of the expired view", () => {
+		const resetting = {
+			...buildCustomerEntitlement({ id: "resetting", pooled: false }),
+			balance: 0,
+			unlimited: false,
+			next_reset_at: Date.now() + 1000,
+			customer_product: null,
+		};
+
+		const filtered = filterCustomerFeatureUsage({
+			entitlements: [resetting],
+			statuses: ["expired"],
+		});
+
+		expect(filtered).toEqual([]);
+	});
+
+	test("shows the synthetic pool and hides its contribution sources", () => {
+		const ordinary = buildCustomerEntitlement({
+			id: "ordinary",
+			pooled: false,
+		});
+		const contributionSource = buildCustomerEntitlement({
+			id: "source",
+			pooled: true,
+		});
+		const syntheticPool = buildCustomerEntitlement({
+			id: "pool",
+			pooled: true,
+			isPooledBalance: true,
+		});
+
+		const filtered = filterCustomerFeatureUsage({
+			entitlements: [ordinary, contributionSource, syntheticPool],
+			statuses: ["active"],
+		});
+
+		expect(filtered.map(({ id }) => id)).toEqual(["ordinary", "pool"]);
+	});
+
+	test("flattens hydrated pooled entitlements as standalone balances", () => {
+		const pooledCustomerEntitlement = buildCustomerEntitlement({
+			id: "pool",
+			pooled: true,
+			isPooledBalance: true,
+		});
+
+		const [flattened] = flattenStandaloneCustomerEntitlements({
+			customerEntitlements: [
+				pooledCustomerEntitlement as FullCustomerEntitlement,
+			],
+		});
+
+		expect(flattened.id).toBe("pool");
+		expect(flattened.is_pooled_balance).toBe(true);
+		expect(flattened.customer_product).toBeNull();
+	});
+});

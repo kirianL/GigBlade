@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"composite": true,
+		"declaration": true,
+		"declarationMap": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"module": "Preserve",
+		"moduleResolution": "bundler",
+		"target": "ES2020",
+		"outDir": "./dist",
+		"rootDir": ".",
+		"types": ["bun", "node"],
+		"paths": {
+			"@api/*": ["./api/*"],
+			"@models/*": ["./models/*"],
+			"@utils/*": ["./utils/*"],
+			"@autumn/ksuid": ["../packages/ksuid/src/index.ts"]
+		}
+	},
+	"include": ["./**/*"],
+	"exclude": ["node_modules", "dist"],
+	"references": [
+		{ "path": "../packages/ksuid" }
+	]
+}

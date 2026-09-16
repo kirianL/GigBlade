@@ -1,0 +1,152 @@
+/* GigBlade overlay — brand on both themes; light and dark stay distinct. */
+
+:root,
+.light,
+.dark,
+.preset-classic,
+.preset-classic.dark,
+.preset-modern,
+.preset-modern.dark {
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+	--primary: #1a56d6;
+	--primary-foreground: #ffffff;
+	--sandbox: #5ba8ff;
+	--chart-1: #1a56d6;
+	--chart-2: #5ba8ff;
+	--chart-3: #7ebaff;
+	--radius: 0px;
+	--destructive: #e40000;
+	font-family: Geist, "Geist Fallback", Inter, sans-serif;
+}
+
+:root,
+.light,
+.preset-classic,
+.preset-modern {
+	--hover-primary: #e8f2ff;
+	--active-primary: #d6e8ff;
+	--radio-group-hover-primary: #e8f2ff;
+
+	--background: #fafaf9;
+	--outer-background: #f5f5f4;
+	--foreground: #121212;
+	--muted-foreground: #444444;
+	--tertiary-foreground: #666666;
+	--subtle: #767676;
+	--placeholder: #aaaaaa;
+
+	--card: #ffffff;
+	--card-foreground: #121212;
+	--muted: #f2f2f2;
+	--input-background: #ffffff;
+	--interactive-secondary: #ffffff;
+	--interactive-secondary-hover: #f4f4f3;
+
+	--border: #e5e5e5;
+	--border-sheet: #eaeae9;
+	--border-table: #e5e5e5;
+	--card-border: #d1d1d1;
+	--input: #dddddd;
+
+	--sidebar: #fafaf9;
+	--sidebar-foreground: #121212;
+	--sidebar-border: #e5e5e5;
+	--sidebar-accent: #f2f2f2;
+	--sidebar-accent-foreground: #121212;
+	--sidebar-primary: #1a56d6;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-ring: #1a56d6;
+
+	--popover: #ffffff;
+	--popover-foreground: #121212;
+	--accent: #f2f2f2;
+	--accent-foreground: #121212;
+	--secondary: #f2f2f2;
+	--secondary-foreground: #121212;
+	--ring: #1a56d6;
+	--chart-grid-stroke: #e5e5e5;
+
+	color-scheme: light;
+	background-color: #fafaf9;
+}
+
+.dark,
+.preset-classic.dark,
+.preset-modern.dark {
+	--hover-primary: #1544b0;
+	--active-primary: #123a96;
+	--radio-group-hover-primary: #0f0f0f;
+
+	--background: #000000;
+	--outer-background: #000000;
+	--foreground: #ededed;
+	--muted-foreground: #9a9a9a;
+	--tertiary-foreground: #888888;
+	--subtle: #767676;
+	--placeholder: #767676;
+
+	--card: #0f0f0f;
+	--card-foreground: #ededed;
+	--muted: #0f0f0f;
+	--input-background: #0f0f0f;
+	--interactive-secondary: #0f0f0f;
+	--interactive-secondary-hover: #141414;
+
+	--border: #292929;
+	--border-sheet: #292929;
+	--border-table: #292929;
+	--card-border: #292929;
+	--input: #292929;
+
+	--sidebar: #000000;
+	--sidebar-foreground: #ededed;
+	--sidebar-border: #292929;
+	--sidebar-accent: #0f0f0f;
+	--sidebar-accent-foreground: #ffffff;
+	--sidebar-primary: #1a56d6;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-ring: #1a56d6;
+
+	--popover: #0f0f0f;
+	--popover-foreground: #ededed;
+	--accent: #0f0f0f;
+	--accent-foreground: #ffffff;
+	--secondary: #0f0f0f;
+	--secondary-foreground: #ededed;
+	--ring: #1a56d6;
+	--chart-grid-stroke: #292929;
+
+	color-scheme: dark;
+	background-color: #000000;
+}
+
+html,
+body,
+#root {
+	background: var(--background);
+	color: var(--foreground);
+}
+
+[data-slot="button"]:not(:disabled) {
+	transition-property: transform;
+	transition-duration: 150ms;
+	transition-timing-function: var(--ease-out);
+}
+
+[data-slot="button"]:not(:disabled):active {
+	transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-slot="button"]:not(:disabled):active {
+		transform: none;
+	}
+}
+
+@media (hover: hover) and (pointer: fine) {
+	a[data-slot="nav-button"]:hover,
+	[data-slot="nav-button"]:hover {
+		background-color: var(--interactive-secondary-hover);
+	}
+}
