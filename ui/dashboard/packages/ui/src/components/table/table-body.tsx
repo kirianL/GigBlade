@@ -10,7 +10,7 @@ import {
 } from "@autumn/ui/components/table/table-row-cells";
 import { TableCell, TableRow } from "@autumn/ui/components/ui/table";
 import { cn } from "@autumn/ui/lib/utils";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const DEFAULT_SKELETON_ROWS = 5;
 
@@ -36,12 +36,15 @@ export function TableBody() {
 	const lastRowCountRef = useRef(DEFAULT_SKELETON_ROWS);
 	const hasLoadedRef = useRef(false);
 
-	if (rows.length > 0) lastRowCountRef.current = rows.length;
-	if (!isLoading) hasLoadedRef.current = true;
+	useEffect(() => {
+		if (rows.length > 0) lastRowCountRef.current = rows.length;
+		if (!isLoading) hasLoadedRef.current = true;
+	});
 
 	const hasRows = rows.length > 0;
+	const hasLoaded = hasLoadedRef.current || !isLoading;
 	const showSkeleton =
-		isLoading || !!isTransitioning || (!hasRows && !hasLoadedRef.current);
+		isLoading || !!isTransitioning || (!hasRows && !hasLoaded);
 
 	const columns = table.getVisibleLeafColumns().map((col) => ({
 		id: col.id,

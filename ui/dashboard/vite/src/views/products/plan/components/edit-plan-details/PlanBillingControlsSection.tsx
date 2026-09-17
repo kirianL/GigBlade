@@ -26,7 +26,6 @@ import {
 	Switch,
 } from "@autumn/ui";
 import { PlusIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -49,11 +48,6 @@ import {
 	type UsePlanBillingControlForm,
 	usePlanBillingControlForm,
 } from "./usePlanBillingControlForm";
-
-const EXPAND_TRANSITION = {
-	duration: 0.2,
-	ease: [0.32, 0.72, 0, 1] as const,
-};
 
 const CONTROL_LABELS: Record<BillingControlKey, string> = {
 	auto_topups: "Auto top-up",
@@ -738,25 +732,9 @@ export function PlanBillingControlsSection({
 				</div>
 			)}
 
-			<AnimatePresence initial={false}>
-				{isAdding && (
-					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{
-							height: "auto",
-							opacity: 1,
-							transition: {
-								height: EXPAND_TRANSITION,
-								opacity: { duration: 0.15, delay: 0.05 },
-							},
-						}}
-						exit={{ height: 0, opacity: 0, transition: EXPAND_TRANSITION }}
-						className="overflow-hidden"
-					>
-						{renderForm()}
-					</motion.div>
-				)}
-			</AnimatePresence>
+			{isAdding ? (
+				<div className="overflow-hidden">{renderForm()}</div>
+			) : null}
 
 			{hasBillingControls(billingControls) ? (
 				<BillingControlsList

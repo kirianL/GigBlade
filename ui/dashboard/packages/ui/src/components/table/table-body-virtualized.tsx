@@ -13,7 +13,7 @@ import { cn } from "@autumn/ui/lib/utils";
 import type { Row } from "@tanstack/react-table";
 import type { VirtualItem } from "@tanstack/react-virtual";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 const DEFAULT_ROW_HEIGHT = 40;
 const DEFAULT_OVERSCAN = 30;
@@ -117,12 +117,15 @@ export function TableBodyVirtualized() {
 	const lastRowCountRef = useRef(20);
 	const hasLoadedRef = useRef(false);
 
-	if (rows.length > 0) lastRowCountRef.current = rows.length;
-	if (!isLoading) hasLoadedRef.current = true;
+	useEffect(() => {
+		if (rows.length > 0) lastRowCountRef.current = rows.length;
+		if (!isLoading) hasLoadedRef.current = true;
+	});
 
 	const hasRows = rows.length > 0;
+	const hasLoaded = hasLoadedRef.current || !isLoading;
 	const showSkeleton =
-		isLoading || !!isTransitioning || (!hasRows && !hasLoadedRef.current);
+		isLoading || !!isTransitioning || (!hasRows && !hasLoaded);
 
 	// Don't initialize virtualizer until scroll container is ready
 	// This prevents incorrect virtual item calculations on initial render

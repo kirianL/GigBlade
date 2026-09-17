@@ -26,7 +26,6 @@ import {
 } from "@/views/products/plan/components/plan-licenses/PendingLicenseLinksContext";
 import { SheetPanelHost } from "@/views/products/plan/components/SheetPanelHost";
 import { ProductSheets } from "@/views/products/plan/ProductSheets";
-import { SHEET_ANIMATION } from "@/views/products/plan/planAnimations";
 import { InlineEditorProvider } from "./InlineEditorContext";
 import { useHasPlanChanges, useProduct, useSheet } from "./PlanEditorContext";
 
@@ -139,9 +138,10 @@ function InlinePlanEditorContent({
 		>
 			<div className="flex w-full h-full overflow-hidden relative flex-1">
 				<motion.div
-					className={cn("h-full overflow-hidden absolute inset-0")}
-					animate={{ width: sheetType ? "calc(100% - 28rem)" : "100%" }}
-					transition={SHEET_ANIMATION}
+					className={cn(
+						"h-full overflow-hidden absolute top-0 bottom-0 left-0",
+						sheetType ? "right-[28rem]" : "right-0",
+					)}
 				>
 					{/* pb matches PlanEditorBar's h-40 so the last card scrolls clear of it */}
 					<div className="flex flex-col justify-start h-full w-full overflow-x-hidden overflow-y-auto pb-40">

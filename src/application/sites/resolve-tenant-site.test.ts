@@ -34,11 +34,13 @@ describe("resolveTenantSite", () => {
       slug: "nox",
       domain: "demo.localhost",
       templateId: "after",
-      themeConfig: tenant.themeConfig,
+      appearance: "party",
       profile: {
         displayName: "Nox",
         tagline: "Sets nocturnos",
         city: "San José",
+        bio: "",
+        links: {},
       },
     });
     expect(site).not.toHaveProperty("id");

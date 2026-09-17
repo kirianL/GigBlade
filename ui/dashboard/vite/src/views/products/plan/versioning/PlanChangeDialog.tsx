@@ -31,7 +31,6 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PlanPriceHeader } from "@/components/forms/shared/plan-items/PlanPriceHeader";
 import { ItemChangeList } from "@/components/v2/ItemChangeList";
-import { LAYOUT_TRANSITION } from "@/components/v2/sheets/SharedSheetComponents";
 import { useOrg } from "@/hooks/common/useOrg";
 import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
 import { useLicenseProductsQuery } from "@/hooks/queries/useLicenseProductsQuery";
@@ -39,7 +38,6 @@ import { useMigrationsQuery } from "@/hooks/queries/useMigrationsQuery";
 import { usePlanVariants } from "@/hooks/queries/usePlanVariants";
 import { useProductsQuery } from "@/hooks/queries/useProductsQuery";
 import { useProductStore } from "@/hooks/stores/useProductStore";
-import { useMeasuredHeight } from "@/hooks/useMeasuredHeight";
 import { CatalogV2Service } from "@/services/CatalogV2Service";
 import { useAxiosInstance } from "@/services/useAxiosInstance";
 import { getBackendErr, navigateTo } from "@/utils/genUtils";
@@ -312,8 +310,6 @@ export default function PlanChangeDialog({
 	const [licenseParentSelection, setLicenseParentSelection] = useState<
 		string[] | null
 	>(null);
-	const { ref: bodyRef, height: bodyHeight } =
-		useMeasuredHeight<HTMLDivElement>();
 
 	const confirmed = confirmText === product.id;
 	const currency = org?.default_currency ?? "USD";
@@ -603,13 +599,7 @@ export default function PlanChangeDialog({
 				</DialogHeader>
 
 				<div className="min-h-0 flex-1 overflow-y-auto">
-					<motion.div
-						initial={false}
-						animate={{ height: bodyHeight ?? "auto" }}
-						transition={LAYOUT_TRANSITION}
-						style={{ overflow: "clip" }}
-					>
-						<div ref={bodyRef} className="px-4 pt-1 pb-4">
+					<div className="overflow-clip px-4 pt-1 pb-4">
 							<motion.div
 								key={step}
 								initial={{ opacity: 0 }}
@@ -896,8 +886,7 @@ export default function PlanChangeDialog({
 									</>
 								)}
 							</motion.div>
-						</div>
-					</motion.div>
+					</div>
 				</div>
 
 				{step === "migrate" && (

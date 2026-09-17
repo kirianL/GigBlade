@@ -30,7 +30,14 @@ describe("tenant application", () => {
       slug: "demo",
       domain: "demo.test",
       templateId: "pista",
-      themeConfig: { accent: "red" },
+      appearance: "light",
+      profile: {
+        displayName: "demo",
+        tagline: "Sitio oficial del artista",
+        city: "",
+        bio: "",
+        links: {},
+      },
     });
     expect(publicTenant).not.toHaveProperty("id");
     expect(publicTenant).not.toHaveProperty("plan");
@@ -73,6 +80,9 @@ describe("tenant application", () => {
         throw serviceUnavailable("No se pudo leer el tenant");
       },
       list: async () => [],
+      updateSiteContent: async () => {
+        throw serviceUnavailable("No se pudo leer el tenant");
+      },
     };
 
     await expect(

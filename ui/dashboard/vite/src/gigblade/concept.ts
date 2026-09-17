@@ -2,13 +2,15 @@ import { CusProductStatus } from "@autumn/shared";
 
 export type DjStatus = "active" | "trialing" | "canceled";
 
+export type SiteTemplateId = "pista" | "festival" | "after";
+
 export type GigbladeDj = {
 	slug: string;
 	name: string;
 	email: string;
 	domain: string;
 	city: string;
-	template: string;
+	template: SiteTemplateId;
 	status: DjStatus;
 	bio: string;
 	instagram: string;
@@ -17,7 +19,21 @@ export type GigbladeDj = {
 
 export const LAST_DJ_STORAGE_KEY = "gigblade.last-dj";
 
-export const DJ_TEMPLATES = ["Pista", "Festival", "After"] as const;
+export const DJ_TEMPLATES = [
+	{ id: "pista", label: "Modo claro" },
+	{ id: "festival", label: "Modo oscuro" },
+	{ id: "after", label: "Party" },
+] as const;
+
+export const TEMPLATE_BRAND_COLORS: Record<SiteTemplateId, string> = {
+	pista: "#ffffff",
+	festival: "#000000",
+	after: "#e52b20",
+};
+
+export function djTemplateLabel(id: string) {
+	return DJ_TEMPLATES.find((template) => template.id === id)?.label ?? id;
+}
 
 export const PLAN = {
 	name: "Todo incluido",
@@ -75,7 +91,7 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		email: "marco@djmarco.com",
 		domain: "djmarco.com",
 		city: "San José",
-		template: "Pista",
+		template: "pista",
 		status: "active",
 		bio: "Sets de club y after. Página lista para que las productoras te encuentren.",
 		instagram: "@djmarco",
@@ -87,7 +103,7 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		email: "hola@lunaset.cr",
 		domain: "lunaset.cr",
 		city: "San José",
-		template: "Festival",
+		template: "festival",
 		status: "active",
 		bio: "Melodic y downtempo. Un canal formal, sin DMs sueltos.",
 		instagram: "@lunaset",
@@ -99,7 +115,7 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		email: "nox@gigblade.com",
 		domain: "localhost:3000",
 		city: "San José",
-		template: "After",
+		template: "after",
 		status: "active",
 		bio: "Sets nocturnos para pistas que no cierran. Demo local de GigBlade.",
 		instagram: "@nox",
@@ -111,7 +127,7 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		email: "sofia@sofiabeat.com",
 		domain: "sofiabeat.com",
 		city: "Heredia",
-		template: "Pista",
+		template: "pista",
 		status: "trialing",
 		bio: "Trial del plan todo incluido. Cargando fotos y bio.",
 		instagram: "@sofiabeat",
@@ -123,7 +139,7 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		email: "vera@verapulse.com",
 		domain: "verapulse.com",
 		city: "Cartago",
-		template: "Festival",
+		template: "festival",
 		status: "canceled",
 		bio: "Página pausada. El dominio sigue administrado hasta el cierre del ciclo.",
 		instagram: "@verapulse",
@@ -145,9 +161,25 @@ export function djByArtistName(name: string | null) {
 	);
 }
 
-export function djPublicUrl(dj: GigbladeDj) {
-	if (dj.slug === "nox") return "http://localhost:3000";
-	return `https://${dj.domain}`;
+export function djPreviewOrigin(slug: string) {
+	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(
+		/\/$/,
+		"",
+	);
+	let port = "3000";
+	if (configured) {
+		try {
+			const parsed = new URL(configured);
+			if (parsed.port) port = parsed.port;
+		} catch {
+			// keep default local port
+		}
+	}
+	return `http://${slug}.localhost:${port}`;
+}
+
+export function djPublicUrl(dj: Pick<GigbladeDj, "slug">) {
+	return djPreviewOrigin(dj.slug);
 }
 
 export function djInstagramUrl(dj: Pick<GigbladeDj, "instagram">) {

@@ -3,7 +3,7 @@ import {
   isLocalNetworkHostname,
   isMarketingHostname,
   normalizeHostname,
-} from "@/domain/hostname";
+} from "./hostname";
 
 export function isTenantPreviewHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);

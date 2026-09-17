@@ -54,11 +54,21 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   agentRules: false,
   pageExtensions: ["ts", "tsx", "md", "mdx"],
-  allowedDevOrigins: ["192.168.50.197", "demo.localhost"],
+  allowedDevOrigins: [
+    "192.168.50.197",
+    "localhost:3001",
+    "demo.localhost",
+    "marco.localhost",
+    "luna.localhost",
+    "nox.localhost",
+    "sofia.localhost",
+    "vera.localhost",
+  ],
   images: {
     formats: ["image/avif", "image/webp"],
   },
   turbopack: {
+    root: process.cwd(),
     resolveAlias: {
       "@/domain": "./src/domain",
       "@/application": "./src/application",

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { getApp } from "@/lib/composition/app";
 import { getTenantContext } from "@/lib/tenant/from-headers";
-import { readLandingTheme } from "@/lib/tenant/theme";
 import WishlistPage, {
   metadata as landingMetadata,
 } from "../../../../ui/landing/app/(site)/wishlist/page";
@@ -19,7 +18,7 @@ async function loadTheme() {
   try {
     const context = await getTenantContext();
     const tenant = await getApp().getPublicTenant(context);
-    return readLandingTheme(tenant.slug, tenant.themeConfig);
+    return tenant.profile;
   } catch {
     return fallbackTheme;
   }

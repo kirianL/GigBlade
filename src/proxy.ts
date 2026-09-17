@@ -1,17 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isLocalHostname, isLocalNetworkHostname, isMarketingHostname, normalizeHostname } from "@/domain/hostname";
+import {
+  isLocalHostname,
+  isLocalNetworkHostname,
+  isMarketingHostname,
+  normalizeHostname,
+} from "./domain/hostname";
 import {
   isTenantPreviewHostname,
   servesTenantSiteSurface,
   tenantSiteRewritePath,
-} from "@/domain/site-surface";
-import { getApp } from "@/lib/composition/app";
+} from "./domain/site-surface";
 import {
   TENANT_CANONICAL_HEADER,
   TENANT_HOSTNAME_HEADER,
   TENANT_ID_HEADER,
-} from "@/lib/tenant/headers";
+} from "./lib/tenant/headers";
+import { resolveProxyRouting } from "./lib/tenant/resolve-proxy-routing";
 
 function stripClientTenantHeaders(headers: Headers) {
   headers.delete(TENANT_ID_HEADER);
@@ -37,7 +42,7 @@ export async function proxy(request: NextRequest) {
   let tenant;
 
   try {
-    tenant = await getApp().resolveTenantRouting(hostname);
+    tenant = await resolveProxyRouting(hostname);
   } catch {
     return new NextResponse("Service unavailable", {
       status: 503,
@@ -75,5 +80,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/|favicon.ico).*)"],
 };

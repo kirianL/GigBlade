@@ -4,7 +4,7 @@ import {
 	type ProductItem,
 } from "@autumn/shared";
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getItemId } from "@/utils/product/productItemUtils";
 
 export interface DraftItemSession {
@@ -147,6 +147,10 @@ export const useItemDraftController = ({
 }): ItemDraftController => {
 	const [draftItemSession, setDraftItemSession] =
 		useState<DraftItemSession | null>(null);
+	const sessionRef = useRef(draftItemSession);
+	useEffect(() => {
+		sessionRef.current = draftItemSession;
+	});
 	const [initialProduct, setInitialProduct] = useState<FrontendProduct | null>(
 		initialPlanProduct ? structuredClone(initialPlanProduct) : null,
 	);
@@ -219,61 +223,53 @@ export const useItemDraftController = ({
 	);
 
 	const updateItemDraft = useCallback(
-		// `itemId` renames the session when an edit changes the item's derived id,
-		// keeping it addressable by callers that still resolve items by id.
 		({ item, itemId }: { item: ProductItem; itemId?: string }) => {
-			setDraftItemSession((prev) => {
-				if (!prev) return prev;
-				patchPlanItem({
-					itemId: prev.itemId,
-					itemIndex: prev.itemIndex,
-					item,
-				});
-				return {
-					...prev,
-					itemId: itemId ?? prev.itemId,
-					draftItem: item,
-				};
+			const prev = sessionRef.current;
+			if (!prev) return;
+			patchPlanItem({
+				itemId: prev.itemId,
+				itemIndex: prev.itemIndex,
+				item,
+			});
+			setDraftItemSession({
+				...prev,
+				itemId: itemId ?? prev.itemId,
+				draftItem: item,
 			});
 		},
 		[patchPlanItem],
 	);
 
 	const discardItemDraft = useCallback(() => {
-		setDraftItemSession((prev) => {
-			if (!prev) return prev;
-			const restoredItem = structuredClone(prev.initialItem);
-			setInitialItemState(restoredItem);
-			patchPlanItem({
-				itemId: prev.itemId,
-				itemIndex: prev.itemIndex,
-				item: restoredItem,
-			});
-			return {
-				...prev,
-				draftItem: restoredItem,
-			};
+		const prev = sessionRef.current;
+		if (!prev) return;
+		const restoredItem = structuredClone(prev.initialItem);
+		setInitialItemState(restoredItem);
+		patchPlanItem({
+			itemId: prev.itemId,
+			itemIndex: prev.itemIndex,
+			item: restoredItem,
+		});
+		setDraftItemSession({
+			...prev,
+			draftItem: restoredItem,
 		});
 	}, [setInitialItemState, patchPlanItem]);
 
 	const commitItemDraft = useCallback(() => {
-		setDraftItemSession((session) => {
-			if (!session) return session;
-
-			patchPlanItem({
-				itemId: session.itemId,
-				itemIndex: session.itemIndex,
-				item: session.draftItem,
-			});
-
-			const committedItem = structuredClone(session.draftItem);
-			setInitialItemState(committedItem);
-
-			return {
-				...session,
-				initialItem: committedItem,
-				draftItem: committedItem,
-			};
+		const session = sessionRef.current;
+		if (!session) return;
+		patchPlanItem({
+			itemId: session.itemId,
+			itemIndex: session.itemIndex,
+			item: session.draftItem,
+		});
+		const committedItem = structuredClone(session.draftItem);
+		setInitialItemState(committedItem);
+		setDraftItemSession({
+			...session,
+			initialItem: committedItem,
+			draftItem: committedItem,
 		});
 	}, [patchPlanItem, setInitialItemState]);
 

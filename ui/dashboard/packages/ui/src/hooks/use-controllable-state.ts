@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type UseControllableStateParams<T> = {
 	prop?: T;
@@ -19,7 +19,9 @@ function useControllableState<T>({
 	const isControlled = prop !== undefined;
 	const value = isControlled ? prop : uncontrolled;
 	const onChangeRef = useRef(onChange);
-	onChangeRef.current = onChange;
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	});
 
 	const setValue = useCallback(
 		(nextValue: T) => {

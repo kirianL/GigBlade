@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   assertRegisteredTemplate,
   DEFAULT_SITE_TEMPLATE_ID,
+  getSiteTemplateAppearance,
+  getSiteTemplateSections,
   isSiteTemplateId,
+  SITE_TEMPLATE_APPEARANCE,
+  SITE_TEMPLATE_IDS,
+  SITE_TEMPLATE_SECTIONS,
 } from "@/domain/site-template";
 
 describe("site-template", () => {
@@ -24,5 +29,47 @@ describe("site-template", () => {
     } catch (error) {
       expect(error).toMatchObject({ code: "NOT_FOUND" });
     }
+  });
+
+  it("asigna modo claro, oscuro y party a las tres plantillas", () => {
+    expect(SITE_TEMPLATE_APPEARANCE).toEqual({
+      pista: "light",
+      festival: "dark",
+      after: "party",
+    });
+    expect(getSiteTemplateAppearance("pista")).toBe("light");
+    expect(getSiteTemplateAppearance("festival")).toBe("dark");
+    expect(getSiteTemplateAppearance("after")).toBe("party");
+  });
+
+  it("define un orden de secciones distinto por plantilla", () => {
+    expect(SITE_TEMPLATE_IDS).toEqual(["pista", "festival", "after"]);
+    expect(getSiteTemplateSections("pista")).toEqual([
+      "intro",
+      "agenda",
+      "bio",
+      "enlaces",
+      "contacto",
+    ]);
+    expect(SITE_TEMPLATE_SECTIONS.festival).toEqual([
+      "intro",
+      "bio",
+      "agenda",
+      "enlaces",
+      "contacto",
+    ]);
+    expect(SITE_TEMPLATE_SECTIONS.after).toEqual([
+      "intro",
+      "enlaces",
+      "contacto",
+      "agenda",
+      "bio",
+    ]);
+    expect(SITE_TEMPLATE_SECTIONS.pista).not.toEqual(
+      SITE_TEMPLATE_SECTIONS.festival,
+    );
+    expect(SITE_TEMPLATE_SECTIONS.festival).not.toEqual(
+      SITE_TEMPLATE_SECTIONS.after,
+    );
   });
 });

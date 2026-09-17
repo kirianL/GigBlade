@@ -242,7 +242,9 @@ const DropdownMenuItem = React.forwardRef<
 	} = props;
 	const { shortcuts } = React.useContext(DropdownMenuContext);
 	const onClickRef = React.useRef(onClick);
-	onClickRef.current = onClick;
+	React.useEffect(() => {
+		onClickRef.current = onClick;
+	});
 
 	React.useEffect(() => {
 		if (!shortcut || props.disabled) return;

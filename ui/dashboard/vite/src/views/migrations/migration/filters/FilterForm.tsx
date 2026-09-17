@@ -6,7 +6,7 @@ import type {
 } from "@autumn/shared";
 import { Button } from "@autumn/ui";
 import { FunnelSimpleIcon } from "@phosphor-icons/react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActionCard } from "../shared/ActionCard";
 import { AddButton } from "../shared/AddButton";
 import { FilterGroup } from "./FilterGroup";
@@ -348,22 +348,16 @@ export function FilterForm({
 }) {
 	const [autoOpenField, setAutoOpenField] = useState(false);
 	const externalKey = useMemo(() => JSON.stringify(value), [value]);
-	const lastSyncedKey = useRef(externalKey);
-	const groupsRef = useRef<FilterGroupData[]>(buildGroups(value));
+	const [groups, setGroupsState] = useState(() => buildGroups(value));
 
-	if (lastSyncedKey.current !== externalKey) {
-		lastSyncedKey.current = externalKey;
-		groupsRef.current = buildGroups(value);
-	}
+	useEffect(() => {
+		setGroupsState(buildGroups(value));
+	}, [externalKey, value]);
 
 	const setGroups = (next: FilterGroupData[]) => {
-		groupsRef.current = next;
-		const updated = groupsToMigrationFilter(next, value);
-		lastSyncedKey.current = JSON.stringify(updated);
-		onChange(updated);
+		setGroupsState(next);
+		onChange(groupsToMigrationFilter(next, value));
 	};
-
-	const groups = groupsRef.current;
 	const isEmpty = isEmptyFilter(groups) && !autoOpenField;
 
 	const updateGroup = (index: number, group: FilterGroupData) => {

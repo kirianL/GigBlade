@@ -1,7 +1,6 @@
 import type { CatalogGetMappingsResponse, ProductV2 } from "@autumn/shared";
 import { Sheet, SheetContent, ShortcutButton } from "@autumn/ui";
 import { useStore } from "@tanstack/react-form";
-import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import {
 	SheetFooter,
@@ -148,21 +147,11 @@ const PlanMappingDetailForm = ({
 							) : undefined
 						}
 					/>
-					{hasVariants && (
-						<AnimatePresence initial={false}>
-							{variantsExpanded && (
-								<motion.div
-									animate={{ height: "auto", opacity: 1 }}
-									className="overflow-hidden"
-									exit={{ height: 0, opacity: 0 }}
-									initial={{ height: 0, opacity: 0 }}
-									transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-								>
-									<VariantList variants={variants} />
-								</motion.div>
-							)}
-						</AnimatePresence>
-					)}
+					{hasVariants && variantsExpanded ? (
+						<div className="overflow-hidden">
+							<VariantList variants={variants} />
+						</div>
+					) : null}
 				</div>
 
 				<p className="text-tertiary-foreground text-xs">

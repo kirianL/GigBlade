@@ -66,37 +66,33 @@ export const useLicensePlanCardLifecycle = ({
 	const collectRef = useRef<() => CustomizePlanLicense>(() =>
 		buildCustomize({ product: editedProduct(), itemsChanged }),
 	);
-	collectRef.current = () =>
-		buildCustomize({ product: editedProduct(), itemsChanged });
-
 	const entryRef = useRef<() => PlanLicenseParams | null>(() => null);
-	entryRef.current = () => {
-		if (useLicenseDraftStore.getState().drafts[license.id]?.removed) {
-			return null;
-		}
-		return buildEntry({ product: editedProduct(), itemsChanged });
-	};
-
 	const commitRef = useRef<() => void>(() => {});
-	commitRef.current = () => {
-		// Reset so the card stops reading as dirty; drafts fall back to the
-		// refetched persisted values.
-		itemDraft.commit();
-		seed(license.id, {});
-		// The refetched plan_licenses now include this link, so the staged
-		// entry can go.
-		if (isPendingLink) removePendingLink(license.id);
-	};
-
 	const discardRef = useRef<() => void>(() => {});
-	discardRef.current = () => {
-		if (isPendingLink) {
-			removePendingLink(license.id);
-			return;
-		}
-		itemDraft.discard();
-		seed(license.id, { included: planLicense.included });
-	};
+
+	useEffect(() => {
+		collectRef.current = () =>
+			buildCustomize({ product: editedProduct(), itemsChanged });
+		entryRef.current = () => {
+			if (useLicenseDraftStore.getState().drafts[license.id]?.removed) {
+				return null;
+			}
+			return buildEntry({ product: editedProduct(), itemsChanged });
+		};
+		commitRef.current = () => {
+			itemDraft.commit();
+			seed(license.id, {});
+			if (isPendingLink) removePendingLink(license.id);
+		};
+		discardRef.current = () => {
+			if (isPendingLink) {
+				removePendingLink(license.id);
+				return;
+			}
+			itemDraft.discard();
+			seed(license.id, { included: planLicense.included });
+		};
+	});
 
 	// Pending links rebuild their object every render; seed from stable values.
 	useEffect(() => {

@@ -116,8 +116,11 @@ export function HierarchyFlatSimulator() {
 				<div className="border-t border-[#292929] px-4 py-3">
 					<div className="h-1 w-full overflow-hidden rounded-full bg-[#1c1c1c]">
 						<motion.div
-							className="h-full rounded-full bg-brand-glow"
-							animate={{ width: `${(rowsDone / count) * 100}%` }}
+							className="h-full w-full origin-left rounded-full bg-brand-glow"
+							initial={false}
+							animate={{
+								transform: `scaleX(${count === 0 ? 0 : rowsDone / count})`,
+							}}
 							transition={{ duration: 0.1, ease: EASE_OUT }}
 						/>
 					</div>

@@ -1,7 +1,6 @@
 import {
 	PageContainer,
 	PageHeader,
-	SearchableSelect,
 } from "@autumn/ui";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
@@ -17,6 +16,9 @@ import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
 
 export { PageContainer, PageHeader };
+
+const SELECT_CLASS =
+	"h-7 min-w-[160px] rounded-lg border border-input bg-input-background px-2 text-sm text-foreground outline-none shadow-sm input-base input-shadow-default";
 
 export function DjStatusCell({ status }: { status: DjStatus }) {
 	return (
@@ -75,27 +77,41 @@ export function MetricCard({
 export function useSelectedDj() {
 	const [params, setParams] = useSearchParams();
 	const [lastSlug, setLastSlug] = useLocalStorage(LAST_DJ_STORAGE_KEY, "nox");
-	const requested = params.get("dj") || lastSlug || "nox";
-	const dj = djBySlug(requested);
-
 	const paramDj = params.get("dj");
+	const requested = paramDj || lastSlug || "nox";
+	const dj = djBySlug(requested);
 
 	useEffect(() => {
 		if (lastSlug !== dj.slug) {
 			setLastSlug(dj.slug);
 		}
-		if (paramDj !== dj.slug) {
-			const next = new URLSearchParams(params);
-			next.set("dj", dj.slug);
-			setParams(next, { replace: true });
-		}
-	}, [dj.slug, lastSlug, paramDj, params, setLastSlug, setParams]);
+	}, [dj.slug, lastSlug, setLastSlug]);
+
+	useEffect(() => {
+		if (paramDj === dj.slug) return;
+		setParams(
+			(current) => {
+				if (current.get("dj") === dj.slug) return current;
+				const next = new URLSearchParams(current);
+				next.set("dj", dj.slug);
+				return next;
+			},
+			{ replace: true },
+		);
+	}, [dj.slug, paramDj, setParams]);
 
 	const setDj = (slug: string) => {
+		if (slug === dj.slug && paramDj === slug) return;
 		setLastSlug(slug);
-		const next = new URLSearchParams(params);
-		next.set("dj", slug);
-		setParams(next, { replace: true });
+		setParams(
+			(current) => {
+				if (current.get("dj") === slug) return current;
+				const next = new URLSearchParams(current);
+				next.set("dj", slug);
+				return next;
+			},
+			{ replace: true },
+		);
 	};
 
 	return { dj, setDj };
@@ -109,18 +125,17 @@ export function DjSelect({
 	onValueChange: (slug: string) => void;
 }) {
 	return (
-		<SearchableSelect
+		<select
+			aria-label="Elegí un DJ"
 			value={value}
-			onValueChange={onValueChange}
-			options={GIGBLADE_DJS}
-			getOptionValue={(dj) => dj.slug}
-			getOptionLabel={(dj) => dj.name}
-			getOptionSearchTerms={(dj) => [dj.domain, dj.email, dj.city]}
-			searchable
-			searchPlaceholder="Buscar DJs"
-			placeholder="Elegí un DJ"
-			emptyText="Ningún DJ coincide"
-			triggerClassName="h-7 min-w-[160px]"
-		/>
+			onChange={(event) => onValueChange(event.target.value)}
+			className={SELECT_CLASS}
+		>
+			{GIGBLADE_DJS.map((dj) => (
+				<option key={dj.slug} value={dj.slug}>
+					{dj.name}
+				</option>
+			))}
+		</select>
 	);
 }

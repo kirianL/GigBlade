@@ -32,11 +32,11 @@ export function CopyableSpan({
 	const [copied, setCopied] = React.useState(false);
 
 	React.useEffect(() => {
-		if (copied) {
-			setTimeout(() => {
-				setCopied(false);
-			}, 1000);
-		}
+		if (!copied) return;
+		const id = window.setTimeout(() => {
+			setCopied(false);
+		}, 1000);
+		return () => window.clearTimeout(id);
 	}, [copied]);
 
 	const handleClick = (e: React.MouseEvent) => {

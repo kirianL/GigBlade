@@ -7,16 +7,14 @@ import {
 	Button,
 	CopyButton,
 } from "@autumn/ui";
-import { ArrowSquareOutIcon, PackageIcon } from "@phosphor-icons/react";
-import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowSquareOutIcon, IdentificationCardIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
-import { Table } from "@/components/general/table";
 import {
 	djInstagramUrl,
 	djMailto,
 	djPublicUrl,
+	djTemplateLabel,
 	PLAN,
-	toCusProductStatus,
 } from "@/gigblade/concept";
 import {
 	DjSelect,
@@ -24,81 +22,13 @@ import {
 	PageContainer,
 } from "@/gigblade/ui";
 import { useDjProfile } from "@/gigblade/useDjContent";
-import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
-import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
-import { useCustomerTable } from "@/views/customers2/hooks/useCustomerTable";
-
-type PlanRow = {
-	id: string;
-	name: string;
-	price: string;
-	status: ReturnType<typeof toCusProductStatus>;
-	trialing: boolean;
-	created_at: number;
-};
-
-const columns: ColumnDef<PlanRow>[] = [
-	{
-		header: "Name",
-		accessorKey: "name",
-		size: 150,
-		cell: ({ row }) => (
-			<div className="font-medium text-foreground">{row.original.name}</div>
-		),
-	},
-	{
-		header: "Price",
-		accessorKey: "price",
-		size: 120,
-		cell: ({ row }) => (
-			<span className="text-tertiary-foreground">{row.original.price}</span>
-		),
-	},
-	{
-		header: "Status",
-		accessorKey: "status",
-		size: 110,
-		cell: ({ row }) => (
-			<CustomerProductsStatus
-				status={row.original.status}
-				trialing={row.original.trialing}
-			/>
-		),
-	},
-	{
-		header: "Created At",
-		accessorKey: "created_at",
-		size: 150,
-		cell: ({ row }) => {
-			const { date, time } = formatUnixToDateTime(row.original.created_at, {
-				withYear: true,
-			});
-			return (
-				<div className="text-xs text-subtle pr-4 w-full">
-					{date} <span className="truncate">{time}</span>
-				</div>
-			);
-		},
-	},
-];
 
 export default function DjStudioPage() {
-	const { dj, setDj } = useDjProfile();
+	const { dj, setDj, draft } = useDjProfile();
 	const pageUrl = djPublicUrl(dj);
 	const instagramUrl = djInstagramUrl(dj);
 	const mailUrl = djMailto(dj);
-
-	const rows: PlanRow[] = [
-		{
-			id: "todo-incluido",
-			name: PLAN.name,
-			price: `US$ ${PLAN.priceUsd} /mo`,
-			status: toCusProductStatus(dj.status),
-			trialing: dj.status === "trialing",
-			created_at: dj.createdAt,
-		},
-	];
-	const table = useCustomerTable({ data: rows, columns });
+	const contentHref = `/studio/content?dj=${dj.slug}`;
 
 	return (
 		<PageContainer>
@@ -127,14 +57,20 @@ export default function DjStudioPage() {
 				</div>
 			</div>
 
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-2">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
 				<div className="flex items-center gap-2 min-w-0">
-					<h3 className="text-md font-semibold truncate min-w-0 max-w-full sm:max-w-sm text-foreground">
+					<h1 className="text-md font-semibold truncate min-w-0 max-w-full sm:max-w-sm text-foreground">
 						{dj.name}
-					</h3>
+					</h1>
 					<DjStatusCell status={dj.status} />
 				</div>
 				<div className="flex gap-2 flex-wrap min-w-0">
+					<Button variant="primary" size="sm" asChild>
+						<Link to={contentHref}>
+							<IdentificationCardIcon size={16} aria-hidden />
+							Editar contenido
+						</Link>
+					</Button>
 					<CopyButton
 						text={dj.email}
 						title={dj.email}
@@ -143,8 +79,8 @@ export default function DjStudioPage() {
 						innerClassName="max-w-30 text-tiny-id truncate !font-normal"
 					/>
 					<CopyButton
-						text={dj.domain}
-						title={dj.domain}
+						text={pageUrl}
+						title={pageUrl}
 						size="mini"
 						className="text-tertiary-foreground"
 						innerClassName="max-w-30 text-tiny-id truncate !font-normal"
@@ -152,50 +88,68 @@ export default function DjStudioPage() {
 				</div>
 			</div>
 
-			<div className="flex flex-col gap-16 w-full">
-				<Table.Provider
-					config={{
-						table,
-						numberOfColumns: columns.length,
-						enableSorting: false,
-						flexibleTableColumns: true,
-						rowClassName: "h-10",
-					}}
-				>
-					<Table.Container>
-						<Table.Toolbar>
-							<Table.Heading>
-								<PackageIcon
-									size={16}
-									weight="fill"
-									className="text-subtle"
-									aria-hidden
-								/>
-								Plan
-							</Table.Heading>
-							<Table.Actions>
-								<Button variant="secondary" size="sm" asChild>
-									<a href={instagramUrl} target="_blank" rel="noreferrer">
-										{dj.instagram}
-									</a>
-								</Button>
-								<Button variant="secondary" size="sm" asChild>
-									<a href={mailUrl}>{dj.email}</a>
-								</Button>
-								<Button variant="secondary" size="sm" asChild>
-									<Link to={`/studio/content?dj=${dj.slug}`}>
-										Editar contenido
-									</Link>
-								</Button>
-							</Table.Actions>
-						</Table.Toolbar>
-						<Table.Content>
-							<Table.Header />
-							<Table.Body />
-						</Table.Content>
-					</Table.Container>
-				</Table.Provider>
-			</div>
+			<section className="border rounded-lg bg-interactive-secondary p-5 flex flex-col gap-4">
+				<div className="flex items-start justify-between gap-4">
+					<div className="min-w-0">
+						<p className="text-xs text-tertiary-foreground">
+							Preview local
+						</p>
+						<p className="text-sm font-medium text-foreground truncate">
+							{pageUrl.replace(/^https?:\/\//, "")}
+						</p>
+					</div>
+					<p className="text-xs text-tertiary-foreground shrink-0">
+						{djTemplateLabel(draft.template)}
+					</p>
+				</div>
+				<dl className="grid gap-3 sm:grid-cols-2 text-sm">
+					<div>
+						<dt className="text-xs text-tertiary-foreground">Ciudad</dt>
+						<dd className="text-foreground">{draft.city || "Sin ciudad"}</dd>
+					</div>
+					<div>
+						<dt className="text-xs text-tertiary-foreground">Instagram</dt>
+						<dd>
+							<a
+								href={instagramUrl}
+								target="_blank"
+								rel="noreferrer"
+								className="text-foreground hover:underline"
+							>
+								{dj.instagram}
+							</a>
+						</dd>
+					</div>
+					<div className="sm:col-span-2">
+						<dt className="text-xs text-tertiary-foreground">Bio</dt>
+						<dd className="text-foreground leading-6">
+							{draft.bio || "Todavía no hay biografía."}
+						</dd>
+					</div>
+				</dl>
+				<div className="flex flex-wrap gap-2">
+					<Button variant="secondary" size="sm" asChild>
+						<a href={mailUrl}>{dj.email}</a>
+					</Button>
+					<Button variant="secondary" size="sm" asChild>
+						<Link to={contentHref}>Completar perfil</Link>
+					</Button>
+				</div>
+			</section>
+
+			<section className="border rounded-lg p-5 flex flex-col gap-2">
+				<p className="text-xs text-tertiary-foreground">Plan</p>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<p className="text-sm font-medium text-foreground">
+						{PLAN.name} · US$ {PLAN.priceUsd} /mes
+					</p>
+					<DjStatusCell status={dj.status} />
+				</div>
+				<p className="text-sm text-tertiary-foreground leading-6">
+					Incluye la página, el dominio administrado por GigBlade, hosting y este
+					panel para el contenido.
+				</p>
+			</section>
 		</PageContainer>
 	);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export function Expand({
@@ -40,6 +40,7 @@ export function Expand({
 			<button
 				type="button"
 				onClick={() => setOpen((o) => !o)}
+				aria-expanded={open}
 				className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[15px] font-medium text-white transition-colors hover:bg-[#1a1a1a] rounded-lg"
 			>
 				{title}
@@ -62,21 +63,19 @@ export function Expand({
 				</motion.svg>
 			</button>
 
-			<AnimatePresence initial={false}>
-				{open && (
-					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: "auto", opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-						className="overflow-hidden"
-					>
-						<div className="border-t border-[#292929] px-4 py-3 text-[14px] leading-relaxed text-[#E5E5E5] [&>p]:my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0">
-							{children}
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
+			<div
+				className={
+					open
+						? "grid grid-rows-[1fr] opacity-100"
+						: "grid grid-rows-[0fr] opacity-0"
+				}
+			>
+				<div className="min-h-0 overflow-hidden">
+					<div className="border-t border-[#292929] px-4 py-3 text-[14px] leading-relaxed text-[#E5E5E5] [&>p]:my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0">
+						{open ? children : null}
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }

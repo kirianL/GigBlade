@@ -1,8 +1,8 @@
 import "server-only";
 
 import type { TenantRepository } from "@/application/ports/tenant-repository";
-import { serviceUnavailable } from "@/domain/errors";
-import type { Tenant } from "@/domain/tenant";
+import { notFound, serviceUnavailable } from "@/domain/errors";
+import type { Tenant, TenantContext } from "@/domain/tenant";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
 import { failPostgrestQuery } from "@/infrastructure/supabase/postgrest";
 import { readTenantQueryResult } from "@/infrastructure/supabase/read-tenant-row";
@@ -45,5 +45,32 @@ export class SupabaseTenantRepository implements TenantRepository {
       }
       return tenant;
     });
+  }
+
+  async updateSiteContent(
+    context: TenantContext,
+    next: Pick<Tenant, "templateId" | "themeConfig">,
+  ): Promise<Tenant> {
+    const supabase = createSupabaseAdminClient();
+    const result = await supabase
+      .from("tenants")
+      .update({
+        template_id: next.templateId,
+        theme_config: next.themeConfig,
+      })
+      .eq("id", context.tenantId)
+      .select(TENANT_COLUMNS)
+      .maybeSingle();
+
+    const tenant = readTenantQueryResult(result, {
+      operation: "tenants.updateSiteContent",
+      tenantId: context.tenantId,
+    });
+
+    if (!tenant) {
+      throw notFound("Tenant no encontrado");
+    }
+
+    return tenant;
   }
 }

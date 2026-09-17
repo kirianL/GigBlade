@@ -10,245 +10,108 @@ import {
 	LongInput,
 } from "@autumn/ui";
 import { ArrowSquareOutIcon, IdentificationCardIcon } from "@phosphor-icons/react";
-import type { ColumnDef, Table as TanstackTable } from "@tanstack/react-table";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Table } from "@/components/general/table";
 import { DJ_TEMPLATES, djPublicUrl } from "@/gigblade/concept";
+import { BrandColorPicker } from "@/gigblade/BrandColorPicker";
+import { SavePublishControl } from "@/gigblade/SavePublishControl";
 import { DjSelect, PageContainer, PageHeader } from "@/gigblade/ui";
-import { useDjProfile, type DjContentDraft } from "@/gigblade/useDjContent";
-import { useCustomerTable } from "@/views/customers2/hooks/useCustomerTable";
+import {
+	useDjProfile,
+	type DjContentDraft,
+	type DjLinkDraft,
+} from "@/gigblade/useDjContent";
 
-type FieldErrors = Partial<
-	Record<"bio" | "city" | "instagram" | "template", string>
->;
-type FieldId = "bio" | "city" | "template" | "instagram" | "photos";
-type FieldRow = { id: FieldId; label: string };
+type FieldErrors = Partial<Record<"displayName" | "template" | "save", string>>;
 
-type ContentMeta = {
-	draft: DjContentDraft;
-	setDraft: (updater: (current: DjContentDraft) => DjContentDraft) => void;
-	errors: FieldErrors;
-	ids: Record<FieldId, string>;
-	setSaved: (saved: boolean) => void;
-	addPhotos: (files: FileList | null) => void;
-	removePhoto: (id: string) => void;
-};
-
-const FIELD_ROWS: FieldRow[] = [
-	{ id: "bio", label: "Biografía" },
-	{ id: "city", label: "Ciudad" },
-	{ id: "template", label: "Plantilla" },
-	{ id: "instagram", label: "Instagram" },
-	{ id: "photos", label: "Fotos" },
+const LINK_ROWS: { id: keyof DjLinkDraft; label: string; hint: string }[] = [
+	{ id: "instagram", label: "Instagram", hint: "Handle o URL https" },
+	{ id: "tiktok", label: "TikTok", hint: "URL https" },
+	{ id: "youtube", label: "YouTube", hint: "URL https" },
+	{ id: "facebook", label: "Facebook", hint: "URL https" },
+	{ id: "x", label: "X", hint: "URL https" },
+	{
+		id: "soundcloud",
+		label: "SoundCloud",
+		hint: "Enlace directo al perfil, track o playlist",
+	},
+	{
+		id: "spotify",
+		label: "Spotify",
+		hint: "Enlace directo al perfil, track o playlist",
+	},
 ];
 
-function FieldValue({
-	field,
-	table,
+function Field({
+	id,
+	label,
+	hint,
+	error,
+	children,
 }: {
-	field: FieldId;
-	table: TanstackTable<FieldRow>;
+	id: string;
+	label: string;
+	hint?: string;
+	error?: string;
+	children: ReactNode;
 }) {
-	const meta = table.options.meta as ContentMeta;
-	const { draft, setDraft, errors, ids, setSaved, addPhotos, removePhoto } =
-		meta;
+	return (
+		<div className="flex flex-col gap-1.5">
+			<label htmlFor={id} className="text-sm font-medium text-foreground">
+				{label}
+			</label>
+			{children}
+			{error ? (
+				<p id={`${id}-error`} className="text-xs text-destructive">
+					{error}
+				</p>
+			) : hint ? (
+				<p id={`${id}-hint`} className="text-xs text-tertiary-foreground">
+					{hint}
+				</p>
+			) : null}
+		</div>
+	);
+}
+
+function validate(draft: DjContentDraft): FieldErrors {
+	const errors: FieldErrors = {};
+	if (!draft.displayName.trim()) errors.displayName = "Indicá el nombre.";
+	if (!DJ_TEMPLATES.some((template) => template.id === draft.template)) {
+		errors.template = "Elegí una plantilla.";
+	}
+	return errors;
+}
+
+export default function DjContentPage() {
+	const { dj, setDj, draft, setDraft, save, live } = useDjProfile({
+		syncLive: true,
+	});
+	const pageUrl = djPublicUrl(dj);
+	const [errors, setErrors] = useState<FieldErrors>({});
+	const [saved, setSaved] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [saveTick, setSaveTick] = useState(0);
+	const ids = {
+		displayName: useId(),
+		tagline: useId(),
+		bio: useId(),
+		city: useId(),
+		template: useId(),
+		photos: useId(),
+	};
 
 	const touch = (patch: Partial<DjContentDraft>) => {
 		setDraft((current) => ({ ...current, ...patch }));
 		setSaved(false);
 	};
 
-	if (field === "bio") {
-		return (
-			<div className="flex flex-col gap-1 py-1 w-full min-w-0">
-				<label htmlFor={ids.bio} className="sr-only">
-					Biografía
-				</label>
-				<LongInput
-					id={ids.bio}
-					value={draft.bio}
-					onChange={(event) => touch({ bio: event.target.value })}
-					aria-invalid={Boolean(errors.bio)}
-					aria-describedby={errors.bio ? `${ids.bio}-error` : undefined}
-				/>
-				{errors.bio ? (
-					<p id={`${ids.bio}-error`} className="text-xs text-destructive">
-						{errors.bio}
-					</p>
-				) : null}
-			</div>
-		);
-	}
-
-	if (field === "city") {
-		return (
-			<div className="flex flex-col gap-1 py-1 w-full min-w-0">
-				<label htmlFor={ids.city} className="sr-only">
-					Ciudad
-				</label>
-				<Input
-					id={ids.city}
-					value={draft.city}
-					onChange={(event) => touch({ city: event.target.value })}
-					aria-invalid={Boolean(errors.city)}
-					aria-describedby={errors.city ? `${ids.city}-error` : undefined}
-				/>
-				{errors.city ? (
-					<p id={`${ids.city}-error`} className="text-xs text-destructive">
-						{errors.city}
-					</p>
-				) : null}
-			</div>
-		);
-	}
-
-	if (field === "template") {
-		return (
-			<div className="flex flex-col gap-1 py-1 w-full min-w-0">
-				<label htmlFor={ids.template} className="sr-only">
-					Plantilla
-				</label>
-				<select
-					id={ids.template}
-					value={draft.template}
-					onChange={(event) => touch({ template: event.target.value })}
-					aria-invalid={Boolean(errors.template)}
-					aria-describedby={
-						errors.template ? `${ids.template}-error` : undefined
-					}
-					className="selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 rounded-lg border text-sm px-2 h-9 shadow-sm outline-none bg-input-background"
-				>
-					{DJ_TEMPLATES.map((template) => (
-						<option key={template} value={template}>
-							{template}
-						</option>
-					))}
-				</select>
-				{errors.template ? (
-					<p id={`${ids.template}-error`} className="text-xs text-destructive">
-						{errors.template}
-					</p>
-				) : null}
-			</div>
-		);
-	}
-
-	if (field === "instagram") {
-		return (
-			<div className="flex flex-col gap-1 py-1 w-full min-w-0">
-				<label htmlFor={ids.instagram} className="sr-only">
-					Instagram
-				</label>
-				<Input
-					id={ids.instagram}
-					value={draft.instagram}
-					onChange={(event) => touch({ instagram: event.target.value })}
-					placeholder="@tuhandle"
-					aria-invalid={Boolean(errors.instagram)}
-					aria-describedby={
-						errors.instagram ? `${ids.instagram}-error` : undefined
-					}
-				/>
-				{errors.instagram ? (
-					<p id={`${ids.instagram}-error`} className="text-xs text-destructive">
-						{errors.instagram}
-					</p>
-				) : (
-					<p className="text-xs text-tertiary-foreground">
-						Este es el canal de contacto en la página pública.
-					</p>
-				)}
-			</div>
-		);
-	}
-
-	return (
-		<div className="flex flex-col gap-2 py-1 w-full min-w-0">
-			<label htmlFor={ids.photos} className="sr-only">
-				Fotos
-			</label>
-			<input
-				id={ids.photos}
-				type="file"
-				accept="image/*"
-				multiple
-				onChange={(event) => {
-					addPhotos(event.target.files);
-					event.target.value = "";
-				}}
-				className="text-sm text-tertiary-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-interactive-secondary file:px-3 file:py-1.5 file:text-sm file:text-foreground"
-			/>
-			{draft.photos.length === 0 ? (
-				<p className="text-sm text-tertiary-foreground">
-					Todavía no hay fotos. Se guardan acá, no en un servidor.
-				</p>
-			) : (
-				<ul className="flex flex-col gap-1">
-					{draft.photos.map((photo) => (
-						<li
-							key={photo.id}
-							className="flex items-center justify-between gap-2"
-						>
-							<span className="truncate text-sm">{photo.name}</span>
-							<Button
-								type="button"
-								variant="secondary"
-								size="sm"
-								onClick={() => removePhoto(photo.id)}
-								aria-label={`Quitar ${photo.name}`}
-							>
-								Quitar
-							</Button>
-						</li>
-					))}
-				</ul>
-			)}
-		</div>
-	);
-}
-
-const columns: ColumnDef<FieldRow>[] = [
-	{
-		header: "Field",
-		accessorKey: "label",
-		size: 160,
-		cell: ({ row }) => (
-			<span className="text-tertiary-foreground">{row.original.label}</span>
-		),
-	},
-	{
-		header: "Value",
-		id: "value",
-		cell: ({ row, table }) => (
-			<FieldValue field={row.original.id} table={table} />
-		),
-	},
-];
-
-function validate(draft: DjContentDraft): FieldErrors {
-	const errors: FieldErrors = {};
-	if (!draft.bio.trim()) errors.bio = "Escribí una bio corta.";
-	if (!draft.city.trim()) errors.city = "Indicá la ciudad.";
-	if (!draft.template.trim()) errors.template = "Elegí una plantilla.";
-	if (!draft.instagram.trim()) {
-		errors.instagram = "Indicá el Instagram.";
-	} else if (!/^@?[\w.]+$/.test(draft.instagram.trim())) {
-		errors.instagram = "Usá un handle, con o sin @.";
-	}
-	return errors;
-}
-
-export default function DjContentPage() {
-	const { dj, setDj, draft, setDraft, save } = useDjProfile();
-	const [errors, setErrors] = useState<FieldErrors>({});
-	const [saved, setSaved] = useState(false);
-	const ids = {
-		bio: useId(),
-		city: useId(),
-		template: useId(),
-		instagram: useId(),
-		photos: useId(),
+	const touchLink = (id: keyof DjLinkDraft, value: string) => {
+		setDraft((current) => ({
+			...current,
+			links: { ...current.links, [id]: value },
+		}));
+		setSaved(false);
 	};
 
 	const addPhotos = (files: FileList | null) => {
@@ -272,7 +135,7 @@ export default function DjContentPage() {
 		setSaved(false);
 	};
 
-	const onSubmit = (event: FormEvent) => {
+	const onSubmit = async (event: FormEvent) => {
 		event.preventDefault();
 		const nextErrors = validate(draft);
 		setErrors(nextErrors);
@@ -280,28 +143,24 @@ export default function DjContentPage() {
 			setSaved(false);
 			return;
 		}
-		const instagram = draft.instagram.startsWith("@")
-			? draft.instagram
-			: `@${draft.instagram}`;
-		save({ ...draft, instagram });
-		setSaved(true);
+		setSaving(true);
+		try {
+			await save(draft);
+			setErrors({});
+			setSaved(true);
+			setSaveTick((tick) => tick + 1);
+		} catch (error) {
+			setSaved(false);
+			setErrors({
+				save:
+					error instanceof Error
+						? error.message
+						: "No se pudo publicar el contenido.",
+			});
+		} finally {
+			setSaving(false);
+		}
 	};
-
-	const table = useCustomerTable({
-		data: FIELD_ROWS,
-		columns,
-		options: {
-			meta: {
-				draft,
-				setDraft,
-				errors,
-				ids,
-				setSaved,
-				addPhotos,
-				removePhoto,
-			} satisfies ContentMeta,
-		},
-	});
 
 	return (
 		<PageContainer>
@@ -320,7 +179,7 @@ export default function DjContentPage() {
 				<div className="flex items-center gap-2">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
 					<Button variant="secondary" size="sm" asChild>
-						<a href={djPublicUrl(dj)} target="_blank" rel="noreferrer">
+						<a href={pageUrl} target="_blank" rel="noreferrer">
 							<ArrowSquareOutIcon size={16} aria-hidden />
 							Abrir página
 						</a>
@@ -340,54 +199,202 @@ export default function DjContentPage() {
 				title="Contenido"
 			>
 				<CopyButton
-					text={dj.domain}
-					title={dj.domain}
+					text={pageUrl}
+					title={pageUrl}
 					size="mini"
 					className="text-tertiary-foreground"
 					innerClassName="max-w-30 text-tiny-id truncate !font-normal"
 				/>
 			</PageHeader>
 			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
-				Bio, redes, ciudad y fotos. GigBlade publica esto en tu dominio. Vos no
-				tocás hosting.
+				Guardá y recargá el preview local ({pageUrl.replace(/^https?:\/\//, "")})
+				para ver claro, oscuro o party. Todavía no se abre el dominio propio.
 			</p>
 
-			<form onSubmit={onSubmit} noValidate>
-				<Table.Provider
-					config={{
-						table,
-						numberOfColumns: columns.length,
-						enableSorting: false,
-						flexibleTableColumns: true,
-						rowClassName: "h-auto",
-					}}
-				>
-					<Table.Container>
-						<Table.Toolbar>
-							<Table.Heading>
-								<IdentificationCardIcon
-									size={16}
-									weight="fill"
-									className="text-subtle"
-									aria-hidden
-								/>
-								Campos
-							</Table.Heading>
-							<Table.Actions>
-								<Button type="submit" variant="primary" size="sm">
-									Guardar
-								</Button>
-							</Table.Actions>
-						</Table.Toolbar>
-						<Table.Content>
-							<Table.Header />
-							<Table.Body />
-						</Table.Content>
-					</Table.Container>
-				</Table.Provider>
-				<p className="text-xs text-tertiary-foreground mt-3" aria-live="polite">
-					{saved ? "Guardado en este navegador." : null}
-				</p>
+			<form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+				<section className="border rounded-lg p-5 flex flex-col gap-4">
+					<h2 className="text-sm font-semibold text-foreground">Perfil</h2>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<Field
+							id={ids.displayName}
+							label="Nombre"
+							error={errors.displayName}
+						>
+							<Input
+								id={ids.displayName}
+								value={draft.displayName}
+								onChange={(event) =>
+									touch({ displayName: event.target.value })
+								}
+								aria-invalid={Boolean(errors.displayName)}
+								aria-describedby={
+									errors.displayName
+										? `${ids.displayName}-error`
+										: undefined
+								}
+								required
+							/>
+						</Field>
+						<Field id={ids.city} label="Ciudad">
+							<Input
+								id={ids.city}
+								value={draft.city}
+								onChange={(event) => touch({ city: event.target.value })}
+							/>
+						</Field>
+					</div>
+					<Field
+						id={ids.tagline}
+						label="Tagline"
+						hint="Una línea para la portada."
+					>
+						<Input
+							id={ids.tagline}
+							value={draft.tagline}
+							onChange={(event) => touch({ tagline: event.target.value })}
+							aria-describedby={`${ids.tagline}-hint`}
+						/>
+					</Field>
+					<Field id={ids.bio} label="Biografía">
+						<LongInput
+							id={ids.bio}
+							value={draft.bio}
+							onChange={(event) => touch({ bio: event.target.value })}
+							rows={5}
+						/>
+					</Field>
+				</section>
+
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-3">
+					<legend className="text-sm font-semibold text-foreground px-1">
+						Apariencia
+					</legend>
+					<div
+						id={ids.template}
+						role="radiogroup"
+						aria-invalid={Boolean(errors.template)}
+						aria-describedby={
+							errors.template ? `${ids.template}-error` : `${ids.template}-hint`
+						}
+						className="grid gap-2 sm:grid-cols-3"
+					>
+						{DJ_TEMPLATES.map((template) => {
+							const checked = draft.template === template.id;
+							return (
+								<label
+									key={template.id}
+									className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${
+										checked
+											? "border-foreground bg-interactive-secondary text-foreground"
+											: "border-input text-tertiary-foreground"
+									}`}
+								>
+									<input
+										type="radio"
+										name="template"
+										value={template.id}
+										checked={checked}
+										onChange={() => touch({ template: template.id })}
+										className="accent-foreground"
+									/>
+									{template.label}
+								</label>
+							);
+						})}
+					</div>
+					{errors.template ? (
+						<p id={`${ids.template}-error`} className="text-xs text-destructive">
+							{errors.template}
+						</p>
+					) : (
+						<p id={`${ids.template}-hint`} className="text-xs text-tertiary-foreground">
+							Claro, oscuro o party. El cambio se ve al recargar el preview.
+						</p>
+					)}
+					<BrandColorPicker
+						value={draft.brandColor}
+						onChange={(brandColor) => touch({ brandColor })}
+					/>
+				</fieldset>
+
+				<section className="border rounded-lg p-5 flex flex-col gap-4">
+					<h2 className="text-sm font-semibold text-foreground">
+						Redes y música
+					</h2>
+					<div className="grid gap-4 sm:grid-cols-2">
+						{LINK_ROWS.map((link) => {
+							const fieldId = `${ids.displayName}-${link.id}`;
+							return (
+								<Field
+									key={link.id}
+									id={fieldId}
+									label={link.label}
+									hint={link.hint}
+								>
+									<Input
+										id={fieldId}
+										value={draft.links[link.id]}
+										onChange={(event) =>
+											touchLink(link.id, event.target.value)
+										}
+										aria-describedby={`${fieldId}-hint`}
+									/>
+								</Field>
+							);
+						})}
+					</div>
+				</section>
+
+				<section className="border rounded-lg p-5 flex flex-col gap-3">
+					<h2 className="text-sm font-semibold text-foreground">Fotos</h2>
+					<label htmlFor={ids.photos} className="text-sm font-medium text-foreground">
+						Archivos
+					</label>
+					<input
+						id={ids.photos}
+						type="file"
+						accept="image/*"
+						multiple
+						onChange={(event) => {
+							addPhotos(event.target.files);
+							event.target.value = "";
+						}}
+						className="text-sm text-tertiary-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-interactive-secondary file:px-3 file:py-1.5 file:text-sm file:text-foreground"
+					/>
+					{draft.photos.length === 0 ? (
+						<p className="text-sm text-tertiary-foreground">
+							Las fotos todavía no se publican en la página.
+						</p>
+					) : (
+						<ul className="flex flex-col gap-1">
+							{draft.photos.map((photo) => (
+								<li
+									key={photo.id}
+									className="flex items-center justify-between gap-2"
+								>
+									<span className="truncate text-sm">{photo.name}</span>
+									<Button
+										type="button"
+										variant="secondary"
+										size="sm"
+										onClick={() => removePhoto(photo.id)}
+										aria-label={`Quitar ${photo.name}`}
+									>
+										Quitar
+									</Button>
+								</li>
+							))}
+						</ul>
+					)}
+				</section>
+
+				<SavePublishControl
+					saving={saving}
+					saved={saved}
+					live={live}
+					error={errors.save}
+					saveTick={saveTick}
+				/>
 			</form>
 		</PageContainer>
 	);

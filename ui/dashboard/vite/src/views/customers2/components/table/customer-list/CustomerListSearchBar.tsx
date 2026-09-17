@@ -8,7 +8,9 @@ export function CustomerListSearchBar() {
 	const { queryStates, setFilters } = useCustomerFilters();
 
 	const setFiltersRef = useRef(setFilters);
-	setFiltersRef.current = setFilters;
+	useEffect(() => {
+		setFiltersRef.current = setFilters;
+	});
 
 	const lastPushedRef = useRef(queryStates.q);
 
@@ -27,11 +29,12 @@ export function CustomerListSearchBar() {
 
 	// When the URL value changes from something other than our own debounce
 	// (e.g. saved view applied, filter restore), sync the input to match.
-	if (queryStates.q !== lastPushedRef.current) {
+	useEffect(() => {
+		if (queryStates.q === lastPushedRef.current) return;
 		lastPushedRef.current = queryStates.q;
 		setLocalQuery(queryStates.q);
 		debouncedSearch.cancel();
-	}
+	}, [queryStates.q, debouncedSearch]);
 
 	return (
 		<div className="relative flex items-center flex-1 min-w-0">

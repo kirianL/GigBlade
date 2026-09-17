@@ -32,16 +32,13 @@ export function useAccordion(count: number): Accordion {
 	const [dissolveDir, setDissolveDir] = useState(1);
 
 	const setActiveIndex = (index: number) => {
-		setActiveIndexState((current) => {
-			if (current !== index) {
-				setPrevActiveIndex(current);
-				setRevealKey((k) => k + 1);
-				// Sweep from the side the new slide was clicked on: +1 reveals
-				// right→left (clicked the right spine), -1 reveals left→right.
-				setDissolveDir(Math.sign(ringOffset(index, current, count)) || 1);
-			}
-			return index;
-		});
+		if (index === activeIndex) return;
+		setPrevActiveIndex(activeIndex);
+		setRevealKey((k) => k + 1);
+		// Sweep from the side the new slide was clicked on: +1 reveals
+		// right→left (clicked the right spine), -1 reveals left→right.
+		setDissolveDir(Math.sign(ringOffset(index, activeIndex, count)) || 1);
+		setActiveIndexState(index);
 	};
 
 	useEffect(() => {

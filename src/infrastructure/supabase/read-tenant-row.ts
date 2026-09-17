@@ -8,7 +8,7 @@ import {
 import { logPlatformEvent, raisePlatformAlert } from "@/lib/http/log";
 
 export type TenantReadContext = PostgrestQueryContext & {
-  operation: "tenants.findById" | "tenants.list";
+  operation: "tenants.findById" | "tenants.list" | "tenants.updateSiteContent";
 };
 
 const PLANS = new Set<TenantPlan>(["all_inclusive"]);

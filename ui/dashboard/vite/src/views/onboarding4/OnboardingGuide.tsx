@@ -46,12 +46,6 @@ interface OnboardingStep {
 	waitingFor?: string;
 }
 
-// Animation timing that matches inline sheet animations
-const STEP_CARD_ANIMATION = {
-	duration: 0.45,
-	ease: [0.32, 0.72, 0, 1] as const,
-};
-
 const ONBOARDING_STEPS: OnboardingStep[] = [
 	{
 		id: "plans",
@@ -102,13 +96,10 @@ function StepCard({
 	const [createProductOpen, setCreateProductOpen] = useState(false);
 
 	return (
-		<motion.div
-			initial={false}
-			animate={{ flex: isActive ? 4 : 1 }}
-			transition={STEP_CARD_ANIMATION}
+		<div
 			className={cn(
 				"relative rounded-xl bg-muted dark:bg-card border cursor-pointer h-21 overflow-hidden",
-				isActive ? "cursor-default" : "hover:border-primary/20",
+				isActive ? "flex-[4] cursor-default" : "flex-1 hover:border-primary/20",
 				isComplete && !isActive && "opacity-50",
 			)}
 			onClick={onClick}
@@ -233,7 +224,7 @@ function StepCard({
 					</motion.div>
 				)}
 			</AnimatePresence>
-		</motion.div>
+		</div>
 	);
 }
 

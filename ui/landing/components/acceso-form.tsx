@@ -117,8 +117,11 @@ function AccessRoll({
 	const optionsRef = useRef(options);
 	const lastText = useRef(text);
 	const played = useRef(false);
-	textRef.current = text;
-	optionsRef.current = options;
+
+	useEffect(() => {
+		textRef.current = text;
+		optionsRef.current = options;
+	});
 
 	useEffect(() => {
 		if (reduceMotion) return;
@@ -564,7 +567,6 @@ export default function AccesoForm() {
 							</motion.div>
 
 							<motion.div
-								layout
 								className="mt-6 flex w-full items-center gap-2 sm:mt-7 sm:w-auto"
 								transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
 							>
@@ -577,22 +579,22 @@ export default function AccesoForm() {
 											aria-label="Volver"
 											initial={{
 												opacity: 0,
-												width: 0,
-												marginRight: 0,
 												transform: reduceMotion ? "none" : "translateX(-8px)",
 											}}
 											animate={{
 												opacity: 1,
-												width: 48,
-												marginRight: 0,
 												transform: "translateX(0px)",
 											}}
 											exit={{
 												opacity: 0,
-												width: 0,
-												transform: reduceMotion ? "none" : "translateX(-8px)",
+												transform: reduceMotion
+													? "none"
+													: "translateX(-8px)",
 											}}
-											transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
+											transition={{
+												duration: reduceMotion ? 0 : 0.28,
+												ease: EASE,
+											}}
 											className="access-back access-press flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-[#343734] bg-[#101210] text-white/70 transition-[border-color,color,background-color] duration-160 hover:border-white/30 hover:bg-[#151815] hover:text-white"
 										>
 											<span className="access-back-icon">

@@ -5,13 +5,13 @@ import {
 	BreadcrumbSeparator,
 	SheetBackdrop,
 } from "@autumn/ui";
-import { motion } from "motion/react";
 import { useCallback, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNavigate, useParams } from "react-router";
 import { AdminHover } from "@/components/general/AdminHover";
 import { InlineSheetPanel } from "@/components/v2/sheets/InlineSheetPanel";
 import { useMigrationsQuery } from "@/hooks/queries/useMigrationsQuery";
+import { cn } from "@/lib/utils";
 import { navigateTo } from "@/utils/genUtils";
 import { SHEET_ANIMATION } from "@/views/customers2/customer/customerAnimations";
 import ErrorScreen from "@/views/general/ErrorScreen";
@@ -54,12 +54,11 @@ export function MigrationView() {
 
 	return (
 		<div className="flex w-full h-full overflow-hidden relative">
-			<motion.div
-				className="h-full overflow-hidden absolute inset-0 z-0"
-				animate={{
-					width: selectedCustomer ? "calc(100% - 28rem)" : "100%",
-				}}
-				transition={SHEET_ANIMATION}
+			<div
+				className={cn(
+					"h-full overflow-hidden absolute top-0 bottom-0 left-0 z-0",
+					selectedCustomer ? "right-[28rem]" : "right-0",
+				)}
 			>
 				<div className="flex flex-col overflow-y-auto absolute inset-0 pb-8">
 					<div className="flex flex-col h-fit w-full max-w-5xl mx-auto pt-4 sm:pt-8">
@@ -91,7 +90,7 @@ export function MigrationView() {
 						</div>
 					</div>
 				</div>
-			</motion.div>
+			</div>
 
 			<SheetBackdrop isOpen={!!selectedCustomer} onClose={closeSheet} />
 

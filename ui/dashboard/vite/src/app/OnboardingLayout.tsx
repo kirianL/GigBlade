@@ -24,6 +24,12 @@ export function OnboardingLayout() {
 		return () => window.removeEventListener("error", handleGlobalError);
 	}, [handleApiError]);
 
+	useEffect(() => {
+		if (!isPending && !data) {
+			navigate("/sign-in");
+		}
+	}, [data, isPending, navigate]);
+
 	// 1. If not loaded, show loading screen
 	if (isPending) {
 		return (
@@ -34,17 +40,14 @@ export function OnboardingLayout() {
 				)}
 				includeCredentials={true}
 			>
-				<div className="w-screen h-screen flex items-center justify-center bg-background">
-					<LoadingScreen />
-				</div>
+				<LoadingScreen fullPage />
 			</AutumnProvider>
 		);
 	}
 
 	// 2. If no user, redirect to sign in
 	if (!data) {
-		navigate("/sign-in");
-		return;
+		return null;
 	}
 
 	return (

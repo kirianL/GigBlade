@@ -235,7 +235,9 @@ export function usePlanSheet(sheetType: string | null): PlanSheetState {
 	const { features = [] } = useFeaturesQuery();
 
 	const productRef = useRef(product);
-	productRef.current = product;
+	useEffect(() => {
+		productRef.current = product;
+	});
 
 	useEffect(() => {
 		if (!sheetType) return;

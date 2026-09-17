@@ -1,7 +1,10 @@
 import { notFound, validationError } from "@/domain/errors";
 import { isValidPublicHostname, normalizeHostname } from "@/domain/hostname";
+import { readSiteProfile, type SiteProfile } from "@/domain/site-profile";
 import {
   assertRegisteredTemplate,
+  getSiteTemplateAppearance,
+  type SiteTemplateAppearance,
   type SiteTemplateId,
 } from "@/domain/site-template";
 
@@ -34,7 +37,8 @@ export type PublicTenant = {
   slug: string;
   domain: string;
   templateId: SiteTemplateId;
-  themeConfig: Record<string, unknown>;
+  appearance: SiteTemplateAppearance;
+  profile: SiteProfile;
 };
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -69,11 +73,14 @@ export function toPublicTenant(
     throw notFound("Tenant no disponible");
   }
 
+  const templateId = assertRegisteredTemplate(tenant.templateId);
+
   return {
     slug: tenant.slug,
     domain: canonicalHostname,
-    templateId: assertRegisteredTemplate(tenant.templateId),
-    themeConfig: tenant.themeConfig,
+    templateId,
+    appearance: getSiteTemplateAppearance(templateId),
+    profile: readSiteProfile(tenant.slug, tenant.themeConfig),
   };
 }
 

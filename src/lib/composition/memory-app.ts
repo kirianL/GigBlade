@@ -1,5 +1,8 @@
+import { join } from "node:path";
+
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
+import { updateTenantSiteContent } from "@/application/tenants/update-tenant-site-content";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWishlistRequests } from "@/application/wishlist/list-wishlist-requests";
 import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
@@ -8,29 +11,46 @@ import { InMemoryTenantRepository } from "@/infrastructure/memory/in-memory-tena
 import { InMemoryTenantRoutingStore } from "@/infrastructure/memory/in-memory-tenant-routing-store";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
 import { InMemoryWishlistRepository } from "@/infrastructure/memory/in-memory-wishlist-repository";
+import {
+  MEMORY_DEMO_ROUTING,
+  MEMORY_DEMO_SEEDS,
+  MEMORY_TENANT_ID,
+} from "@/lib/tenant/memory-demo-routing";
 
-export const MEMORY_TENANT_ID = "11111111-1111-4111-8111-111111111111";
-
-export const memoryDemoTenant: Tenant = {
-  id: MEMORY_TENANT_ID,
-  slug: "demo",
+export const memoryDemoTenants: Tenant[] = MEMORY_DEMO_SEEDS.map((seed) => ({
+  id: seed.id,
+  slug: seed.slug,
   plan: "all_inclusive",
-  templateId: "after",
+  templateId: seed.templateId,
   themeConfig: {
-    displayName: "Nox",
-    tagline: "Sets nocturnos para pistas que no cierran",
-    city: "San José",
+    displayName: seed.displayName,
+    tagline: seed.tagline,
+    city: seed.city,
+    bio: seed.bio,
+    links: seed.links,
+    photos: seed.photos,
   },
   status: "active",
-};
+}));
+
+export const memoryDemoTenant =
+  memoryDemoTenants.find((tenant) => tenant.id === MEMORY_TENANT_ID) ??
+  memoryDemoTenants[0];
 
 export function createMemoryApp() {
-  const tenants = new InMemoryTenantRepository([memoryDemoTenant]);
-  const routing = new InMemoryTenantRoutingStore([
-    ["localhost", createTenantRouting(memoryDemoTenant, "localhost")],
-    ["127.0.0.1", createTenantRouting(memoryDemoTenant, "localhost")],
-    ["demo.localhost", createTenantRouting(memoryDemoTenant, "demo.localhost")],
-  ]);
+  const tenants = new InMemoryTenantRepository(
+    memoryDemoTenants,
+    join(process.cwd(), ".next", "memory-tenants.json"),
+  );
+  const routing = new InMemoryTenantRoutingStore(
+    Object.entries(MEMORY_DEMO_ROUTING).map(([hostname, entry]) => {
+      const tenant = memoryDemoTenants.find((item) => item.id === entry.id);
+      if (!tenant) {
+        throw new Error(`Tenant de memoria ausente para ${hostname}`);
+      }
+      return [hostname, createTenantRouting(tenant, hostname)];
+    }),
+  );
   const wishlist = new InMemoryWishlistRepository();
   const waitlist = new InMemoryWaitlistRepository();
 
@@ -39,6 +59,10 @@ export function createMemoryApp() {
     routing,
     getPublicTenant: (context: Parameters<typeof getPublicTenant>[1]) =>
       getPublicTenant(tenants, context),
+    updateTenantSiteContent: (
+      context: Parameters<typeof updateTenantSiteContent>[1],
+      input: unknown,
+    ) => updateTenantSiteContent(tenants, context, input),
     resolveTenantRouting: (hostname: string) =>
       resolveTenantRouting(routing, hostname),
     submitWishlistRequest: (

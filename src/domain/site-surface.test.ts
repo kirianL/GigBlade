@@ -17,8 +17,10 @@ describe("site-surface", () => {
 
   it("sirve el sitio DJ en preview *.localhost y en dominio propio", () => {
     expect(isTenantPreviewHostname("demo.localhost")).toBe(true);
+    expect(isTenantPreviewHostname("marco.localhost")).toBe(true);
     expect(isTenantPreviewHostname("localhost")).toBe(false);
     expect(servesTenantSiteSurface("demo.localhost")).toBe(true);
+    expect(servesTenantSiteSurface("marco.localhost")).toBe(true);
     expect(servesTenantSiteSurface("djmarco.com")).toBe(true);
   });
 

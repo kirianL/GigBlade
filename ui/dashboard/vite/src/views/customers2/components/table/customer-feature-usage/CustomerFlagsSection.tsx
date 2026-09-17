@@ -23,8 +23,6 @@ const TAB_CLASSNAME = cn(
 
 const ENTER_TRANSITION = { duration: 0.2, ease: [0.23, 1, 0.32, 1] } as const;
 const EXIT_TRANSITION = { duration: 0.12, ease: "easeOut" } as const;
-// No spring — bouncing the row height would shove everything below it around.
-const HEIGHT_TRANSITION = { duration: 0.25, ease: [0.23, 1, 0.32, 1] } as const;
 
 export function CustomerFlagsSection({
 	booleanEnts,
@@ -42,7 +40,6 @@ export function CustomerFlagsSection({
 		visibleEnts,
 		hiddenCount,
 		hasOverflow,
-		rowHeight,
 		containerRef,
 		measureRef,
 		rowRef,
@@ -106,11 +103,7 @@ export function CustomerFlagsSection({
 					<div className={OVERFLOW_PILL_CLASSNAME}>Show less</div>
 				</div>
 
-				<motion.div
-					animate={{ height: rowHeight }}
-					transition={reduceMotion ? { duration: 0 } : HEIGHT_TRANSITION}
-					className="overflow-hidden"
-				>
+				<div className="overflow-hidden">
 					<div
 						ref={rowRef}
 						className={cn(
@@ -158,7 +151,7 @@ export function CustomerFlagsSection({
 							</button>
 						)}
 					</div>
-				</motion.div>
+				</div>
 			</div>
 		</div>
 	);

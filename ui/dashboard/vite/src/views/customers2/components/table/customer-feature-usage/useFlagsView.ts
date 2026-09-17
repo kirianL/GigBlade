@@ -32,8 +32,7 @@ export function useFlagsView({
 		hasIndicator: true,
 	});
 
-	const { ref: rowRef, height: measuredHeight } =
-		useMeasuredHeight<HTMLDivElement>();
+	const { ref: rowRef } = useMeasuredHeight<HTMLDivElement>();
 
 	const isCollapsed = !showingCatalog && !expanded;
 	const visibleEnts = isCollapsed
@@ -49,7 +48,6 @@ export function useFlagsView({
 		// One condition for both labels — deriving it from `hiddenCount` would drop
 		// to 0 on expand, unmounting the button and replaying its enter animation.
 		hasOverflow: !showingCatalog && visibleCount < booleanEnts.length,
-		rowHeight: measuredHeight ?? "auto",
 		containerRef,
 		measureRef,
 		rowRef,

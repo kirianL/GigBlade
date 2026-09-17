@@ -14,7 +14,9 @@ export const useFormValuesListener = <TValues>({
 	onChange?: (values: TValues) => void;
 }) => {
 	const onChangeRef = useRef(onChange);
-	onChangeRef.current = onChange;
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	});
 
 	useEffect(() => {
 		let previous = store.state.values;

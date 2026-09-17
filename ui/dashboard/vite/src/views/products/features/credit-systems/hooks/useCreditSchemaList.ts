@@ -1,6 +1,6 @@
 import type { CreditSchemaItem, Feature } from "@autumn/shared";
 import { FeatureType, isAiCreditSystem } from "@autumn/shared";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFeaturesQuery } from "@/hooks/queries/useFeaturesQuery";
 import { createSchemaItem } from "../utils/creditSchemaUtils";
 
@@ -28,9 +28,11 @@ export function useCreditSchemaList({
 		const nextKeys = [...schemaKeysRef.current];
 		while (nextKeys.length < schema.length) nextKeys.push(crypto.randomUUID());
 		while (nextKeys.length > schema.length) nextKeys.pop();
-		schemaKeysRef.current = nextKeys;
 		return nextKeys;
 	}, [schema.length]);
+	useEffect(() => {
+		schemaKeysRef.current = schemaKeys;
+	});
 
 	const allSchemaCandidateFeatures = features.filter(
 		(f: Feature) => f.type === FeatureType.Metered || isAiCreditSystem(f.type),

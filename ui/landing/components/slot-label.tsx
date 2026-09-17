@@ -37,8 +37,11 @@ export default function SlotLabel({
 	const ctrl = useRef<SlotTextController | null>(null);
 	const textRef = useRef(text);
 	const optionsRef = useRef(options);
-	textRef.current = text;
-	optionsRef.current = options;
+
+	useEffect(() => {
+		textRef.current = text;
+		optionsRef.current = options;
+	});
 
 	const ensure = () => {
 		const el = ref.current;
@@ -100,6 +103,7 @@ export default function SlotLabel({
 		const root = el.closest("[data-slot-hover-root]") ?? el;
 
 		const enter = () => {
+			if (!media.matches) return;
 			ensure()?.set(textRef.current, {
 				skipUnchanged: false,
 				interrupt: true,
@@ -108,25 +112,9 @@ export default function SlotLabel({
 			});
 		};
 
-		const bind = () => {
-			if (!media.matches) return;
-			root.addEventListener("mouseenter", enter);
-		};
-
-		const unbind = () => {
-			root.removeEventListener("mouseenter", enter);
-		};
-
-		const onChange = () => {
-			unbind();
-			bind();
-		};
-
-		bind();
-		media.addEventListener("change", onChange);
+		root.addEventListener("mouseenter", enter);
 		return () => {
-			unbind();
-			media.removeEventListener("change", onChange);
+			root.removeEventListener("mouseenter", enter);
 		};
 	}, [hover, hoverTint]);
 

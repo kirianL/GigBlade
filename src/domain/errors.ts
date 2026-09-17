@@ -30,6 +30,10 @@ export function validationError(message: string): AppError {
   return new AppError("VALIDATION_ERROR", message, 400);
 }
 
+export function unauthorized(message = "No autorizado"): AppError {
+  return new AppError("UNAUTHORIZED", message, 401);
+}
+
 export function notFound(message = "Recurso no encontrado"): AppError {
   return new AppError("NOT_FOUND", message, 404);
 }

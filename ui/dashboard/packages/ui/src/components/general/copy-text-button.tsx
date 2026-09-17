@@ -22,9 +22,11 @@ export function CopyTextButton({
 	const [copied, setCopied] = useState(false);
 
 	useEffect(() => {
-		setTimeout(() => {
+		if (!copied) return;
+		const id = window.setTimeout(() => {
 			setCopied(false);
 		}, 1000);
+		return () => window.clearTimeout(id);
 	}, [copied]);
 
 	return (

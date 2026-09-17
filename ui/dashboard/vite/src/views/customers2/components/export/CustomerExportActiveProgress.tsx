@@ -42,11 +42,10 @@ export function CustomerExportActiveProgress({
 				<motion.output
 					key="export-progress"
 					className="block overflow-hidden"
-					initial={{ opacity: 0, height: 0 }}
-					animate={{ opacity: 1, height: "auto" }}
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
 					exit={{
 						opacity: 0,
-						height: 0,
 						transition: shouldReduceMotion ? { duration: 0 } : EXIT_TRANSITION,
 					}}
 					transition={shouldReduceMotion ? { duration: 0 } : ENTER_TRANSITION}
@@ -64,11 +63,11 @@ export function CustomerExportActiveProgress({
 
 						<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
 							<motion.div
-								className="h-full rounded-full bg-primary"
+								className="h-full w-full origin-left rounded-full bg-primary"
 								initial={false}
-								animate={{ width: `${percent}%` }}
+								animate={{ scaleX: percent / PERCENT_MAX }}
 								exit={{
-									width: "100%",
+									scaleX: 1,
 									transition: shouldReduceMotion
 										? { duration: 0 }
 										: FILL_TRANSITION,

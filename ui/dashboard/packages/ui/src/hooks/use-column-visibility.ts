@@ -3,7 +3,7 @@ import type {
 	Updater,
 	VisibilityState,
 } from "@tanstack/react-table";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_PREFIX = "autumn:table-columns:";
 
@@ -114,7 +114,9 @@ export function useColumnVisibility<T>({
 	}, [columns, savedVisibility, defaultVisibleColumnIds]);
 
 	const columnVisibilityRef = useRef(columnVisibility);
-	columnVisibilityRef.current = columnVisibility;
+	useEffect(() => {
+		columnVisibilityRef.current = columnVisibility;
+	});
 
 	// Only user-initiated changes (column toggles) flow through this setter,
 	// so the dirty flag accurately reflects unsaved user intent.

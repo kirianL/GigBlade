@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import { planItems } from "@/lib/plan-items";
 
@@ -8,9 +8,10 @@ export default function PricingModelsMobile() {
 	const [activeId, setActiveId] = useState<(typeof planItems)[number]["id"]>(
 		planItems[0].id,
 	);
+	const panelId = useId();
 
 	return (
-		<section className="flex w-full flex-col overflow-hidden bg-[#000000]">
+		<section className="flex w-full flex-col [overflow-anchor:none] bg-[#000000]">
 			<div className="relative z-10 flex flex-col px-4 py-12">
 				<h2 className="font-sans text-[28px] leading-[1.1] font-normal tracking-[-2%] sm:text-[32px]">
 					<span className="text-[#FFFFFF99]">Un solo plan.</span>{" "}
@@ -28,6 +29,7 @@ export default function PricingModelsMobile() {
 				<ul className="flex flex-col">
 					{planItems.map((item) => {
 						const isActive = activeId === item.id;
+						const itemPanelId = `${panelId}-${item.id}`;
 						return (
 							<li
 								key={item.id}
@@ -41,7 +43,8 @@ export default function PricingModelsMobile() {
 									onClick={() => setActiveId(item.id)}
 									aria-pressed={isActive}
 									aria-expanded={isActive}
-									className="w-full bg-transparent text-left"
+									aria-controls={isActive ? itemPanelId : undefined}
+									className="w-full bg-transparent text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
 								>
 									<div
 										className={cn(
@@ -52,16 +55,25 @@ export default function PricingModelsMobile() {
 										{item.label}
 									</div>
 								</button>
-								<div
-									className={cn(
-										"grid overflow-hidden border-b border-brand-accent px-4 text-[14px] leading-[1.4] font-light tracking-[-2%] text-pretty text-[#FFFFFF99] transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:text-[16px]",
-										isActive ? "grid-rows-[1fr]" : "grid-rows-[0fr] border-b-0",
-									)}
-								>
-									<div className="overflow-hidden">
-										<div className="pb-6">{item.desc}</div>
+								{isActive ? (
+									<div
+										id={itemPanelId}
+										className="border-b border-brand-accent px-4 text-[14px] leading-[1.4] font-light tracking-[-2%] text-pretty text-[#FFFFFF99] md:text-[16px]"
+									>
+										<div className="grid pb-6">
+											{planItems.map((sizer) => (
+												<p
+													key={sizer.id}
+													className="col-start-1 row-start-1 invisible"
+													aria-hidden="true"
+												>
+													{sizer.desc}
+												</p>
+											))}
+											<p className="col-start-1 row-start-1">{item.desc}</p>
+										</div>
 									</div>
-								</div>
+								) : null}
 							</li>
 						);
 					})}

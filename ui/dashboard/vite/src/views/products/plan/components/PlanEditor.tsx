@@ -1,16 +1,15 @@
 import { useIsMobile } from "@autumn/ui";
-import { motion } from "motion/react";
 import { useSheet } from "@/components/v2/inline-custom-plan-editor/PlanEditorContext";
 import { SheetOverlay } from "@/components/v2/sheet-overlay/SheetOverlay";
 import {
 	useIsCusPlanEditor,
 	useProductStore,
 } from "@/hooks/stores/useProductStore";
+import { cn } from "@/lib/utils";
 import { CustomerPlanEditorBar } from "@/views/customers2/customer-plan/CustomerPlanEditorBar";
 import { CustomerPlanInfoBox } from "@/views/customers2/customer-plan/CustomerPlanInfoBox";
 import { OnboardingGuide } from "@/views/onboarding4/OnboardingGuide";
 import { ProductSheets } from "../ProductSheets";
-import { SHEET_ANIMATION } from "../planAnimations";
 import { EditPlanHeader } from "./EditPlanHeader";
 import PlanCard from "./plan-card/PlanCard";
 import { LicensePlanCards } from "./plan-licenses/LicensePlanCards";
@@ -31,12 +30,11 @@ export const PlanEditor = () => {
 	return (
 		<PendingLicenseLinksProvider scope={planId ? `plan:${planId}` : undefined}>
 			<div className="flex w-full h-full overflow-hidden relative">
-				<motion.div
-					className="h-full overflow-hidden absolute inset-0"
-					animate={{
-						width: isSheetOpen && !isMobile ? "calc(100% - 28rem)" : "100%",
-					}}
-					transition={SHEET_ANIMATION}
+				<div
+					className={cn(
+						"h-full overflow-hidden absolute top-0 bottom-0 left-0",
+						isSheetOpen && !isMobile ? "right-[28rem]" : "right-0",
+					)}
 				>
 					{/* pb matches PlanEditorBar's h-40 so the last card scrolls clear of it */}
 					<div className="flex flex-col justify-start h-full w-full overflow-x-hidden overflow-y-auto pb-40">
@@ -60,7 +58,7 @@ export const PlanEditor = () => {
 							{isCusPlanEditor ? <CustomerPlanEditorBar /> : <SaveChangesBar />}
 						</div>
 					</div>
-				</motion.div>
+				</div>
 
 				<SheetOverlay inline />
 

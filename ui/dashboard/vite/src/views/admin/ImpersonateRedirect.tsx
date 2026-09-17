@@ -110,9 +110,11 @@ export function ImpersonateRedirect() {
 		axiosInstance,
 	]);
 
-	if (!isAdmin && isPending) {
-		navigate("/");
-	}
+	useEffect(() => {
+		if (!isAdmin && isPending) {
+			navigate("/");
+		}
+	}, [isAdmin, isPending, navigate]);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background">

@@ -28,9 +28,12 @@ export const OTPSignIn = ({
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (resendCountdown > 0) {
-			setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
-		}
+		if (resendCountdown <= 0) return;
+		const id = window.setTimeout(
+			() => setResendCountdown((count) => count - 1),
+			1000,
+		);
+		return () => window.clearTimeout(id);
 	}, [resendCountdown]);
 
 	const handleSubmit = async (otp: string) => {

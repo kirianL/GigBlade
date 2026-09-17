@@ -6,10 +6,10 @@ Estado: arquitectura objetivo para el MVP. Landing pública y dashboard operativ
 
 ### Estado de implementación
 
-- Hecho: migraciones SQL sin bookings, dominio de tenant, fakes en memoria, adaptadores reales, `/api/tenant`, switch `APP_RUNTIME`, landing `/`, dashboard `/dashboard` y cableado de plantillas de sitio DJ (`template_id`, rewrite a `/site`).
+- Hecho: migraciones SQL sin bookings, dominio de tenant, fakes en memoria, adaptadores reales, `/api/tenant`, switch `APP_RUNTIME`, landing `/`, dashboard `/dashboard`, cableado de plantillas de sitio DJ (`template_id`, rewrite a `/site`) y diseño visual `pista` (claro) / `festival` (oscuro) / `after` (party).
 - Cableado: `getApp()` lee `APP_RUNTIME`. `memory` (default) usa fakes; `real` instancia `createRealApp()`.
-- Fuera de alcance ahora: persistir bookings o formularios de contacto; diseño visual de las plantillas DJ.
-- Pendiente: MFA en dashboard, Edge Config, Cloudflare, Vercel Domains, aplicar migraciones y diseñar las plantillas.
+- Fuera de alcance ahora: persistir bookings o formularios de contacto; fotos publicadas en el sitio.
+- Pendiente: MFA en dashboard, Edge Config, Cloudflare, Vercel Domains, aplicar migraciones y sesión para PATCH de contenido en `APP_RUNTIME=real`.
 
 ## Principios no negociables
 
@@ -119,13 +119,45 @@ Un mismo deploy atiende dos superficies. El hostname decide, nunca un `tenant_id
 | Superficie | Hosts | Rutas públicas |
 |---|---|---|
 | Plataforma (marketing) | `gigblade.com`, `www`, `*.vercel.app`, `localhost`, IPs LAN | landing actual |
-| Sitio DJ | dominio propio del tenant o `*.localhost` de preview (`demo.localhost`) | rewrite interno a `/site` |
+| Sitio DJ | dominio propio del tenant o `*.localhost` de preview | rewrite interno a `/site` |
 
 `src/proxy.ts` resuelve el tenant, escribe encabezados internos y, si el host es superficie de sitio, reescribe `/` → `/site`. No se reescriben `/api/*`, `/dashboard` ni archivos estáticos.
 
-La plantilla es un id de catálogo en código, persistido en `tenants.template_id` (migración `0007_tenant_site_templates.sql`). No vive solo dentro de `theme_config`. Ids actuales: `pista`, `festival`, `after`. Un id desconocido falla cerrado (`404`).
+La plantilla es un id de catálogo en código, persistido en `tenants.template_id` (migración `0007_tenant_site_templates.sql`). No vive solo dentro de `theme_config`. Un id desconocido falla cerrado (`404`). No se cambian los ids de base de datos: el producto los expone como tres apariencias.
 
-`theme_config` sigue siendo contenido/tokens (nombre, tagline, ciudad). El registro `src/lib/tenant/templates/registry.ts` mapea cada id a un renderer. Hoy los tres ids apuntan al mismo placeholder estructural, sin diseño visual.
+| `template_id` | Apariencia | Intención |
+|---|---|---|
+| `pista` | `light` | Modo claro |
+| `festival` | `dark` | Modo oscuro |
+| `after` | `party` | Modo party |
+
+El renderer marca `data-appearance` (`light` / `dark` / `party`) y `data-template` con el id persistido. En local no se abre el dominio propio: cada DJ de memoria se previsualiza en `{slug}.localhost`.
+
+`theme_config` es el contenido público del DJ, no tokens de paleta por ahora:
+
+```ts
+type ThemeConfig = {
+  displayName?: string;
+  tagline?: string;
+  city?: string;
+  bio?: string;
+  links?: {
+    instagram?: string;
+    tiktok?: string;
+    youtube?: string;
+    facebook?: string;
+    x?: string;
+    soundcloud?: string;
+    spotify?: string;
+  };
+};
+```
+
+Redes y música viven en `theme_config.links`. SoundCloud y Spotify son enlaces directos `https` a la ficha del artista (track, playlist o perfil). No hay tabla aparte en esta fase. El servidor recorta cualquier URL que no sea `https` o cuyo host no esté en la allowlist (`instagram.com`, `tiktok.com`, `youtube.com` / `youtu.be`, `facebook.com` / `fb.com`, `x.com` / `twitter.com`, `soundcloud.com`, `open.spotify.com`). Un enlace inválido se omite; no tumba el sitio.
+
+El registro `src/lib/tenant/templates/registry.ts` mapea cada id a su renderer. Las landings comparten secciones estructurales (`intro`, `agenda`, `bio`, `enlaces`, `contacto`) con un orden distinto por plantilla. Agenda y contacto no persisten datos. Subpaths de `/site/*` responden `404`; solo está la landing.
+
+`GET /api/tenant` devuelve el contrato público (plantilla, apariencia y perfil sanitizado). No expone `theme_config` crudo ni el id interno. `PATCH /api/tenant` guarda `template_id` + `theme_config` filtrando por el `tenant_id` del hostname, nunca por un id del body. En `APP_RUNTIME=memory` el editor del dashboard publica contra ese PATCH en el preview del DJ seleccionado. En `real` el PATCH responde `401` hasta que exista sesión de miembro. El dashboard en `ui/dashboard/vite/src/gigblade` usa los mismos ids (`pista` / `festival` / `after`) y los mismos campos de `links`.
 
 Contrato público (`GET /api/tenant` y el sitio):
 
@@ -134,11 +166,34 @@ type PublicTenant = {
   slug: string;
   domain: string;
   templateId: "pista" | "festival" | "after";
-  themeConfig: Record<string, unknown>;
+  appearance: "light" | "dark" | "party";
+  profile: {
+    displayName: string;
+    tagline: string;
+    city: string;
+    bio: string;
+    links: {
+      instagram?: string;
+      tiktok?: string;
+      youtube?: string;
+      facebook?: string;
+      x?: string;
+      soundcloud?: string;
+      spotify?: string;
+    };
+  };
 };
 ```
 
-En local: `http://localhost:3000` es la landing de GigBlade. `http://demo.localhost:3000` (o `http://localhost:3000/site` con el tenant de memoria) es el sitio DJ.
+En local, `http://localhost:3000` es solo la landing de GigBlade. El dashboard (`:3001`) abre y publica contra el preview del DJ, no contra el dominio propio:
+
+| DJ | Preview | Apariencia |
+|---|---|---|
+| Marco | `http://marco.localhost:3000` | claro (`pista`) |
+| Luna | `http://luna.localhost:3000` | oscuro (`festival`) |
+| Nox | `http://nox.localhost:3000` o `http://demo.localhost:3000` | party (`after`) |
+
+Chrome y Edge resuelven `*.localhost` a loopback. PowerShell no: para probar con curl usá `Host: marco.localhost` contra `127.0.0.1:3000`. Guardar en el dashboard pega `PATCH /api/tenant` en ese origin; recargar la pestaña del sitio muestra el cambio. El contenido de memoria se comparte en `.next/memory-tenants.json` para que el editor y la página pública no se desincronicen.
 
 #### Lectura pública (visitante anónimo)
 
@@ -622,7 +677,7 @@ src/
     http/
     rate-limit/
     tenant/
-      templates/          # registro de renderers (sin diseño en esta fase)
+      templates/          # renderers pista(claro)/festival(oscuro)/after(party) y enlaces estructurales
 ```
 
 Convenciones:

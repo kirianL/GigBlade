@@ -18,9 +18,9 @@ export const Step3CreateApiKey = () => {
 	const [copied, setCopied] = useState(false);
 
 	useEffect(() => {
-		if (copied) {
-			setTimeout(() => setCopied(false), 1000);
-		}
+		if (!copied) return;
+		const id = window.setTimeout(() => setCopied(false), 1000);
+		return () => window.clearTimeout(id);
 	}, [copied]);
 
 	const handleCreate = async () => {

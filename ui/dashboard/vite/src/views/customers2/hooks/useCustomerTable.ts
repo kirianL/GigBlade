@@ -30,7 +30,8 @@ export function useCustomerTable<
 		getFilteredRowModel: getFilteredRowModel(),
 		enableSorting,
 		// Use stable customer ID instead of array index for row identity
-		getRowId: (row) => row.id || row.internal_id || crypto.randomUUID(),
+		getRowId: (row, index) =>
+			row.id || row.internal_id || `row-${index}`,
 		...options,
 	});
 }

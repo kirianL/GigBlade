@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type SetValue<T> = (value: T | ((prev: T) => T)) => void;
 
@@ -55,9 +55,9 @@ export function useLocalStorage<T>(
 		setStoredValue(readValue());
 	}, []);
 
-	const setValue: SetValue<T> = (value) => {
+	const setValue = useCallback<SetValue<T>>((value) => {
 		setStoredValue((prev) => (value instanceof Function ? value(prev) : value));
-	};
+	}, []);
 
 	return [storedValue, setValue];
 }

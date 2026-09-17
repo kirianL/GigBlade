@@ -1,6 +1,6 @@
 import type { FrontendProduct, ProductItem } from "@autumn/shared";
 import { Button, Sheet, SheetContent } from "@autumn/ui";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ProductProvider,
 	useCurrentItem,
@@ -102,18 +102,16 @@ function MigrationOperationSheetContent({
 
 	const [product, setProductState] = useState<FrontendProduct>(buildInit);
 	const latestProduct = useRef<FrontendProduct>(product);
+	useEffect(() => {
+		latestProduct.current = product;
+	});
 
 	const wrappedSetProduct = (
 		p: FrontendProduct | ((prev: FrontendProduct) => FrontendProduct),
 	) => {
 		if (typeof p === "function") {
-			setProductState((prev) => {
-				const next = p(prev);
-				latestProduct.current = next;
-				return next;
-			});
+			setProductState((prev) => p(prev));
 		} else {
-			latestProduct.current = p;
 			setProductState(p);
 		}
 	};

@@ -1,0 +1,131 @@
+/* ==========================================================================
+   GIGBLADE DJ TEMPLATE SYSTEM  —  SITE.CSS
+   Crafted following Emil Kowalski's Design Engineering & Apple Design principles
+   ========================================================================== */
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Base Theme Appearances */
+[data-tenant-site] {
+  min-height: 100dvh;
+  background-color: var(--site-bg);
+  color: var(--site-fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+/* PISTA — Light / Editorial Brutalist */
+[data-appearance="light"] {
+  --site-bg: #ffffff;
+  --site-fg: #000000;
+  --site-muted: #555555;
+  --site-card-bg: transparent;
+  --site-card-border: rgba(0, 0, 0, 0.15);
+  --site-card-hover: rgba(0, 0, 0, 0.05);
+  --site-accent: #000000;
+  --site-surface: #f5f5f5;
+  --site-nav-bg: #ffffff;
+  --site-badge-bg: transparent;
+  --site-badge-border: rgba(0, 0, 0, 1);
+}
+
+/* FESTIVAL — Dark / Editorial Midnight */
+[data-appearance="dark"] {
+  --site-bg: #000000;
+  --site-fg: #ffffff;
+  --site-muted: #aaaaaa;
+  --site-card-bg: transparent;
+  --site-card-border: rgba(255, 255, 255, 0.15);
+  --site-card-hover: rgba(255, 255, 255, 0.05);
+  --site-accent: #ffffff;
+  --site-surface: #111111;
+  --site-nav-bg: #000000;
+  --site-badge-bg: transparent;
+  --site-badge-border: rgba(255, 255, 255, 1);
+}
+
+/* AFTER — Party / Brutalist Red (Sauced Reference) */
+[data-appearance="party"] {
+  --site-bg: #e52b20;
+  --site-fg: #000000;
+  --site-muted: rgba(0, 0, 0, 0.7);
+  --site-card-bg: transparent;
+  --site-card-border: rgba(0, 0, 0, 0.2);
+  --site-card-hover: rgba(0, 0, 0, 0.1);
+  --site-accent: #000000;
+  --site-surface: #cc251b;
+  --site-nav-bg: #e52b20;
+  --site-badge-bg: transparent;
+  --site-badge-border: rgba(0, 0, 0, 1);
+}
+
+/* Display Font Class */
+.font-display {
+  font-family: var(--font-site-display), var(--font-geist-sans), sans-serif;
+  letter-spacing: -0.03em;
+}
+
+/* Lenis Smooth Scroll Integration */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Press Feedback (Emil Kowalski / Apple Design) */
+.pressable {
+  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+  will-change: transform;
+}
+
+.pressable:active {
+  transform: scale(0.97) !important;
+}
+
+/* Hide scrollbar for gallery and clean scrollers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Touch-action guard for mobile and Instagram In-App Browser */
+.touch-pan-y-guard {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

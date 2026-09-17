@@ -1,14 +1,8 @@
-import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
-
-const EXPAND_TRANSITION = {
-	duration: 0.2,
-	ease: [0.32, 0.72, 0, 1] as const,
-};
 
 /**
  * Consistent label + control row used across plan config and advanced sections.
- * Pass `expanded` to animate children in/out; omit it to render children statically.
+ * Pass `expanded` to show or hide children; omit it to render children statically.
  */
 export function ConfigRow({
 	title,
@@ -37,29 +31,9 @@ export function ConfigRow({
 				{action && <div className="flex shrink-0">{action}</div>}
 			</div>
 			{expanded !== undefined ? (
-				<AnimatePresence initial={false}>
-					{expanded && children && (
-						<motion.div
-							initial={{ height: 0, opacity: 0 }}
-							animate={{
-								height: "auto",
-								opacity: 1,
-								transition: {
-									height: EXPAND_TRANSITION,
-									opacity: { duration: 0.15, delay: 0.05 },
-								},
-							}}
-							exit={{
-								height: 0,
-								opacity: 0,
-								transition: EXPAND_TRANSITION,
-							}}
-							className="overflow-hidden"
-						>
-							{children}
-						</motion.div>
-					)}
-				</AnimatePresence>
+				expanded && children ? (
+					<div className="overflow-hidden">{children}</div>
+				) : null
 			) : (
 				children
 			)}

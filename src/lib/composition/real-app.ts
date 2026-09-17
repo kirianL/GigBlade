@@ -1,5 +1,6 @@
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
+import { updateTenantSiteContent } from "@/application/tenants/update-tenant-site-content";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWishlistRequests } from "@/application/wishlist/list-wishlist-requests";
 import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
@@ -27,6 +28,10 @@ export function createRealApp() {
     projectDomains: new VercelProjectDomains(),
     getPublicTenant: (context: Parameters<typeof getPublicTenant>[1]) =>
       getPublicTenant(tenants, context),
+    updateTenantSiteContent: (
+      context: Parameters<typeof updateTenantSiteContent>[1],
+      input: unknown,
+    ) => updateTenantSiteContent(tenants, context, input),
     resolveTenantRouting: (hostname: string) =>
       resolveTenantRouting(routing, hostname),
     submitWishlistRequest: (

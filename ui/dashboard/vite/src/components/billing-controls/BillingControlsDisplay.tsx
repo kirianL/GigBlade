@@ -17,18 +17,12 @@ import {
 	TooltipTrigger,
 } from "@autumn/ui";
 import { format } from "date-fns";
-import { motion } from "motion/react";
 import { createContext, Fragment, type ReactNode, useContext } from "react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/views/customers2/components/table/EmptyState";
 import { skipOverageBillingLabel } from "./overageBillingOptions";
 import { USAGE_ALERT_BASIS_LABELS } from "./usageAlertBasisOptions";
 import { USAGE_ALERT_THRESHOLD_TYPE_LABELS } from "./usageAlertThresholdTypeOptions";
-
-const ROW_SWAP_TRANSITION = {
-	duration: 0.2,
-	ease: [0.32, 0.72, 0, 1] as const,
-};
 
 const rowClassName =
 	"flex flex-col justify-center gap-1 rounded-lg border px-3 py-2.5 min-w-0 transition-none bg-interactive-secondary";
@@ -462,13 +456,9 @@ function BillingControlRowSlot({
 	children: ReactNode;
 }) {
 	return (
-		<motion.div
-			animate={{ height: "auto" }}
-			transition={ROW_SWAP_TRANSITION}
-			className="overflow-hidden"
-		>
+		<div className="overflow-hidden">
 			{isEditing && editingContent ? editingContent() : children}
-		</motion.div>
+		</div>
 	);
 }
 

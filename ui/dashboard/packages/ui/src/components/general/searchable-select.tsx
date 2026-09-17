@@ -14,7 +14,6 @@ import {
 } from "@autumn/ui/components/ui/popover";
 import { cn } from "@autumn/ui/lib/utils";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -104,9 +103,41 @@ export function SearchableSelect<T>({
 
 	const handleSelect = (option: T) => {
 		if (getOptionDisabled?.(option)) return;
-		onValueChange(getOptionValue(option));
+		const next = getOptionValue(option);
+		if (next !== value) onValueChange(next);
 		setOpen(false);
 	};
+
+	const filter = useCallback(
+		(optionValue: string, search: string) => {
+			if (!shouldFilter) return 1;
+			if (!searchable) return 1;
+			const option = options.find(
+				(opt) => getOptionValue(opt).toLowerCase() === optionValue.toLowerCase(),
+			);
+			if (!option) return 0;
+			const searchLower = search.trim().toLowerCase();
+			if (!searchLower) return 1;
+			const haystack = [
+				getOptionLabel(option),
+				optionValue,
+				...(getOptionSearchTerms?.(option) ?? []),
+			];
+			return haystack.some((term) =>
+				term?.toLowerCase().includes(searchLower),
+			)
+				? 1
+				: 0;
+		},
+		[
+			getOptionLabel,
+			getOptionSearchTerms,
+			getOptionValue,
+			options,
+			searchable,
+			shouldFilter,
+		],
+	);
 
 	const defaultRenderValue = (option: T | undefined) => {
 		if (!option)
@@ -152,101 +183,68 @@ export function SearchableSelect<T>({
 					</button>
 				)}
 			</PopoverTrigger>
-			<AnimatePresence>
-				{open && (
-					<PopoverContent
-						align="start"
-						className={cn(
-							"w-(--anchor-width) p-0 z-200 rounded-md overflow-hidden",
-							contentClassName,
-						)}
-						asChild
-					>
-						<motion.div
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							exit={{ opacity: 0 }}
-							transition={{ duration: 0.3 }}
-						>
-							<Command
-								className="bg-interactive-secondary"
-								filter={
-									!shouldFilter
-										? () => 1
-										: searchable
-											? (optionValue, search) => {
-													const option = options.find(
-														(opt) => getOptionValue(opt) === optionValue,
-													);
-													if (!option) return 0;
-													const searchLower = search.trim().toLowerCase();
-													const haystack = [
-														getOptionLabel(option),
-														optionValue,
-														...(getOptionSearchTerms?.(option) ?? []),
-													];
-													return haystack.some((term) =>
-														term?.toLowerCase().includes(searchLower),
-													)
-														? 1
-														: 0;
-												}
-											: undefined
-								}
-							>
-								{searchable && (
-									<CommandInput
-										placeholder={searchPlaceholder}
-										onValueChange={onSearchChange}
-									/>
-								)}
-								{header}
-								<CommandList>
-									{(emptyText !== null || isLoading) && (
-										<CommandEmpty className="text-tertiary-foreground">
-											{isLoading ? (
-												<div className="flex justify-center items-center py-2">
-													<SmallSpinner size={14} />
-												</div>
-											) : (
-												emptyText
-											)}
-										</CommandEmpty>
-									)}
-									<CommandGroup>
-										{options.map((option) => {
-											const optionValue = getOptionValue(option);
-											const isSelected = optionValue === value;
-											const isDisabled = getOptionDisabled?.(option) ?? false;
-
-											return (
-												<CommandItem
-													key={optionValue}
-													value={optionValue}
-													onSelect={() => handleSelect(option)}
-													disabled={isDisabled}
-													className={cn(
-														"min-w-0 cursor-pointer",
-														isDisabled &&
-															"text-subtle pointer-events-none opacity-50",
-													)}
-												>
-													{renderOption
-														? renderOption(option, isSelected)
-														: defaultRenderOption(option, isSelected)}
-												</CommandItem>
-											);
-										})}
-									</CommandGroup>
-								</CommandList>
-							</Command>
-							{typeof footer === "function"
-								? footer({ close: () => setOpen(false) })
-								: footer}
-						</motion.div>
-					</PopoverContent>
+			<PopoverContent
+				align="start"
+				className={cn(
+					"w-(--anchor-width) min-w-40 p-0 z-200 rounded-md overflow-hidden",
+					contentClassName,
 				)}
-			</AnimatePresence>
+			>
+				<Command
+					className="bg-interactive-secondary"
+					shouldFilter={shouldFilter}
+					filter={shouldFilter ? filter : undefined}
+				>
+					{searchable && (
+						<CommandInput
+							placeholder={searchPlaceholder}
+							onValueChange={onSearchChange}
+						/>
+					)}
+					{header}
+					<CommandList>
+						{(emptyText !== null || isLoading) && (
+							<CommandEmpty className="text-tertiary-foreground">
+								{isLoading ? (
+									<div className="flex justify-center items-center py-2">
+										<SmallSpinner size={14} />
+									</div>
+								) : (
+									emptyText
+								)}
+							</CommandEmpty>
+						)}
+						<CommandGroup>
+							{options.map((option) => {
+								const optionValue = getOptionValue(option);
+								const isSelected = optionValue === value;
+								const isDisabled = getOptionDisabled?.(option) ?? false;
+
+								return (
+									<CommandItem
+										key={optionValue}
+										value={optionValue}
+										onSelect={() => handleSelect(option)}
+										disabled={isDisabled}
+										className={cn(
+											"min-w-0 cursor-pointer",
+											isDisabled &&
+												"text-subtle pointer-events-none opacity-50",
+										)}
+									>
+										{renderOption
+											? renderOption(option, isSelected)
+											: defaultRenderOption(option, isSelected)}
+									</CommandItem>
+								);
+							})}
+						</CommandGroup>
+					</CommandList>
+				</Command>
+				{typeof footer === "function"
+					? footer({ close: () => setOpen(false) })
+					: footer}
+			</PopoverContent>
 		</Popover>
 	);
 }

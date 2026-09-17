@@ -50,12 +50,13 @@ export const CreateApiKeySheet = ({
 			setApiKey("");
 			setCopied(false);
 			setValidationError(null);
-		} else if (!open) {
-			refetch();
-			setTimeout(() => {
-				setApiKey("");
-			}, 500);
+			return;
 		}
+		refetch();
+		const id = window.setTimeout(() => {
+			setApiKey("");
+		}, 500);
+		return () => window.clearTimeout(id);
 	}, [open, refetch]);
 
 	useEffect(() => {
@@ -68,9 +69,9 @@ export const CreateApiKeySheet = ({
 	}, [name]);
 
 	useEffect(() => {
-		if (copied) {
-			setTimeout(() => setCopied(false), 1000);
-		}
+		if (!copied) return;
+		const id = window.setTimeout(() => setCopied(false), 1000);
+		return () => window.clearTimeout(id);
 	}, [copied]);
 
 	const handleCreate = async () => {
