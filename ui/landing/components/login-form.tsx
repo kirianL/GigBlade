@@ -55,7 +55,16 @@ export default function LoginForm() {
 				setSubmitting(false);
 				return;
 			}
-			const next = new URL("/sign-in", getDashboardUrl());
+			let next: URL;
+			try {
+				next = new URL("/sign-in", getDashboardUrl());
+			} catch {
+				setError(
+					"NEXT_PUBLIC_DASHBOARD_URL no es una URL válida. Tiene que ser la del proyecto gig-blade, con https://",
+				);
+				setSubmitting(false);
+				return;
+			}
 			next.searchParams.set("token", body.token);
 			if (body.user?.role === "dj" && body.user.slug) {
 				next.searchParams.set("next", `/studio?dj=${body.user.slug}`);
