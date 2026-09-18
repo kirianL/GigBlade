@@ -65,5 +65,11 @@ export function failPostgrestQuery(
     immediate: isPostgrestSchemaFailure(error.code),
   });
 
+  if (error.code === "PGRST301" || /unregistered api key|jwt/i.test(error.message ?? "")) {
+    throw serviceUnavailable(
+      "Supabase rechazó la API key. En Vercel, SUPABASE_SERVICE_ROLE_KEY tiene que ser la secret actual (sb_secret_…), no la publishable.",
+    );
+  }
+
   throw serviceUnavailable("No se pudo completar la operación");
 }
