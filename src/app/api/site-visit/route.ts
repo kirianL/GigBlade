@@ -12,7 +12,7 @@ import {
   jsonWithTenantCors,
   tenantApiPreflight,
 } from "@/lib/http/tenant-api-cors";
-import { getTenantContext } from "@/lib/tenant/from-headers";
+import { getRequestTenantContext } from "@/lib/tenant/request-context";
 
 export function OPTIONS(request: Request) {
   return tenantApiPreflight(request);
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const context = await getTenantContext();
+    const context = await getRequestTenantContext(request);
     const stats = await getApp().getSiteVisitStats(context);
     return jsonWithTenantCors(request, stats, { requestId });
   } catch (error) {
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       limit: 120,
       windowMs: 10 * 60 * 1000,
     });
-    const context = await getTenantContext();
+    const context = await getRequestTenantContext(request);
     const stats = await getApp().recordSiteVisit(
       context,
       visitorFingerprint(

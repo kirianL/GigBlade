@@ -1,4 +1,5 @@
 import { djPreviewOrigin } from "@/gigblade/concept";
+import { readPanelAuthSession } from "@/gigblade/panel-session";
 
 const FETCH_TIMEOUT_MS = 4000;
 
@@ -78,8 +79,15 @@ function withTimeout(parent?: AbortSignal, timeoutMs = FETCH_TIMEOUT_MS) {
 	};
 }
 
+function siteOrigin() {
+	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");
+	return configured || "http://localhost:3000";
+}
+
 function tenantApi(slug: string, path = "/api/tenant") {
-	return `${djPreviewOrigin(slug)}${path}`;
+	const url = new URL(path, `${siteOrigin()}/`);
+	url.searchParams.set("slug", slug);
+	return url.toString();
 }
 
 export function publicSiteAssetUrl(slug: string, url: string) {
@@ -87,17 +95,7 @@ export function publicSiteAssetUrl(slug: string, url: string) {
 }
 
 function platformApiOrigin() {
-	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");
-	if (configured) {
-		try {
-			const parsed = new URL(configured);
-			const port = parsed.port ? `:${parsed.port}` : "";
-			return `${parsed.protocol}//localhost${port}`;
-		} catch {
-			// keep default
-		}
-	}
-	return "http://localhost:3000";
+	return siteOrigin();
 }
 
 export type SiteVisitStats = {
@@ -142,9 +140,13 @@ export async function savePublicSite(
 ): Promise<PublicSite> {
 	const timeout = withTimeout(signal);
 	try {
+		const session = readPanelAuthSession();
 		const response = await fetch(tenantApi(slug), {
 			method: "PATCH",
-			headers: { "content-type": "application/json" },
+			headers: {
+				"content-type": "application/json",
+				...(session?.token ? { authorization: `Bearer ${session.token}` } : {}),
+			},
 			body: JSON.stringify(input),
 			signal: timeout.signal,
 		});
@@ -155,16 +157,12 @@ export async function savePublicSite(
 		return body as PublicSite;
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
-			throw new Error(
-				"La página local no respondió. ¿Está corriendo Next en :3000?",
-			);
+			throw new Error("La API del sitio no respondió.");
 		}
 		if (error instanceof Error && error.name !== "TypeError") {
 			throw error;
 		}
-		throw new Error(
-			"No se pudo publicar en el preview local. ¿Está corriendo Next en :3000?",
-		);
+		throw new Error("No se pudo publicar el contenido.");
 	} finally {
 		timeout.cancel();
 	}
@@ -209,7 +207,13 @@ export async function fetchPlatformSites(
 ): Promise<PlatformSite[] | null> {
 	const timeout = withTimeout(signal);
 	try {
+		const session = readPanelAuthSession();
+		const headers = new Headers();
+		if (session?.token) {
+			headers.set("authorization", `Bearer ${session.token}`);
+		}
 		const response = await fetch(`${platformApiOrigin()}/api/platform/sites`, {
+			headers,
 			signal: timeout.signal,
 		});
 		if (!response.ok) return null;
@@ -271,7 +275,7 @@ async function panelFetch(
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
 			throw new Error(
-				"El panel local no respondió. ¿Está corriendo Next en :3000?",
+				"La API del sitio no respondió.",
 			);
 		}
 		throw error;

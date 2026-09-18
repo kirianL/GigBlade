@@ -1,12 +1,13 @@
 import { unauthorized } from "@/domain/errors";
-import { getApp, getRuntime } from "@/lib/composition/app";
+import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
+import { readBearerToken } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
   tenantApiPreflight,
 } from "@/lib/http/tenant-api-cors";
-import { getTenantContext } from "@/lib/tenant/from-headers";
+import { getRequestTenantContext } from "@/lib/tenant/request-context";
 
 export function OPTIONS(request: Request) {
   return tenantApiPreflight(request);
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const context = await getTenantContext();
+    const context = await getRequestTenantContext(request);
     const tenant = await getApp().getPublicTenant(context);
 
     return jsonWithTenantCors(request, tenant, { requestId });
@@ -29,11 +30,12 @@ export async function PATCH(request: Request) {
   const requestId = createRequestId();
 
   try {
-    if (getRuntime() !== "memory") {
-      throw unauthorized("El editor de contenido requiere sesión");
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const context = await getRequestTenantContext(request);
+    const current = await getApp().getPublicTenant(context);
+    if (actor.role !== "platform" && actor.slug !== current.slug) {
+      throw unauthorized("No podés editar este sitio.");
     }
-
-    const context = await getTenantContext();
     const input = await request.json().catch(() => null);
     const tenant = await getApp().updateTenantSiteContent(context, input);
 
