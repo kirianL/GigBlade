@@ -53,9 +53,6 @@ if (process.env.NODE_ENV === "production") {
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   agentRules: false,
-  experimental: {
-    viewTransition: true,
-  },
   pageExtensions: ["ts", "tsx", "md", "mdx"],
   allowedDevOrigins: [
     "192.168.50.197",
