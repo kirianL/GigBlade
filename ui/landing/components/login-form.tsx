@@ -55,7 +55,15 @@ export default function LoginForm() {
 				setSubmitting(false);
 				return;
 			}
-			const next = new URL("/sign-in", getDashboardUrl());
+			const dashboard = getDashboardUrl();
+			const sameOrigin = (() => {
+				try {
+					return new URL(dashboard).origin === window.location.origin;
+				} catch {
+					return true;
+				}
+			})();
+			const next = new URL("/sign-in", sameOrigin ? window.location.origin : dashboard);
 			next.searchParams.set("token", body.token);
 			if (body.user?.role === "dj" && body.user.slug) {
 				next.searchParams.set("next", `/studio?dj=${body.user.slug}`);

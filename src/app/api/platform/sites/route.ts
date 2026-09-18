@@ -1,6 +1,7 @@
 import { unauthorized } from "@/domain/errors";
-import { getApp, getRuntime } from "@/lib/composition/app";
+import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
+import { readBearerToken } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -15,8 +16,9 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    if (getRuntime() !== "memory") {
-      throw unauthorized("El listado de dominios requiere sesión");
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    if (actor.role !== "platform") {
+      throw unauthorized("Solo la plataforma puede listar sitios.");
     }
 
     const sites = await getApp().listPlatformSites();
