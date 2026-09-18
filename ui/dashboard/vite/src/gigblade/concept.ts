@@ -182,6 +182,23 @@ export function djPublicUrl(dj: Pick<GigbladeDj, "slug">) {
 	return djPreviewOrigin(dj.slug);
 }
 
+export function djIntendedDomain(dj: Pick<GigbladeDj, "domain">) {
+	if (!dj.domain || dj.domain.includes("localhost")) return null;
+	return dj.domain;
+}
+
+export function formatVisitCount(visitors: number) {
+	return visitors === 1 ? "1 visitante" : `${visitors} visitantes`;
+}
+
+export function formatLastVisit(iso: string | null) {
+	if (!iso) return "Sin visitas todavía";
+	return new Date(iso).toLocaleString("es-CR", {
+		dateStyle: "medium",
+		timeStyle: "short",
+	});
+}
+
 export function djInstagramUrl(dj: Pick<GigbladeDj, "instagram">) {
 	return `https://instagram.com/${dj.instagram.replace(/^@/, "")}`;
 }

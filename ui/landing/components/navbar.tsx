@@ -164,7 +164,17 @@ export default function Navbar({
 	const barRef = useRef<HTMLDivElement | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const isLg = useMediaQuery("(min-width: 1024px)");
-	const panelHref = getDashboardUrl();
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const panelHref = isLoggedIn ? getDashboardUrl() : "/login";
+
+	useEffect(() => {
+		setIsLoggedIn(
+			document.cookie
+				.split("; ")
+				.find((row) => row.startsWith("logged_in_hint="))
+				?.split("=")[1] === "1",
+		);
+	}, []);
 
 	useEffect(() => {
 		if (!menuOpen) return;

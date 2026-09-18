@@ -59,6 +59,16 @@ export const DashboardGate = () => {
 			destination !== "/" ? `?next=${encodeURIComponent(destination)}` : "";
 		return <Navigate to={`/sign-in${next}`} replace />;
 	}
+
+	const panelUser = session?.user as { role?: string; slug?: string } | undefined;
+	if (!sessionLoading && panelUser?.role === "dj") {
+		const studio = panelUser.slug
+			? `/studio?dj=${encodeURIComponent(panelUser.slug)}`
+			: "/studio";
+		if (!pathname.startsWith("/studio")) {
+			return <Navigate to={studio} replace />;
+		}
+	}
 	if (orgError) {
 		return (
 			<div className="flex min-h-screen w-full items-center justify-center">

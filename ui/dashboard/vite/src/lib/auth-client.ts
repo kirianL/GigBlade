@@ -1,18 +1,70 @@
+import { useEffect, useState } from "react";
 import {
 	DEMO_ORG_LIST_ITEM,
 	DEMO_SESSION,
 	DEMO_USER,
 } from "@/demo/mockData";
+import {
+	clearPanelAuthSession,
+	PANEL_SESSION_EVENT,
+	readPanelAuthSession,
+	writePanelAuthSession,
+	type PanelAuthSession,
+} from "@/gigblade/panel-session";
+import { loginPanelAccount, readPanelAccount } from "@/gigblade/site-api";
 
 const ok = async <T,>(data: T) => ({ data, error: null as null });
 
-export const useSession = () => ({
-	data: DEMO_SESSION,
-	isPending: false,
-	isRefetching: false,
-	error: null,
-	refetch: async () => ({ data: DEMO_SESSION }),
-});
+function toAuthSession(session: PanelAuthSession) {
+	return {
+		user: {
+			id: session.user.email,
+			name: session.user.name,
+			email: session.user.email,
+			image: null,
+			emailVerified: true,
+			createdAt: DEMO_USER.createdAt,
+			updatedAt: new Date(),
+			role: session.user.role,
+			slug: session.user.slug,
+		},
+		session: {
+			id: session.token.slice(0, 16),
+			userId: session.user.email,
+			activeOrganizationId: DEMO_ORG_LIST_ITEM.id,
+			expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+		},
+	};
+}
+
+export const useSession = () => {
+	const [stored, setStored] = useState<PanelAuthSession | null>(() =>
+		readPanelAuthSession(),
+	);
+	const [isPending, setPending] = useState(typeof window === "undefined");
+
+	useEffect(() => {
+		setStored(readPanelAuthSession());
+		setPending(false);
+		const onChange = () => setStored(readPanelAuthSession());
+		window.addEventListener(PANEL_SESSION_EVENT, onChange);
+		window.addEventListener("storage", onChange);
+		return () => {
+			window.removeEventListener(PANEL_SESSION_EVENT, onChange);
+			window.removeEventListener("storage", onChange);
+		};
+	}, []);
+
+	const data = stored ? toAuthSession(stored) : null;
+
+	return {
+		data,
+		isPending,
+		isRefetching: false,
+		error: null,
+		refetch: async () => ({ data }),
+	};
+};
 
 export const useListOrganizations = () => ({
 	data: [DEMO_ORG_LIST_ITEM],
@@ -20,7 +72,29 @@ export const useListOrganizations = () => ({
 });
 
 export const signIn = {
-	email: () => ok(DEMO_SESSION),
+	email: async ({
+		email,
+		password,
+	}: {
+		email: string;
+		password: string;
+	}) => {
+		try {
+			const session = await loginPanelAccount({ email, password });
+			writePanelAuthSession(session);
+			return { data: toAuthSession(session), error: null };
+		} catch (error) {
+			return {
+				data: null,
+				error: {
+					message:
+						error instanceof Error
+							? error.message
+							: "No se pudo entrar.",
+				},
+			};
+		}
+	},
 	emailOtp: () => ok(DEMO_SESSION),
 };
 
@@ -48,7 +122,10 @@ export const authClient = {
 	useListPasskeys: () => ({ data: [] as unknown[] }),
 	organization,
 	signIn,
-	signOut: () => ok({}),
+	signOut: async () => {
+		clearPanelAuthSession();
+		return ok({});
+	},
 	emailOtp: {
 		sendVerificationOtp: () => ok({}),
 	},
@@ -58,8 +135,18 @@ export const authClient = {
 	},
 	updateUser: () => ok(DEMO_USER),
 	deleteUser: () => ok({}),
-	getSession: () => ok(DEMO_SESSION),
+	getSession: async () => {
+		const stored = readPanelAuthSession();
+		return stored ? ok(toAuthSession(stored)) : { data: null, error: null };
+	},
 	admin: {
 		stopImpersonating: () => ok({}),
 	},
 };
+
+export async function acceptPanelToken(token: string) {
+	const user = await readPanelAccount(token);
+	const session = { token, user };
+	writePanelAuthSession(session);
+	return session;
+}

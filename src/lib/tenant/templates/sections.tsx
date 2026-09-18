@@ -1,10 +1,12 @@
 import type { SiteSectionId } from "@/domain/site-template";
 import type { SiteTemplateProps } from "@/lib/tenant/templates/types";
 import { HeroSection } from "@/lib/tenant/templates/hero-section";
+import { ArtistSignal } from "@/lib/tenant/templates/artist-signal";
 import { GallerySection } from "@/lib/tenant/templates/gallery-section";
 import { BioSection, AgendaSection } from "@/lib/tenant/templates/content-blocks";
 import { EnlacesSection } from "@/lib/tenant/templates/socials-section";
 import { ContactoSection } from "@/lib/tenant/templates/booking-section";
+import { MixesSection } from "@/lib/tenant/templates/mixes-section";
 
 type SiteSectionProps = SiteTemplateProps & {
   id: SiteSectionId;
@@ -15,6 +17,7 @@ export function SiteSection({ id, site }: SiteSectionProps) {
     return (
       <div data-section="intro" className="w-full flex flex-col">
         <HeroSection site={site} />
+        <ArtistSignal site={site} />
         <GallerySection site={site} />
       </div>
     );
@@ -30,6 +33,10 @@ export function SiteSection({ id, site }: SiteSectionProps) {
 
   if (id === "enlaces") {
     return <EnlacesSection site={site} />;
+  }
+
+  if (id === "sets") {
+    return <MixesSection site={site} />;
   }
 
   return <ContactoSection site={site} />;

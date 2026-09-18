@@ -23,7 +23,7 @@ export function APIKeyInput({ className }: APIKeyInputProps) {
 		setLoading(true);
 		try {
 			const { api_key } = await DevService.createAPIKey(axiosInstance, {
-				name: "Autumn Onboarding",
+				name: "GigBlade Onboarding",
 			});
 			setSecretKey(api_key);
 		} catch (error) {

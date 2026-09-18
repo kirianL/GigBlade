@@ -33,12 +33,12 @@ export function RunSummaryRows({
 				{noBillingChanges ? (
 					<>
 						<AutumnMark size={14} />
-						Billing changes apply to Autumn only
+						Billing changes apply to GigBlade only
 					</>
 				) : (
 					<>
 						<StripeMark size={14} />
-						Billing changes apply to Autumn and Stripe
+						Billing changes apply to GigBlade and Stripe
 					</>
 				)}
 			</div>

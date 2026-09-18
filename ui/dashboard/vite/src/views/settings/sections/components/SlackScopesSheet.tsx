@@ -28,7 +28,7 @@ const TIERS: {
 		mode: ChatAuthMode.PerUser,
 		label: "Per-user",
 		description:
-			"Match each Slack user to their Autumn account and act with their own permissions.",
+			"Match each Slack user to their GigBlade account and act with their own permissions.",
 		icon: <UserIcon size={16} color="currentColor" />,
 	},
 	{
@@ -41,7 +41,7 @@ const TIERS: {
 	{
 		mode: ChatAuthMode.Unrestricted,
 		label: "Unrestricted",
-		description: "Everyone gets full admin access to the Autumn bot.",
+		description: "Everyone gets full admin access to the GigBlade bot.",
 		icon: <GlobeIcon size={16} color="currentColor" />,
 	},
 ];
@@ -91,7 +91,7 @@ export const SlackScopesSheet = ({
 				<SheetHeader>
 					<SheetTitle>Slack bot permissions</SheetTitle>
 					<p className="text-muted-foreground text-sm">
-						Choose how the Autumn Slack bot decides what each user can access.
+						Choose how the GigBlade Slack bot decides what each user can access.
 					</p>
 				</SheetHeader>
 

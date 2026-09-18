@@ -131,6 +131,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				ref={ref}
 				data-slot="button"
 				render={effectiveRender}
+				nativeButton={effectiveRender ? false : undefined}
 				className={cn(
 					buttonVariants({ variant, size, className }),
 					getDisableActiveStyles(),

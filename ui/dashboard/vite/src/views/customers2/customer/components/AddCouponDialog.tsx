@@ -50,7 +50,7 @@ export const AddCouponDialog = ({
 	const { stripeCoupons, isLoading: stripeCouponsLoading } =
 		useStripeCouponsQuery();
 
-	// Stripe coupons are merged in so coupons created outside Autumn are
+	// Stripe coupons are merged in so coupons created outside GigBlade are
 	// selectable here, matching the subscription-level discount picker.
 	const rewardOptions = rewards
 		.filter((reward: Reward) => reward.type !== RewardType.FreeProduct)

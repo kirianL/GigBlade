@@ -3,8 +3,7 @@ import WishlistSections from "@/components/wishlist-sections";
 
 export const metadata: Metadata = {
 	title: "Contacto",
-	description:
-		"El formulario de solicitudes no está abierto. Escribile al DJ por Instagram o mail.",
+	description: "Escribile al DJ por Instagram.",
 	alternates: { canonical: "/wishlist" },
 };
 
@@ -16,7 +15,7 @@ type WishlistPageProps = {
 
 export default function WishlistPage({
 	artistName = "GigBlade",
-	tagline = "Página y dominio propios, contacto por Instagram o mail",
+	tagline = "Página y dominio propios, contacto por Instagram",
 	city = "",
 }: Partial<WishlistPageProps> = {}) {
 	return (

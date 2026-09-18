@@ -53,7 +53,7 @@ export const DeployToProdDialog = ({
 				<DialogHeader>
 					<DialogTitle>Deploy to Production</DialogTitle>
 					<DialogDescription>
-						Follow the steps below to deploy Autumn to production.
+						Follow the steps below to deploy GigBlade to production.
 					</DialogDescription>
 				</DialogHeader>
 

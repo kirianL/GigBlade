@@ -7,7 +7,7 @@ export const AgentSection = () => {
 	return (
 		<SettingsSection
 			title="Agent"
-			description="Configure how the Autumn agent works in your workspace"
+			description="Configure how the GigBlade agent works in your workspace"
 		>
 			<ChatConnections />
 			<AgentRules />

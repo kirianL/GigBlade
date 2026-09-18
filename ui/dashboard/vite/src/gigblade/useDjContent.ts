@@ -15,7 +15,7 @@ import { useSelectedDj } from "@/gigblade/ui";
 
 export type DjPhoto = {
 	id: string;
-	name: string;
+	url: string;
 };
 
 export type DjLinkDraft = {
@@ -28,6 +28,22 @@ export type DjLinkDraft = {
 	spotify: string;
 };
 
+export type DjMixDraft = {
+	id: string;
+	title: string;
+	url: string;
+};
+
+export type DjEventDraft = {
+	id: string;
+	date: string;
+	venue: string;
+	location: string;
+	ticketUrl: string;
+};
+
+export type DjSectionId = "agenda" | "bio" | "enlaces" | "sets" | "contacto";
+
 export type DjContentDraft = {
 	displayName: string;
 	tagline: string;
@@ -35,9 +51,27 @@ export type DjContentDraft = {
 	city: string;
 	template: SiteTemplateId;
 	brandColor: string;
+	email: string;
 	links: DjLinkDraft;
+	mixes: DjMixDraft[];
+	events: DjEventDraft[];
 	photos: DjPhoto[];
+	heroPosition: "center" | "top" | "bottom" | "left" | "right";
+	hiddenSections: DjSectionId[];
 };
+
+const MAX_MIXES = 8;
+
+function mixesFromSite(
+	mixes: PublicSite["profile"]["mixes"] | undefined,
+): DjMixDraft[] {
+	if (!Array.isArray(mixes)) return [];
+	return mixes.map((mix) => ({
+		id: crypto.randomUUID(),
+		title: mix.title,
+		url: mix.url,
+	}));
+}
 
 const EMPTY_LINKS: DjLinkDraft = {
 	instagram: "",
@@ -65,15 +99,20 @@ function defaultsFrom(dj: GigbladeDj): DjContentDraft {
 		city: dj.city,
 		template: isTemplateId(dj.template) ? dj.template : DJ_TEMPLATES[0].id,
 		brandColor: TEMPLATE_BRAND_COLORS[dj.template] ?? TEMPLATE_BRAND_COLORS.pista,
+		email: "",
 		links: {
 			...EMPTY_LINKS,
 			instagram: dj.instagram,
 		},
+		mixes: [],
+		events: [],
 		photos: [],
+		heroPosition: "center",
+		hiddenSections: [],
 	};
 }
 
-function draftFromSite(site: PublicSite, photos: DjPhoto[]): DjContentDraft {
+function draftFromSite(site: PublicSite): DjContentDraft {
 	return {
 		displayName: site.profile.displayName,
 		tagline: site.profile.tagline,
@@ -82,11 +121,25 @@ function draftFromSite(site: PublicSite, photos: DjPhoto[]): DjContentDraft {
 		template: site.templateId,
 		brandColor:
 			site.profile.brandColor ?? TEMPLATE_BRAND_COLORS[site.templateId],
+		email: site.profile.email ?? "",
 		links: {
 			...EMPTY_LINKS,
 			...site.profile.links,
 		},
-		photos,
+		mixes: mixesFromSite(site.profile.mixes),
+		events: (site.profile.events ?? []).map((event) => ({
+			id: crypto.randomUUID(),
+			date: event.date,
+			venue: event.venue,
+			location: event.location,
+			ticketUrl: event.ticketUrl ?? "",
+		})),
+		photos: (site.profile.photos ?? []).map((url) => ({
+			id: crypto.randomUUID(),
+			url,
+		})),
+		heroPosition: site.profile.heroPosition ?? "center",
+		hiddenSections: site.profile.hiddenSections ?? [],
 	};
 }
 
@@ -108,8 +161,27 @@ export function readDjContent(slug: string): DjContentDraft {
 				/^#[0-9A-Fa-f]{6}$/.test(parsed.brandColor)
 					? parsed.brandColor.toLowerCase()
 					: base.brandColor,
+			email:
+				typeof parsed.email === "string" ? parsed.email : base.email,
 			links: { ...EMPTY_LINKS, ...parsed.links },
-			photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+			mixes: Array.isArray(parsed.mixes) ? parsed.mixes : [],
+			events: Array.isArray(parsed.events) ? parsed.events : [],
+			photos: Array.isArray(parsed.photos)
+				? parsed.photos.filter(
+						(photo): photo is DjPhoto =>
+							Boolean(photo && typeof photo.url === "string"),
+					)
+				: [],
+			heroPosition:
+				parsed.heroPosition === "top" ||
+				parsed.heroPosition === "bottom" ||
+				parsed.heroPosition === "left" ||
+				parsed.heroPosition === "right"
+					? parsed.heroPosition
+					: "center",
+			hiddenSections: Array.isArray(parsed.hiddenSections)
+				? parsed.hiddenSections
+				: [],
 		};
 	} catch {
 		return base;
@@ -142,7 +214,7 @@ export function useDjProfile(options?: { syncLive?: boolean }) {
 		const controller = new AbortController();
 		void fetchPublicSite(dj.slug, controller.signal).then((site) => {
 			if (controller.signal.aborted || !site || site.slug !== dj.slug) return;
-			setDraft(draftFromSite(site, local.photos));
+			setDraft(draftFromSite(site));
 			setLive(true);
 		});
 
@@ -170,13 +242,40 @@ export function useDjProfile(options?: { syncLive?: boolean }) {
 			tagline: next.tagline,
 			city: next.city,
 			bio: next.bio,
+			email: next.email.trim(),
 			brandColor: next.brandColor,
+			photos: next.photos.map((photo) => photo.url.trim()).filter(Boolean),
+			heroPosition: next.heroPosition,
+			events: next.events
+				.filter(
+					(event) =>
+						event.date &&
+						event.venue.trim() &&
+						event.location.trim(),
+				)
+				.slice(0, 12)
+				.map((event) => ({
+					date: event.date,
+					venue: event.venue.trim(),
+					location: event.location.trim(),
+					...(event.ticketUrl.trim()
+						? { ticketUrl: event.ticketUrl.trim() }
+						: {}),
+				})),
+			hiddenSections: next.hiddenSections,
 			links: next.links,
+			mixes: next.mixes
+				.filter((mix) => mix.url.trim())
+				.slice(0, MAX_MIXES)
+				.map((mix) => ({
+					title: mix.title.trim(),
+					url: mix.url.trim(),
+				})),
 		});
-		setDraft(draftFromSite(site, next.photos));
+		setDraft(draftFromSite(site));
 		setLive(true);
 		return { live: true };
 	};
 
-	return { dj: profile, setDj, draft, setDraft, save, live };
+	return { dj: profile, setDj, draft, setDraft, save, live, maxMixes: MAX_MIXES };
 }

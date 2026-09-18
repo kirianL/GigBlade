@@ -90,7 +90,7 @@ export const createAPIKeyTableColumns = (): ColumnDef<ApiKey, unknown>[] => [
 					<div className="flex justify-start items-center">
 						<span className="text-tiny flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md">
 							<ShieldCheckIcon size={12} />
-							Autumn Support
+							GigBlade Support
 						</span>
 					</div>
 				);

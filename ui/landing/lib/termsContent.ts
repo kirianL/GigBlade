@@ -16,7 +16,7 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "2. Description of Services",
 		content:
-			"GigBlade provides hosted artist pages for DJs: a public site with a custom domain, templates for events, a booking form, and a panel to manage content and requests. Hosting and platform security are included in the subscription.",
+			"GigBlade provides hosted artist pages for DJs: a public site with a custom domain, templates for events, and a panel to manage content. Hosting and platform security are included in the subscription.",
 		isUppercase: false,
 	},
 	{
@@ -34,7 +34,7 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "5. Payment Terms",
 		content:
-			"Fees are listed on the pricing page. The monthly plan covers hosting, security, and the artist page. Domain renewal is billed at cost, without markup. Fees are non-refundable except as required by law. We may change pricing with 30 days' notice.",
+			"Fees are listed on the pricing page. The monthly plan covers hosting, security, and the artist page. The domain is billed separately, at cost, without markup. Fees are non-refundable except as required by law. We may change pricing with 30 days' notice.",
 		isUppercase: false,
 	},
 	{

@@ -7,28 +7,53 @@ import {
 	Button,
 	CopyButton,
 } from "@autumn/ui";
-import { ArrowSquareOutIcon, IdentificationCardIcon } from "@phosphor-icons/react";
+import {
+	ArrowSquareOutIcon,
+	ChartBarIcon,
+	GlobeIcon,
+	IdentificationCardIcon,
+	KeyIcon,
+} from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
 	djInstagramUrl,
+	djIntendedDomain,
 	djMailto,
 	djPublicUrl,
 	djTemplateLabel,
+	formatLastVisit,
+	formatVisitCount,
 	PLAN,
 } from "@/gigblade/concept";
+import { fetchSiteVisits, type SiteVisitStats } from "@/gigblade/site-api";
+import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
 import {
 	DjSelect,
 	DjStatusCell,
 	PageContainer,
 } from "@/gigblade/ui";
 import { useDjProfile } from "@/gigblade/useDjContent";
+import { useSession } from "@/lib/auth-client";
 
 export default function DjStudioPage() {
 	const { dj, setDj, draft } = useDjProfile();
+	const { data: session } = useSession();
+	const isPlatform =
+		(session?.user as { role?: string } | undefined)?.role === "platform";
 	const pageUrl = djPublicUrl(dj);
 	const instagramUrl = djInstagramUrl(dj);
 	const mailUrl = djMailto(dj);
 	const contentHref = `/studio/content?dj=${dj.slug}`;
+	const visitsHref = `/studio/visitas?dj=${dj.slug}`;
+	const intendedDomain = djIntendedDomain(dj);
+	const [visits, setVisits] = useState<SiteVisitStats | null>(null);
+
+	useEffect(() => {
+		const controller = new AbortController();
+		void fetchSiteVisits(dj.slug, controller.signal).then(setVisits);
+		return () => controller.abort();
+	}, [dj.slug]);
 
 	return (
 		<PageContainer>
@@ -88,6 +113,59 @@ export default function DjStudioPage() {
 				</div>
 			</div>
 
+			<section className="grid gap-3 sm:grid-cols-2">
+				<section className="border rounded-lg p-5 flex flex-col gap-3">
+					<div className="flex items-start justify-between gap-3">
+						<div className="min-w-0">
+							<p className="text-xs text-tertiary-foreground">Dominio</p>
+							<p className="text-sm font-medium text-foreground break-all">
+								{pageUrl.replace(/^https?:\/\//, "")}
+							</p>
+						</div>
+						<GlobeIcon
+							size={16}
+							className="text-subtle shrink-0 mt-0.5"
+							aria-hidden
+						/>
+					</div>
+					<p className="text-sm text-tertiary-foreground leading-6">
+						GigBlade registra y administra este dominio. En local ves el preview;
+						en producción sale el dominio propio
+						{intendedDomain ? ` (${intendedDomain})` : ""}, no un subdominio de
+						GigBlade. La renovación se cobra al costo.
+					</p>
+					<div className="flex flex-wrap gap-2">
+						<Button variant="secondary" size="sm" asChild>
+							<a href={pageUrl} target="_blank" rel="noreferrer">
+								<ArrowSquareOutIcon size={16} aria-hidden />
+								Abrir
+							</a>
+						</Button>
+					</div>
+				</section>
+				<section className="border rounded-lg p-5 flex flex-col gap-3">
+					<div className="flex items-start justify-between gap-3">
+						<div>
+							<p className="text-xs text-tertiary-foreground">Visitantes este mes</p>
+							<p className="text-sm font-medium text-foreground">
+								{formatVisitCount(visits?.uniqueVisitors ?? 0)}
+							</p>
+						</div>
+						<ChartBarIcon
+							size={16}
+							className="text-subtle shrink-0 mt-0.5"
+							aria-hidden
+						/>
+					</div>
+					<p className="text-sm text-tertiary-foreground leading-6">
+						{formatLastVisit(visits?.lastVisitedAt ?? null)}
+					</p>
+					<Button variant="secondary" size="sm" asChild>
+						<Link to={visitsHref}>Ver visitas</Link>
+					</Button>
+				</section>
+			</section>
+
 			<section className="border rounded-lg bg-interactive-secondary p-5 flex flex-col gap-4">
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
@@ -136,6 +214,31 @@ export default function DjStudioPage() {
 					</Button>
 				</div>
 			</section>
+
+			{isPlatform ? (
+				<section className="border rounded-lg p-5 flex flex-col gap-3">
+					<div className="flex items-start justify-between gap-3">
+						<div className="min-w-0">
+							<p className="text-xs text-tertiary-foreground">Acceso al panel</p>
+							<p className="text-sm font-medium text-foreground">{dj.email}</p>
+						</div>
+						<KeyIcon
+							size={16}
+							className="text-subtle shrink-0 mt-0.5"
+							aria-hidden
+						/>
+					</div>
+					<p className="text-sm text-tertiary-foreground leading-6">
+						Generá una contraseña y pasásela a esta persona. La anterior deja de
+						servir y no se vuelve a mostrar.
+					</p>
+					<GenerateDjPasswordButton
+						slug={dj.slug}
+						email={dj.email}
+						name={dj.name}
+					/>
+				</section>
+			) : null}
 
 			<section className="border rounded-lg p-5 flex flex-col gap-2">
 				<p className="text-xs text-tertiary-foreground">Plan</p>

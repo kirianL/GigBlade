@@ -551,7 +551,7 @@ export function SubscriptionEditorView({
 
 							<div className="space-y-2">
 								<div className="text-xs text-tertiary-foreground">
-									Autumn plans
+									GigBlade plans
 								</div>
 								{phasePlans.map((plan, planIndex) => (
 									<SyncPlanRow

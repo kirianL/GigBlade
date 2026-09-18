@@ -14,7 +14,7 @@ export const SsoCallbackUrlField = ({
 }) => (
 	<div className="flex flex-col">
 		<FormLabel>
-			<span className="text-muted-foreground">Autumn callback URL</span>
+			<span className="text-muted-foreground">GigBlade callback URL</span>
 		</FormLabel>
 		{callbackUrl ? (
 			<div className="flex items-center gap-2 min-w-0">
@@ -23,7 +23,7 @@ export const SsoCallbackUrlField = ({
 				</code>
 				<CopyButton
 					text={callbackUrl}
-					aria-label="Copy Autumn callback URL"
+					aria-label="Copy GigBlade callback URL"
 					className="shrink-0"
 				>
 					Copy

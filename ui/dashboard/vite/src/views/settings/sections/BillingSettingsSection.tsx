@@ -90,7 +90,7 @@ const BILLING_TOGGLES = [
 	{
 		key: "disable_stripe_writes",
 		label: "Disable Stripe writes",
-		description: "Prevent Autumn from writing to Stripe (read-only mode)",
+		description: "Prevent GigBlade from writing to Stripe (read-only mode)",
 	},
 	{
 		key: "automatic_tax",

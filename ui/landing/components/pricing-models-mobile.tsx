@@ -20,7 +20,8 @@ export default function PricingModelsMobile() {
 				<div className="mt-4 font-sans text-[15px] leading-relaxed font-light tracking-[-1%]">
 					<span className="text-[#FFFFFF99]">Elegís dominio y plantilla.</span>{" "}
 					<span className="text-[#FFFFFF99]">
-						Cargás tu contenido y tu página queda lista para recibir bookings.
+						Cargás tu contenido y tu página queda lista. El dominio se cobra
+						aparte, al costo.
 					</span>
 				</div>
 			</div>

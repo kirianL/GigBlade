@@ -28,7 +28,7 @@ export function FeatureStripeProductConfirmDialog({
 				<DialogHeader>
 					<DialogTitle>Save Stripe product?</DialogTitle>
 					<DialogDescription>
-						Confirm this Stripe product before Autumn updates the feature.
+						Confirm this Stripe product before GigBlade updates the feature.
 					</DialogDescription>
 				</DialogHeader>
 

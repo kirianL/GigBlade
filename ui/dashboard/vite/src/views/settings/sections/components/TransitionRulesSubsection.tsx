@@ -38,7 +38,7 @@ const modeFromRule = (
 
 const MODE_DESCRIPTIONS: Record<CarryOverMode, string> = {
 	default:
-		"Autumn defaults apply: attach only carries usage when requested per call; Stripe back-sync carries all usage.",
+		"GigBlade defaults apply: attach only carries usage when requested per call; Stripe back-sync carries all usage.",
 	enabled:
 		"Usage is carried onto the new plan whenever a customer changes plans (attach and Stripe back-sync).",
 	disabled:
@@ -143,7 +143,7 @@ export const TransitionRulesSubsection = () => {
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="default">Autumn defaults</SelectItem>
+						<SelectItem value="default">GigBlade defaults</SelectItem>
 						<SelectItem value="enabled">Carry over usage</SelectItem>
 						<SelectItem value="disabled">Don't carry over usage</SelectItem>
 					</SelectContent>

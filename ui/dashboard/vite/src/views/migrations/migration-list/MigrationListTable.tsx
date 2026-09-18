@@ -108,7 +108,7 @@ export function MigrationListTable() {
 			</Table.Toolbar>
 			<InfoBox variant="info" classNames={{ infoBox: "-mt-4" }}>
 				Migrations are in beta. For complex operations, please reach out to us
-				at support@useautumn.com
+				at hola@gigblade.com
 			</InfoBox>
 			<Table.Container>
 				<Table.Content>

@@ -1,6 +1,12 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	lazy,
+	Suspense,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { type ScrapAdaptMap, useScraps } from "scraps-ui/react";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 
 type ThemeMode = "light" | "dark" | "system";
@@ -20,41 +26,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const SCRAPS_COMPONENTS = {
-	'[data-slot="card"]': "card",
-	'[data-slot="table-container"]': "card",
-	'[data-slot="dialog-content"]': { type: "dialog", rot: 0 },
-	'[data-slot="sheet-content"]': { type: "panel", rot: 0 },
-	'[data-slot="popover-content"]': { type: "popover", rot: 0 },
-	'[data-slot="dropdown-menu-content"]': { type: "menu", rot: 0 },
-	'[data-slot="select-content"]': { type: "menu", rot: 0 },
-	'[data-slot="tooltip-content"]': { type: "popover", rot: 0 },
-	'[data-slot="button"]:not([data-slot="main-sidebar"] *)': "button",
-	'button[data-slot$="-trigger"]:not([data-slot="main-sidebar"] *):not([data-slot="table-container"] *)':
-		"button",
-	'button[class~="bg-primary"]:not([data-slot="main-sidebar"] *)': {
-		type: "button",
-		color: "coral",
-		ink: false,
-	},
-	'button[class~="bg-destructive"]:not([data-slot="main-sidebar"] *)': {
-		type: "button",
-		color: "coral",
-		ink: false,
-	},
-	'[data-slot="input"]': "input",
-	'[data-slot="textarea"]': "input",
-	'[data-slot="select-trigger"]': "field",
-	'[data-slot="input-group"]': "field",
-	'[data-slot="badge"]:not([data-slot="main-sidebar"] *)': "badge",
-	'[data-slot="checkbox"]': "checkbox",
-	'[data-slot="switch"]': "switch",
-	'[data-slot="switch-thumb"]': "thumb",
-	'[data-slot="separator-root"]': "separator",
-	'[data-slot="dropdown-menu-separator"]': "separator",
-	'[data-slot="select-separator"]': "separator",
-	'[data-slot="command-separator"]': "separator",
-} satisfies ScrapAdaptMap;
+const ScrapsAdapter = lazy(() => import("./ScrapsAdapter"));
 
 function resolveSystemTheme(): "light" | "dark" {
 	return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -87,7 +59,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		"classic",
 	);
 	const [isDark, setIsDark] = useState(() => applyMode(mode));
-	useScraps(SCRAPS_COMPONENTS, { enabled: preset === "scraps" });
 
 	useEffect(() => setIsDark(applyMode(mode)), [mode]);
 
@@ -127,6 +98,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 				setTheme: setMode,
 			}}
 		>
+			{preset === "scraps" ? (
+				<Suspense fallback={null}>
+					<ScrapsAdapter />
+				</Suspense>
+			) : null}
 			{children}
 		</ThemeContext.Provider>
 	);

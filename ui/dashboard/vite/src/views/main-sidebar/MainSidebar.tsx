@@ -1,5 +1,6 @@
 import { Button } from "@autumn/ui";
 import {
+	ChartBarIcon,
 	CubeIcon,
 	GearIcon,
 	GlobeIcon,
@@ -88,6 +89,12 @@ export const MainSidebar = ({
 									value="studio/content"
 									icon={<IdentificationCardIcon size={16} weight="fill" />}
 									title="Contenido"
+									env={env}
+								/>
+								<NavButton
+									value="studio/visitas"
+									icon={<ChartBarIcon size={16} weight="fill" />}
+									title="Visitas"
 									env={env}
 								/>
 							</>

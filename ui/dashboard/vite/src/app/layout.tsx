@@ -3,8 +3,8 @@ import { IconButton, SandboxBanner } from "@autumn/ui";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { AutumnProvider } from "autumn-js/react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Suspense, useEffect, useRef, useState, type RefObject } from "react";
+import { Outlet } from "react-router";
 import { CustomToaster } from "@/components/general/CustomToaster";
 import { SandboxFavicon } from "@/components/general/SandboxFavicon";
 import { PortalContainerContext } from "@/contexts/PortalContainerContext";
@@ -29,19 +29,7 @@ import { MobileSidebar } from "@/views/main-sidebar/MobileSidebar";
 import { MobileTopBar } from "@/views/main-sidebar/MobileTopBar";
 import { AppContext } from "./AppContext";
 
-function isGigbladePath(pathname: string) {
-	return (
-		pathname.startsWith("/studio") ||
-		pathname === "/overview" ||
-		pathname.startsWith("/djs") ||
-		pathname.startsWith("/domains") ||
-		pathname === "/plan"
-	);
-}
-
 export function MainLayout() {
-	const { pathname } = useLocation();
-	const gigblade = isGigbladePath(pathname);
 	const { handleApiError } = useGlobalErrorHandler();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -57,86 +45,33 @@ export function MainLayout() {
 		return () => window.removeEventListener("error", handleGlobalError);
 	}, [handleApiError]);
 
-	const shell = (
-		<NuqsAdapter>
-			<PortalContainerContext.Provider value={containerRef}>
-				<div className="w-screen h-screen flex bg-outer-background">
-					<CustomToaster />
-					{gigblade ? (
-						<GigbladeShell
-							containerRef={containerRef}
-							mobileSidebarOpen={mobileSidebarOpen}
-							onMobileSidebarOpenChange={setMobileSidebarOpen}
-						/>
-					) : (
-						<DashboardShell
-							containerRef={containerRef}
-							mobileSidebarOpen={mobileSidebarOpen}
-							onMobileSidebarOpenChange={setMobileSidebarOpen}
-						/>
-					)}
-				</div>
-			</PortalContainerContext.Provider>
-		</NuqsAdapter>
-	);
-
-	if (gigblade) return shell;
-
 	return (
 		<AutumnProvider
 			backendUrl={import.meta.env.VITE_BACKEND_URL}
 			includeCredentials={true}
 		>
-			{shell}
+			<NuqsAdapter>
+				<PortalContainerContext.Provider value={containerRef}>
+					<div className="w-screen h-screen flex bg-outer-background">
+						<CustomToaster />
+						<DashboardShell
+							containerRef={containerRef}
+							mobileSidebarOpen={mobileSidebarOpen}
+							onMobileSidebarOpenChange={setMobileSidebarOpen}
+						/>
+					</div>
+				</PortalContainerContext.Provider>
+			</NuqsAdapter>
 		</AutumnProvider>
 	);
 }
-
-const chrome = (
-	containerRef: React.RefObject<HTMLDivElement>,
-	mobileSidebarOpen: boolean,
-	onMobileSidebarOpenChange: (open: boolean) => void,
-	content: React.ReactNode,
-	extras?: React.ReactNode,
-) => (
-	<>
-		<div className="hidden sm:flex">
-			<MainSidebar />
-		</div>
-		<MobileSidebar
-			open={mobileSidebarOpen}
-			onOpenChange={onMobileSidebarOpenChange}
-		/>
-		{content}
-		{extras}
-	</>
-);
-
-const GigbladeShell = ({
-	containerRef,
-	mobileSidebarOpen,
-	onMobileSidebarOpenChange,
-}: {
-	containerRef: React.RefObject<HTMLDivElement>;
-	mobileSidebarOpen: boolean;
-	onMobileSidebarOpenChange: (open: boolean) => void;
-}) =>
-	chrome(
-		containerRef,
-		mobileSidebarOpen,
-		onMobileSidebarOpenChange,
-		<GigbladeMainContent
-			containerRef={containerRef}
-			onOpenMobileSidebar={() => onMobileSidebarOpenChange(true)}
-		/>,
-	);
 
 const DashboardShell = ({
 	containerRef,
 	mobileSidebarOpen,
 	onMobileSidebarOpenChange,
 }: {
-	containerRef: React.RefObject<HTMLDivElement>;
+	containerRef: RefObject<HTMLDivElement | null>;
 	mobileSidebarOpen: boolean;
 	onMobileSidebarOpenChange: (open: boolean) => void;
 }) => {
@@ -149,58 +84,29 @@ const DashboardShell = ({
 	return (
 		<>
 			<SandboxFavicon />
-			{chrome(
-				containerRef,
-				mobileSidebarOpen,
-				onMobileSidebarOpenChange,
-				<AutumnMainContent
-					containerRef={containerRef}
-					onOpenMobileSidebar={() => onMobileSidebarOpenChange(true)}
-				/>,
-				<>
-					<InviteNotifications />
-					<CommandBar />
-					<LeafPanel />
-				</>,
-			)}
+			<div className="hidden sm:flex">
+				<MainSidebar />
+			</div>
+			<MobileSidebar
+				open={mobileSidebarOpen}
+				onOpenChange={onMobileSidebarOpenChange}
+			/>
+			<AutumnMainContent
+				containerRef={containerRef}
+				onOpenMobileSidebar={() => onMobileSidebarOpenChange(true)}
+			/>
+			<InviteNotifications />
+			<CommandBar />
+			<LeafPanel />
 		</>
 	);
 };
-
-const GigbladeMainContent = ({
-	containerRef,
-	onOpenMobileSidebar,
-}: {
-	containerRef: React.RefObject<HTMLDivElement>;
-	onOpenMobileSidebar: () => void;
-}) => (
-	<AppContext.Provider value={{}}>
-		<main className="w-full h-screen flex flex-col justify-center overflow-hidden sm:py-3 sm:pr-3 relative font-normal">
-			<div
-				ref={containerRef}
-				className="w-full h-full flex flex-col overflow-hidden sm:rounded-xl sm:border relative"
-			>
-				<MobileTopBar onMenuClick={onOpenMobileSidebar} />
-				<div
-					data-main-content
-					className="w-full h-full overflow-auto flex justify-center bg-background relative"
-				>
-					<div className="w-full min-h-full justify-center">
-						<Suspense fallback={<LoadingScreen />}>
-							<Outlet />
-						</Suspense>
-					</div>
-				</div>
-			</div>
-		</main>
-	</AppContext.Provider>
-);
 
 const AutumnMainContent = ({
 	containerRef,
 	onOpenMobileSidebar,
 }: {
-	containerRef: React.RefObject<HTMLDivElement>;
+	containerRef: RefObject<HTMLDivElement | null>;
 	onOpenMobileSidebar: () => void;
 }) => {
 	const env = useEnv();

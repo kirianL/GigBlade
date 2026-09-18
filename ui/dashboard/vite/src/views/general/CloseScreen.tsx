@@ -52,7 +52,7 @@ export const CloseScreen = () => {
 						<p className="text-muted-foreground text-sm">
 							The Stripe account <strong>{accountId}</strong>
 							{accountName && <> ({accountName})</>} is already connected to the
-							Autumn organization{" "}
+							GigBlade organization{" "}
 							<strong>{connectedOrgName || "another organization"}</strong>
 							{connectedOrgSlug && <> ({connectedOrgSlug})</>}. Please
 							disconnect it from there first before connecting to this

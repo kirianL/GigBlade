@@ -6,7 +6,7 @@ import { faqPageSchema, organizationSchema, websiteSchema } from "@/lib/seo";
 export const metadata: Metadata = {
 	title: "Precios",
 	description:
-		"Un plan todo incluido: US$ 65 al mes. Hosting, seguridad, página y dominio propio. La renovación del dominio se cobra al costo.",
+		"US$ 65 al mes cubre hosting, seguridad y tu página. El dominio se cobra aparte, al costo real, sin margen.",
 	alternates: { canonical: "/pricing" },
 };
 

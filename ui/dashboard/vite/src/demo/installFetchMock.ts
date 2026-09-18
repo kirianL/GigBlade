@@ -29,6 +29,10 @@ export function installFetchMock() {
 		const isBackend =
 			url.includes("localhost:8080") || url.includes("127.0.0.1:8080");
 
+		if (url.includes("/api/panel")) {
+			return originalFetch(input, init);
+		}
+
 		if (isAutumnSdk || isAuth || isBackend) {
 			return new Response(JSON.stringify({ customer: AUTUMN_SDK_CUSTOMER }), {
 				status: 200,

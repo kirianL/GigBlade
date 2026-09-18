@@ -20,6 +20,7 @@ export type MemoryDemoSeed = {
     spotify?: string;
   };
   photos?: string[];
+  mixes?: Array<{ title: string; url: string }>;
 };
 
 export const MEMORY_DEMO_SEEDS: MemoryDemoSeed[] = [
@@ -80,6 +81,12 @@ export const MEMORY_DEMO_SEEDS: MemoryDemoSeed[] = [
       "/images/dj/dj-hero.jpg",
       "/images/dj/dj-crowd.jpg",
       "/images/dj/dj-portrait.jpg",
+    ],
+    mixes: [
+      {
+        title: "After hours 04",
+        url: "https://soundcloud.com/nox/after-hours-04",
+      },
     ],
   },
   {

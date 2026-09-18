@@ -26,7 +26,7 @@ export function SyncStripeSheetV2() {
 
 	const headerTitle = selectedProposal ? "Configure sync" : "Sync from Stripe";
 	const headerDescription = selectedProposal
-		? "Pick the Autumn plans to attach for this Stripe object"
+		? "Pick the GigBlade plans to attach for this Stripe object"
 		: "Pick a Stripe subscription or schedule to import";
 
 	return (

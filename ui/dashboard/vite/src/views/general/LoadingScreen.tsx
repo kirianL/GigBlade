@@ -47,6 +47,8 @@ function AppShellSkeleton() {
 	);
 }
 
+export { BootScreen } from "@/gigblade/BootScreen";
+
 function LoadingScreen({ fullPage = false }: { fullPage?: boolean }) {
 	return (
 		<div

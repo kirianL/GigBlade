@@ -144,7 +144,7 @@ export const RevenueCatConnectionCard = ({
 					<Button variant="secondary" onClick={onProjectIdClick}>
 						{currentProjectId ? "Update Project ID" : "Select Project ID"}
 					</Button>
-					{/* Push-flow (OAuth) orgs sync products from Autumn — no manual mapping. */}
+					{/* Push-flow (OAuth) orgs sync products from GigBlade — no manual mapping. */}
 					{oauthConnected ? (
 						<Button variant="secondary" onClick={onSyncClick}>
 							Sync Products

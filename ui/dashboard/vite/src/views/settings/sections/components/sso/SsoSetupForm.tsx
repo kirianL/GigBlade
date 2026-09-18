@@ -62,7 +62,7 @@ export const SsoSetupForm = ({
 				<form.Field name="clientSecret">
 					{(field) => (
 						<SsoTextField
-							description="Autumn never displays this secret again."
+							description="GigBlade never displays this secret again."
 							field={field}
 							label="Client secret"
 							type="password"

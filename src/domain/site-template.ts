@@ -14,6 +14,7 @@ export const SITE_SECTION_IDS = [
   "agenda",
   "bio",
   "enlaces",
+  "sets",
   "contacto",
 ] as const;
 
@@ -34,9 +35,9 @@ export const SITE_TEMPLATE_SECTIONS: Record<
   SiteTemplateId,
   readonly SiteSectionId[]
 > = {
-  pista: ["intro", "agenda", "bio", "enlaces", "contacto"],
-  festival: ["intro", "bio", "agenda", "enlaces", "contacto"],
-  after: ["intro", "enlaces", "contacto", "agenda", "bio"],
+  pista: ["intro", "agenda", "bio", "enlaces", "sets", "contacto"],
+  festival: ["intro", "bio", "agenda", "enlaces", "sets", "contacto"],
+  after: ["intro", "enlaces", "sets", "contacto", "agenda", "bio"],
 };
 
 export function getSiteTemplateAppearance(

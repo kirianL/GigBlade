@@ -221,7 +221,7 @@ export function SyncStripeSheet() {
 		<div className="flex flex-col h-full">
 			<SheetHeader
 				title="Sync from Stripe"
-				description="Import Stripe subscriptions as Autumn customer products"
+				description="Import Stripe subscriptions as GigBlade customer products"
 			/>
 
 			<div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">

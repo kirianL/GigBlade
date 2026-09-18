@@ -10,30 +10,44 @@ import {
 	LongInput,
 } from "@autumn/ui";
 import { ArrowSquareOutIcon, IdentificationCardIcon } from "@phosphor-icons/react";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import {
+	useId,
+	useRef,
+	useState,
+	type ChangeEvent,
+	type FormEvent,
+	type ReactNode,
+} from "react";
 import { Link } from "react-router";
 import { DJ_TEMPLATES, djPublicUrl } from "@/gigblade/concept";
 import { BrandColorPicker } from "@/gigblade/BrandColorPicker";
+import { PhotoGridReveal } from "@/gigblade/PhotoGridReveal";
 import { SavePublishControl } from "@/gigblade/SavePublishControl";
+import { readPanelAuthSession } from "@/gigblade/panel-session";
+import {
+	publicSiteAssetUrl,
+	uploadSitePhoto,
+} from "@/gigblade/site-api";
 import { DjSelect, PageContainer, PageHeader } from "@/gigblade/ui";
 import {
 	useDjProfile,
 	type DjContentDraft,
 	type DjLinkDraft,
+	type DjSectionId,
 } from "@/gigblade/useDjContent";
 
-type FieldErrors = Partial<Record<"displayName" | "template" | "save", string>>;
+type FieldErrors = Partial<Record<"displayName" | "email" | "template" | "save", string>>;
 
 const LINK_ROWS: { id: keyof DjLinkDraft; label: string; hint: string }[] = [
 	{ id: "instagram", label: "Instagram", hint: "Handle o URL https" },
 	{ id: "tiktok", label: "TikTok", hint: "URL https" },
-	{ id: "youtube", label: "YouTube", hint: "URL https" },
+	{ id: "youtube", label: "YouTube", hint: "Perfil o canal, URL https" },
 	{ id: "facebook", label: "Facebook", hint: "URL https" },
 	{ id: "x", label: "X", hint: "URL https" },
 	{
 		id: "soundcloud",
 		label: "SoundCloud",
-		hint: "Enlace directo al perfil, track o playlist",
+		hint: "Perfil, URL https",
 	},
 	{
 		id: "spotify",
@@ -41,6 +55,37 @@ const LINK_ROWS: { id: keyof DjLinkDraft; label: string; hint: string }[] = [
 		hint: "Enlace directo al perfil, track o playlist",
 	},
 ];
+
+const SECTION_ROWS: { id: DjSectionId; label: string }[] = [
+	{ id: "agenda", label: "Fechas" },
+	{ id: "bio", label: "Biografía" },
+	{ id: "enlaces", label: "Redes y música" },
+	{ id: "sets", label: "Sets y mixes" },
+	{ id: "contacto", label: "Contacto" },
+];
+
+async function optimizePhoto(file: File): Promise<File> {
+	const image = await createImageBitmap(file);
+	const maxSide = 1920;
+	const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+	const canvas = document.createElement("canvas");
+	canvas.width = Math.max(1, Math.round(image.width * scale));
+	canvas.height = Math.max(1, Math.round(image.height * scale));
+	const context = canvas.getContext("2d");
+	if (!context) {
+		image.close();
+		return file;
+	}
+	context.drawImage(image, 0, 0, canvas.width, canvas.height);
+	image.close();
+	const blob = await new Promise<Blob | null>((resolve) =>
+		canvas.toBlob(resolve, "image/webp", 0.84),
+	);
+	if (!blob || blob.size >= file.size) return file;
+	return new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), {
+		type: "image/webp",
+	});
+}
 
 function Field({
 	id,
@@ -77,6 +122,9 @@ function Field({
 function validate(draft: DjContentDraft): FieldErrors {
 	const errors: FieldErrors = {};
 	if (!draft.displayName.trim()) errors.displayName = "Indicá el nombre.";
+	if (draft.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim())) {
+		errors.email = "Indicá un correo válido.";
+	}
 	if (!DJ_TEMPLATES.some((template) => template.id === draft.template)) {
 		errors.template = "Elegí una plantilla.";
 	}
@@ -84,16 +132,21 @@ function validate(draft: DjContentDraft): FieldErrors {
 }
 
 export default function DjContentPage() {
-	const { dj, setDj, draft, setDraft, save, live } = useDjProfile({
+	const { dj, setDj, draft, setDraft, save, live, maxMixes } = useDjProfile({
 		syncLive: true,
 	});
 	const pageUrl = djPublicUrl(dj);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const [saved, setSaved] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [photoUploading, setPhotoUploading] = useState(false);
+	const [photoError, setPhotoError] = useState("");
+	const [pendingPhotoPreviews, setPendingPhotoPreviews] = useState<string[]>([]);
 	const [saveTick, setSaveTick] = useState(0);
+	const photoInputRef = useRef<HTMLInputElement>(null);
 	const ids = {
 		displayName: useId(),
+		email: useId(),
 		tagline: useId(),
 		bio: useId(),
 		city: useId(),
@@ -114,23 +167,134 @@ export default function DjContentPage() {
 		setSaved(false);
 	};
 
-	const addPhotos = (files: FileList | null) => {
-		if (!files?.length) return;
-		const extra = Array.from(files).map((file) => ({
-			id: crypto.randomUUID(),
-			name: file.name,
-		}));
+	const addMix = () => {
+		setDraft((current) => {
+			if (current.mixes.length >= maxMixes) return current;
+			return {
+				...current,
+				mixes: [
+					...current.mixes,
+					{ id: crypto.randomUUID(), title: "", url: "" },
+				],
+			};
+		});
+		setSaved(false);
+	};
+
+	const touchMix = (id: string, patch: { title?: string; url?: string }) => {
 		setDraft((current) => ({
 			...current,
-			photos: [...current.photos, ...extra],
+			mixes: current.mixes.map((mix) =>
+				mix.id === id ? { ...mix, ...patch } : mix,
+			),
 		}));
 		setSaved(false);
+	};
+
+	const removeMix = (id: string) => {
+		setDraft((current) => ({
+			...current,
+			mixes: current.mixes.filter((mix) => mix.id !== id),
+		}));
+		setSaved(false);
+	};
+
+	const addEvent = () => {
+		setDraft((current) => ({
+			...current,
+			events: [
+				...current.events,
+				{
+					id: crypto.randomUUID(),
+					date: "",
+					venue: "",
+					location: "",
+					ticketUrl: "",
+				},
+			],
+		}));
+		setSaved(false);
+	};
+
+	const touchEvent = (
+		id: string,
+		patch: Partial<DjContentDraft["events"][number]>,
+	) => {
+		setDraft((current) => ({
+			...current,
+			events: current.events.map((event) =>
+				event.id === id ? { ...event, ...patch } : event,
+			),
+		}));
+		setSaved(false);
+	};
+
+	const removeEvent = (id: string) => {
+		setDraft((current) => ({
+			...current,
+			events: current.events.filter((event) => event.id !== id),
+		}));
+		setSaved(false);
+	};
+
+	const uploadPhotos = async (event: ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files ?? []);
+		event.target.value = "";
+		if (files.length === 0) return;
+		const available = Math.max(0, 12 - draft.photos.length);
+		if (available === 0) return;
+
+		const session = readPanelAuthSession();
+		if (!session) {
+			setPhotoError("Volvé a iniciar sesión para subir fotos.");
+			return;
+		}
+		const selectedFiles = files.slice(0, available);
+		const previews = selectedFiles.map((file) => URL.createObjectURL(file));
+		setPendingPhotoPreviews(previews);
+		setPhotoUploading(true);
+		setPhotoError("");
+		try {
+			const uploaded: DjContentDraft["photos"] = [];
+			for (const file of selectedFiles) {
+				const optimized = await optimizePhoto(file);
+				const url = await uploadSitePhoto({
+					slug: dj.slug,
+					file: optimized,
+					token: session.token,
+				});
+				uploaded.push({ id: crypto.randomUUID(), url });
+			}
+			setDraft((current) => ({
+				...current,
+				photos: [...current.photos, ...uploaded],
+			}));
+			setSaved(false);
+		} catch (error) {
+			setPhotoError(
+				error instanceof Error ? error.message : "No se pudo subir la foto.",
+			);
+		} finally {
+			previews.forEach((preview) => URL.revokeObjectURL(preview));
+			setPendingPhotoPreviews([]);
+			setPhotoUploading(false);
+		}
 	};
 
 	const removePhoto = (id: string) => {
 		setDraft((current) => ({
 			...current,
 			photos: current.photos.filter((photo) => photo.id !== id),
+		}));
+		setSaved(false);
+	};
+
+	const toggleSection = (section: DjSectionId) => {
+		setDraft((current) => ({
+			...current,
+			hiddenSections: current.hiddenSections.includes(section)
+				? current.hiddenSections.filter((id) => id !== section)
+				: [...current.hiddenSections, section],
 		}));
 		setSaved(false);
 	};
@@ -212,8 +376,10 @@ export default function DjContentPage() {
 			</p>
 
 			<form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-				<section className="border rounded-lg p-5 flex flex-col gap-4">
-					<h2 className="text-sm font-semibold text-foreground">Perfil</h2>
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-4">
+					<legend className="text-sm font-semibold text-foreground px-1">
+						Perfil
+					</legend>
 					<div className="grid gap-4 sm:grid-cols-2">
 						<Field
 							id={ids.displayName}
@@ -244,6 +410,25 @@ export default function DjContentPage() {
 						</Field>
 					</div>
 					<Field
+						id={ids.email}
+						label="Correo de contacto"
+						hint="El correo público del artista. GigBlade no entrega una casilla."
+						error={errors.email}
+					>
+						<Input
+							id={ids.email}
+							type="email"
+							autoComplete="email"
+							placeholder="ej. fechas@tu-correo.com"
+							value={draft.email}
+							onChange={(event) => touch({ email: event.target.value })}
+							aria-invalid={Boolean(errors.email)}
+							aria-describedby={
+								errors.email ? `${ids.email}-error` : `${ids.email}-hint`
+							}
+						/>
+					</Field>
+					<Field
 						id={ids.tagline}
 						label="Tagline"
 						hint="Una línea para la portada."
@@ -263,7 +448,99 @@ export default function DjContentPage() {
 							rows={5}
 						/>
 					</Field>
-				</section>
+				</fieldset>
+
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-4">
+					<legend className="text-sm font-semibold text-foreground px-1">
+						Próximas fechas
+					</legend>
+					<div className="flex items-start justify-between gap-3">
+						<p className="text-xs text-tertiary-foreground">
+							Solo se publica esta sección cuando hay fechas completas.
+						</p>
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							onClick={addEvent}
+							disabled={draft.events.length >= 12}
+						>
+							Agregar fecha
+						</Button>
+					</div>
+					{draft.events.length === 0 ? (
+						<p className="text-sm text-tertiary-foreground">
+							No hay fechas publicadas.
+						</p>
+					) : (
+						<ul className="flex flex-col gap-4">
+							{draft.events.map((item, index) => (
+								<li
+									key={item.id}
+									className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2"
+								>
+									<Field id={`${item.id}-date`} label="Fecha">
+										<Input
+											id={`${item.id}-date`}
+											type="date"
+											value={item.date}
+											onChange={(event) =>
+												touchEvent(item.id, { date: event.target.value })
+											}
+										/>
+									</Field>
+									<Field id={`${item.id}-venue`} label="Lugar">
+										<Input
+											id={`${item.id}-venue`}
+											value={item.venue}
+											placeholder="Club, festival o evento"
+											onChange={(event) =>
+												touchEvent(item.id, { venue: event.target.value })
+											}
+										/>
+									</Field>
+									<Field id={`${item.id}-location`} label="Ciudad">
+										<Input
+											id={`${item.id}-location`}
+											value={item.location}
+											placeholder="San José, Costa Rica"
+											onChange={(event) =>
+												touchEvent(item.id, { location: event.target.value })
+											}
+										/>
+									</Field>
+									<Field
+										id={`${item.id}-ticket`}
+										label="Entradas"
+										hint="Opcional. URL https."
+									>
+										<Input
+											id={`${item.id}-ticket`}
+											type="url"
+											value={item.ticketUrl}
+											onChange={(event) =>
+												touchEvent(item.id, {
+													ticketUrl: event.target.value,
+												})
+											}
+										/>
+									</Field>
+									<div className="sm:col-span-2">
+										<Button
+											type="button"
+											variant="secondary"
+											size="sm"
+											onClick={() => removeEvent(item.id)}
+											aria-label={`Quitar fecha ${index + 1}`}
+									>
+										Quitar fecha
+									</Button>
+								</div>
+							</li>
+							))}
+						</ul>
+					)}
+				</fieldset>
 
 				<fieldset className="border rounded-lg p-5 flex flex-col gap-3">
 					<legend className="text-sm font-semibold text-foreground px-1">
@@ -315,12 +592,60 @@ export default function DjContentPage() {
 						value={draft.brandColor}
 						onChange={(brandColor) => touch({ brandColor })}
 					/>
+					<Field
+						id={`${ids.template}-hero-position`}
+						label="Encuadre de portada"
+						hint="Elegí qué zona de la foto debe mantenerse visible."
+					>
+						<select
+							id={`${ids.template}-hero-position`}
+							value={draft.heroPosition}
+							onChange={(event) =>
+								touch({
+									heroPosition: event.target
+										.value as DjContentDraft["heroPosition"],
+								})
+							}
+							aria-describedby={`${ids.template}-hero-position-hint`}
+							className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+						>
+							<option value="center">Centro</option>
+							<option value="top">Arriba</option>
+							<option value="bottom">Abajo</option>
+							<option value="left">Izquierda</option>
+							<option value="right">Derecha</option>
+						</select>
+					</Field>
+					<fieldset className="flex flex-col gap-2 border-0 p-0">
+						<legend className="text-sm font-medium text-foreground">
+							Secciones visibles
+						</legend>
+						<div className="grid gap-2 sm:grid-cols-2">
+							{SECTION_ROWS.map((section) => (
+								<label
+									key={section.id}
+									className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm"
+								>
+									<input
+										type="checkbox"
+										checked={!draft.hiddenSections.includes(section.id)}
+										onChange={() => toggleSection(section.id)}
+										className="accent-foreground"
+									/>
+									{section.label}
+								</label>
+							))}
+						</div>
+						<p className="text-xs text-tertiary-foreground">
+							Las secciones sin contenido también se ocultan automáticamente.
+						</p>
+					</fieldset>
 				</fieldset>
 
-				<section className="border rounded-lg p-5 flex flex-col gap-4">
-					<h2 className="text-sm font-semibold text-foreground">
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-4">
+					<legend className="text-sm font-semibold text-foreground px-1">
 						Redes y música
-					</h2>
+					</legend>
 					<div className="grid gap-4 sm:grid-cols-2">
 						{LINK_ROWS.map((link) => {
 							const fieldId = `${ids.displayName}-${link.id}`;
@@ -343,50 +668,169 @@ export default function DjContentPage() {
 							);
 						})}
 					</div>
-				</section>
+				</fieldset>
 
-				<section className="border rounded-lg p-5 flex flex-col gap-3">
-					<h2 className="text-sm font-semibold text-foreground">Fotos</h2>
-					<label htmlFor={ids.photos} className="text-sm font-medium text-foreground">
-						Archivos
-					</label>
-					<input
-						id={ids.photos}
-						type="file"
-						accept="image/*"
-						multiple
-						onChange={(event) => {
-							addPhotos(event.target.files);
-							event.target.value = "";
-						}}
-						className="text-sm text-tertiary-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-interactive-secondary file:px-3 file:py-1.5 file:text-sm file:text-foreground"
-					/>
-					{draft.photos.length === 0 ? (
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-4">
+					<legend className="text-sm font-semibold text-foreground px-1">
+						Sets y mixes
+					</legend>
+					<div className="flex items-start justify-between gap-3">
+						<p className="text-xs text-tertiary-foreground">
+							Pegá el link directo del video o del track. YouTube o
+							SoundCloud, hasta {maxMixes}.
+						</p>
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							onClick={addMix}
+							disabled={draft.mixes.length >= maxMixes}
+						>
+							Agregar mix
+						</Button>
+					</div>
+					{draft.mixes.length === 0 ? (
 						<p className="text-sm text-tertiary-foreground">
-							Las fotos todavía no se publican en la página.
+							Todavía no hay mixes en la página.
 						</p>
 					) : (
-						<ul className="flex flex-col gap-1">
-							{draft.photos.map((photo) => (
+						<ul className="flex flex-col gap-3">
+							{draft.mixes.map((mix, index) => {
+								const titleId = `${ids.displayName}-mix-title-${mix.id}`;
+								const urlId = `${ids.displayName}-mix-url-${mix.id}`;
+								return (
+									<li
+										key={mix.id}
+										className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] sm:items-start"
+									>
+										<Field id={titleId} label={`Título ${index + 1}`}>
+											<Input
+												id={titleId}
+												value={mix.title}
+												onChange={(event) =>
+													touchMix(mix.id, { title: event.target.value })
+												}
+												placeholder="After hours 04"
+											/>
+										</Field>
+										<Field id={urlId} label="Link">
+											<Input
+												id={urlId}
+												value={mix.url}
+												onChange={(event) =>
+													touchMix(mix.id, { url: event.target.value })
+												}
+												placeholder="https://soundcloud.com/artista/mix"
+											/>
+										</Field>
+										<div className="flex flex-col gap-1.5">
+											<span
+												className="hidden text-sm font-medium sm:block"
+												aria-hidden="true"
+											>
+												&nbsp;
+											</span>
+											<Button
+												type="button"
+												variant="secondary"
+												size="sm"
+												onClick={() => removeMix(mix.id)}
+												aria-label={`Quitar mix ${index + 1}`}
+											>
+												Quitar
+											</Button>
+										</div>
+									</li>
+								);
+							})}
+						</ul>
+					)}
+				</fieldset>
+
+				<fieldset className="border rounded-lg p-5 flex flex-col gap-3">
+					<legend className="text-sm font-semibold text-foreground px-1">
+						Fotos
+					</legend>
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+						<p
+							id={`${ids.photos}-help`}
+							className="text-xs text-tertiary-foreground"
+						>
+							JPG, PNG, WebP o AVIF, hasta 5 MB. La primera se usa
+							en portada.
+						</p>
+						<input
+							ref={photoInputRef}
+							id={ids.photos}
+							type="file"
+							accept="image/jpeg,image/png,image/webp,image/avif"
+							multiple
+							onChange={uploadPhotos}
+							aria-describedby={`${ids.photos}-help`}
+							className="sr-only"
+						/>
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							onClick={() => photoInputRef.current?.click()}
+							disabled={photoUploading || draft.photos.length >= 12}
+							className="w-full shrink-0 sm:w-auto"
+						>
+							{photoUploading ? "Subiendo…" : "Subir fotos"}
+						</Button>
+					</div>
+					{photoError ? (
+						<p
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{photoError}
+						</p>
+					) : null}
+					{pendingPhotoPreviews.length > 0 ? (
+						<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							{pendingPhotoPreviews.map((preview) => (
+								<PhotoGridReveal key={preview} src={preview} />
+							))}
+						</div>
+					) : null}
+					{draft.photos.length > 0 ? (
+						<ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+							{draft.photos.map((photo, index) => (
 								<li
 									key={photo.id}
-									className="flex items-center justify-between gap-2"
+									className="relative overflow-hidden rounded-lg border bg-interactive-secondary"
 								>
-									<span className="truncate text-sm">{photo.name}</span>
+									<img
+										src={publicSiteAssetUrl(dj.slug, photo.url)}
+										alt=""
+										className="aspect-4/3 w-full object-cover"
+									/>
+									<div className="flex min-h-12 items-center justify-between gap-2 px-3 py-2">
+										<span className="truncate text-xs font-medium text-foreground">
+											{index === 0 ? "Portada" : `Foto ${index + 1}`}
+										</span>
 									<Button
 										type="button"
 										variant="secondary"
 										size="sm"
 										onClick={() => removePhoto(photo.id)}
-										aria-label={`Quitar ${photo.name}`}
+										aria-label={`Quitar foto ${index + 1}`}
+										className="shrink-0"
 									>
 										Quitar
 									</Button>
+									</div>
 								</li>
 							))}
 						</ul>
-					)}
-				</section>
+					) : pendingPhotoPreviews.length === 0 ? (
+						<div className="flex min-h-32 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-tertiary-foreground">
+							No hay fotos publicadas.
+						</div>
+					) : null}
+				</fieldset>
 
 				<SavePublishControl
 					saving={saving}

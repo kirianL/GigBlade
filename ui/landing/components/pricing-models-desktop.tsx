@@ -27,8 +27,8 @@ export default function PricingModelsDesktop() {
 								Elegís dominio y plantilla.
 							</span>{" "}
 							<span className="text-[#FFFFFF99]">
-								Cargás tu contenido y tu página queda lista para recibir
-								bookings.
+								Cargás tu contenido y tu página queda lista. El dominio se
+								cobra aparte, al costo.
 							</span>
 						</div>
 					</div>

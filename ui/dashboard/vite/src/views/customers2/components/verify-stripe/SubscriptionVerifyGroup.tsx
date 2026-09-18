@@ -29,7 +29,7 @@ export function SubscriptionVerifyGroup({
 						weight="fill"
 						className="shrink-0 text-green-500"
 					/>
-					Matches Autumn's expected state
+					Matches GigBlade's expected state
 				</div>
 			) : (
 				<MismatchTable mismatches={result.mismatches} />

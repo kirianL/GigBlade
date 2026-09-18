@@ -13,9 +13,9 @@ const cards = [
 		tint: "bg-brand-tint-1",
 		icon: "/images/production/uptime2.svg",
 		metric: "$65",
-		label: "Al mes, todo incluido",
+		label: "Al mes, página incluida",
 		description:
-			"Hosting, seguridad, página y dominio propio en una sola suscripción.",
+			"Hosting, seguridad y tu página. El dominio se cobra aparte, al costo.",
 		clipart: true,
 	},
 	{
@@ -31,9 +31,9 @@ const cards = [
 		tint: "bg-brand-tint-3",
 		icon: "/images/production/uptiime.svg",
 		metric: "Al costo",
-		label: "Dominio anual",
+		label: "Dominio aparte",
 		description:
-			"La renovación del dominio se cobra transparente, al costo real, sin margen.",
+			"El dominio se cobra aparte, al costo real, sin margen. Lo registramos y administramos nosotros.",
 		clipart: true,
 	},
 	{

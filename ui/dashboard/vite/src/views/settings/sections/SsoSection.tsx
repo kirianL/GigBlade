@@ -120,7 +120,7 @@ export const SsoSection = () => {
 	return (
 		<SettingsSection
 			title="Single sign-on"
-			description="Let your team sign in to Autumn with your OIDC identity provider"
+			description="Let your team sign in to GigBlade with your OIDC identity provider"
 		>
 			{renderContent()}
 			{connection && (

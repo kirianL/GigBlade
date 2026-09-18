@@ -3,14 +3,20 @@ import { join } from "node:path";
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
 import { updateTenantSiteContent } from "@/application/tenants/update-tenant-site-content";
+import { listPlatformSites } from "@/application/sites/list-platform-sites";
+import {
+  getSiteVisitStats,
+  recordSiteVisit,
+} from "@/application/sites/record-site-visit";
+import { generateDjPassword } from "@/application/panel/generate-dj-password";
+import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
-import { listWishlistRequests } from "@/application/wishlist/list-wishlist-requests";
-import { submitWishlistRequest } from "@/application/wishlist/submit-wishlist-request";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
+import { InMemoryPanelAuthStore } from "@/infrastructure/memory/in-memory-panel-auth-store";
+import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
 import { InMemoryTenantRepository } from "@/infrastructure/memory/in-memory-tenant-repository";
 import { InMemoryTenantRoutingStore } from "@/infrastructure/memory/in-memory-tenant-routing-store";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
-import { InMemoryWishlistRepository } from "@/infrastructure/memory/in-memory-wishlist-repository";
 import {
   MEMORY_DEMO_ROUTING,
   MEMORY_DEMO_SEEDS,
@@ -29,6 +35,7 @@ export const memoryDemoTenants: Tenant[] = MEMORY_DEMO_SEEDS.map((seed) => ({
     bio: seed.bio,
     links: seed.links,
     photos: seed.photos,
+    mixes: seed.mixes,
   },
   status: "active",
 }));
@@ -51,12 +58,20 @@ export function createMemoryApp() {
       return [hostname, createTenantRouting(tenant, hostname)];
     }),
   );
-  const wishlist = new InMemoryWishlistRepository();
   const waitlist = new InMemoryWaitlistRepository();
+  const visits = new InMemorySiteVisitStore(
+    join(process.cwd(), ".next", "memory-site-visits.json"),
+  );
+  const panelAuth = new InMemoryPanelAuthStore(
+    join(process.cwd(), ".next", "memory-panel-auth.json"),
+    process.env.GIGBLADE_PANEL_PASSWORD?.trim() || "gigblade",
+  );
 
   return {
     tenants,
     routing,
+    visits,
+    panelAuth,
     getPublicTenant: (context: Parameters<typeof getPublicTenant>[1]) =>
       getPublicTenant(tenants, context),
     updateTenantSiteContent: (
@@ -65,12 +80,29 @@ export function createMemoryApp() {
     ) => updateTenantSiteContent(tenants, context, input),
     resolveTenantRouting: (hostname: string) =>
       resolveTenantRouting(routing, hostname),
-    submitWishlistRequest: (
-      context: Parameters<typeof submitWishlistRequest>[1],
+    recordSiteVisit: (
+      context: Parameters<typeof recordSiteVisit>[1],
+      visitorKey: string,
+    ) => recordSiteVisit(visits, context, visitorKey),
+    getSiteVisitStats: (context: Parameters<typeof getSiteVisitStats>[1]) =>
+      getSiteVisitStats(visits, context),
+    listPlatformSites: () => listPlatformSites(tenants, routing, visits),
+    loginPanel: (input: unknown) => {
+      const body = (input ?? {}) as { email: unknown; password: unknown };
+      return loginPanel(panelAuth, body);
+    },
+    readPanelSession: (token: string) => readPanelSession(panelAuth, token),
+    generateDjPassword: (
+      actor: Parameters<typeof generateDjPassword>[2],
       input: unknown,
-    ) => submitWishlistRequest(wishlist, context, input),
-    listWishlistRequests: (tenantId?: string) =>
-      listWishlistRequests(wishlist, tenantId),
+    ) => {
+      const body = (input ?? {}) as {
+        slug: unknown;
+        email: unknown;
+        name: unknown;
+      };
+      return generateDjPassword(panelAuth, tenants, actor, body);
+    },
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
   };
 }

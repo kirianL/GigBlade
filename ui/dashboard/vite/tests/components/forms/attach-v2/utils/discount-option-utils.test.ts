@@ -230,7 +230,7 @@ describe("buildDiscountOptions", () => {
 		const rewards = [
 			makeReward({
 				id: "shared_id",
-				name: "Autumn Discount",
+				name: "GigBlade Discount",
 				type: RewardType.PercentageDiscount,
 				discount_config: {
 					discount_value: 10,
@@ -368,7 +368,7 @@ describe("buildDiscountOptions", () => {
 		const rewards = [
 			makeReward({
 				id: "shared_id",
-				name: "Autumn Discount",
+				name: "GigBlade Discount",
 				type: RewardType.PercentageDiscount,
 				discount_config: {
 					discount_value: 10,

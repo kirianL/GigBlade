@@ -48,7 +48,7 @@ const PRESET_OPTIONS = [
 	{
 		id: "classic",
 		label: "Classic",
-		description: "The original Autumn look",
+		description: "The original GigBlade look",
 		icon: <Leaf className="size-5 text-muted-foreground" />,
 		light: {
 			bg: "bg-[#fafaf9]",

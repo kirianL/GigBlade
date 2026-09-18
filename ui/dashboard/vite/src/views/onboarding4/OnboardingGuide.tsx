@@ -61,7 +61,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 	{
 		id: "customer",
 		stepId: "customer",
-		title: "Set up Autumn",
+		title: "Set up GigBlade",
 		shortTitle: "Integration",
 		icon: <PlugsConnectedIcon size={16} weight="duotone" />,
 		description: "Install the SDK, create a customer, and add the payment flow",
@@ -297,7 +297,7 @@ export function OnboardingGuide() {
 					<h2 className="text-xs text-foreground">
 						{allStepsComplete
 							? "All steps complete 🎉"
-							: "Get started with Autumn"}
+							: "Get started with GigBlade"}
 					</h2>
 					{!allStepsComplete && (
 						<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted text-tertiary-foreground text-[10px]">

@@ -109,7 +109,7 @@ const filterStripeCouponsByProduct = ({
 		stripeCouponAppliesToProduct({ coupon, productId }),
 	);
 
-/** Builds a merged, deduplicated list of discount options from Autumn rewards and Stripe coupons */
+/** Builds a merged, deduplicated list of discount options from GigBlade rewards and Stripe coupons */
 export const buildDiscountOptions = ({
 	rewards,
 	rewardPrograms,

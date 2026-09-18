@@ -14,8 +14,8 @@ export default function Problem() {
 						</span>
 					</h2>
 					<p className="text-[#888888] font-light text-[16px] md:text-[18px] xl:text-[16px] tracking-[-2%] leading-[20px] mb-10 max-w-xl">
-						Sin sitio propio dependés de Instagram y WhatsApp para mostrarte y
-						recibir bookings. Armarlo por tu cuenta es hosting, dominio y
+						Sin sitio propio dependés de Instagram y WhatsApp para mostrarte.
+						Armarlo por tu cuenta es hosting, dominio y
 						seguridad.
 						<span className="text-white">
 							{" "}
@@ -35,7 +35,7 @@ export default function Problem() {
 							{
 								title: "Canal.",
 								description:
-									"Las productoras te encuentran y dejan una solicitud. Vos la ves en el panel.",
+									"Las productoras te encuentran en tu dominio, con tu bio y tus redes.",
 							},
 							{
 								title: "Cero infra.",

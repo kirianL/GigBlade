@@ -31,7 +31,7 @@ const providers = [
 	{
 		id: "slack",
 		name: "Slack",
-		description: "Use Autumn MCP tools from Slack DMs and mentions",
+		description: "Use GigBlade MCP tools from Slack DMs and mentions",
 		icon: faSlack,
 	},
 ] as const;

@@ -97,7 +97,7 @@ export const TerminalView = () => {
 							TRMNL
 						</CardTitle>
 						<CardDescription>
-							Connect your TRMNL device to show Autumn metrics on your display.
+							Connect your TRMNL device to show GigBlade metrics on your display.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex flex-col gap-4">
@@ -157,7 +157,7 @@ export const TerminalView = () => {
 					<CardHeader>
 						<CardTitle className="text-sm">Setup checklist</CardTitle>
 						<CardDescription>
-							Follow these steps to finish linking Autumn to TRMNL.
+							Follow these steps to finish linking GigBlade to TRMNL.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -188,7 +188,7 @@ export const TerminalView = () => {
 								, enter your device ID, and click Save.
 							</li>
 							<li>
-								Confirm Autumn was added to your playlist{" "}
+								Confirm GigBlade was added to your playlist{" "}
 								<a
 									href="https://usetrmnl.com/playlists"
 									className="underline text-primary"

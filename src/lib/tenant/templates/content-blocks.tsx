@@ -5,7 +5,6 @@ import { SiteReveal } from "@/lib/tenant/templates/reveal";
 
 export function BioSection({ site }: SiteTemplateProps) {
   const profile = site.profile;
-  const hasBio = Boolean(profile.bio);
 
   return (
     <section
@@ -24,15 +23,11 @@ export function BioSection({ site }: SiteTemplateProps) {
         {/* Left Column: Big Editorial Quote / Bio */}
         <div className="lg:col-span-8">
           <SiteReveal delay={0.08} yOffset={24}>
-            {hasBio ? (
+            {profile.bio ? (
               <p className="text-xl sm:text-2xl md:text-3xl text-[var(--site-fg)] font-light leading-relaxed">
                 &ldquo;{profile.bio}&rdquo;
               </p>
-            ) : (
-              <p className="text-xl sm:text-2xl md:text-3xl text-[var(--site-muted)] font-light leading-relaxed italic">
-                &ldquo;Sets diseñados para conectar la pista con la energía pura del sonido. Cada noche una historia irrepetible.&rdquo;
-              </p>
-            )}
+            ) : null}
           </SiteReveal>
 
           {profile.tagline ? (
@@ -44,40 +39,37 @@ export function BioSection({ site }: SiteTemplateProps) {
           ) : null}
         </div>
 
-        <div className="lg:col-span-4 flex flex-col gap-8 mt-8 lg:mt-0">
-          <SiteReveal delay={0.12} yOffset={20}>
+        {profile.city ? (
+          <div className="lg:col-span-4 mt-8 lg:mt-0">
+            <SiteReveal delay={0.12} yOffset={20}>
             <div>
               <p className="text-xl sm:text-2xl font-medium text-[var(--site-fg)] uppercase tracking-tight">
-                {profile.city || "San José, Costa Rica"}
+                {profile.city}
               </p>
-              <p className="text-sm text-[var(--site-muted)] mt-1 uppercase tracking-widest font-mono">Base de operaciones</p>
-            </div>
-          </SiteReveal>
-
-          <SiteReveal delay={0.2} yOffset={20}>
-            <div>
-              <p className="text-xl sm:text-2xl font-medium text-[var(--site-fg)] uppercase tracking-tight">
-                DJ Sets & Extended Sets
+              <p className="text-sm text-[var(--site-muted)] mt-1 uppercase tracking-widest font-mono">
+                Ciudad
               </p>
-              <p className="text-sm text-[var(--site-muted)] mt-1 uppercase tracking-widest font-mono">Club & Festivales</p>
             </div>
-          </SiteReveal>
-
-          <SiteReveal delay={0.28} yOffset={20}>
-            <div>
-              <p className="text-xl sm:text-2xl font-medium text-[var(--site-fg)] uppercase tracking-tight">
-                Booking Abierto
-              </p>
-              <p className="text-sm text-[var(--site-muted)] mt-1 uppercase tracking-widest font-mono">Disponibilidad</p>
-            </div>
-          </SiteReveal>
-        </div>
+            </SiteReveal>
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
 export function AgendaSection({ site }: SiteTemplateProps) {
+  const events = site.profile.events ?? [];
+  const hasContact = Boolean(site.profile.email || site.profile.links.instagram);
+
+  const formatDate = (date: string) =>
+    new Intl.DateTimeFormat("es-CR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(`${date}T00:00:00Z`));
+
   return (
     <section
       id="agenda"
@@ -93,63 +85,52 @@ export function AgendaSection({ site }: SiteTemplateProps) {
             </h2>
           </div>
           <span className="text-xs font-mono text-[var(--site-muted)] uppercase tracking-wider">
-            Temporada 2026 / 2027
+            {events.length} {events.length === 1 ? "fecha" : "fechas"}
           </span>
         </div>
       </SiteReveal>
 
       {/* Tour dates list with interactive rows */}
       <div className="flex flex-col divide-y divide-[var(--site-card-border)] border-y border-[var(--site-card-border)]">
-        {/* Placeholder announcement rows */}
-        <SiteReveal delay={0.06}>
-          <div className="py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-[var(--site-surface)]/50 px-3 -mx-3 rounded-lg transition-colors">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
-              <span className="font-mono text-sm sm:text-base text-[var(--site-accent)] font-semibold">
-                PRÓXIMAMENTE
-              </span>
-              <div>
-                <h3 className="text-lg sm:text-xl font-medium text-[var(--site-fg)]">
-                  Fechas en anuncio & residencias
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--site-muted)]">
-                  {site.profile.city || "San José"} · Clubes & Festivales
-                </p>
+        {events.map((event, index) => (
+          <SiteReveal key={`${event.date}-${event.venue}`} delay={Math.min(index * 0.05, 0.2)}>
+            <article className="site-agenda-row py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group px-3 -mx-3 rounded-lg transition-colors duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)]">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+                <time
+                  dateTime={event.date}
+                  className="font-mono text-sm sm:text-base text-[var(--site-accent)] font-semibold uppercase"
+                >
+                  {formatDate(event.date)}
+                </time>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-medium text-[var(--site-fg)]">
+                    {event.venue}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[var(--site-muted)]">
+                    {event.location}
+                  </p>
+                </div>
               </div>
-            </div>
-            <a
-              href="#contacto"
-              className="pressable inline-flex items-center gap-1.5 self-start sm:self-auto px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)] hover:border-[var(--site-accent)] hover:text-[var(--site-accent)] transition-colors"
-            >
-              <span>Consultar Fecha</span>
-              <span>→</span>
-            </a>
-          </div>
-        </SiteReveal>
-
-        <SiteReveal delay={0.12}>
-          <div className="py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-[var(--site-surface)]/50 px-3 -mx-3 rounded-lg transition-colors">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
-              <span className="font-mono text-sm sm:text-base text-[var(--site-muted)]">
-                DISPONIBLE
-              </span>
-              <div>
-                <h3 className="text-lg sm:text-xl font-medium text-[var(--site-fg)]">
-                  Fechas privadas & eventos corporativos
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--site-muted)]">
-                  Agenda abierta para producciones exclusivas
-                </p>
-              </div>
-            </div>
-            <a
-              href="#contacto"
-              className="pressable inline-flex items-center gap-1.5 self-start sm:self-auto px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)] hover:border-[var(--site-accent)] hover:text-[var(--site-accent)] transition-colors"
-            >
-              <span>Reservar</span>
-              <span>→</span>
-            </a>
-          </div>
-        </SiteReveal>
+              {event.ticketUrl ? (
+                <a
+                  href={event.ticketUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pressable site-chip inline-flex items-center gap-1.5 self-start sm:self-auto px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)]"
+                >
+                  Entradas <span aria-hidden="true">↗</span>
+                </a>
+              ) : hasContact ? (
+                <a
+                  href="#contacto"
+                  className="pressable site-chip inline-flex items-center gap-1.5 self-start sm:self-auto px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)]"
+                >
+                  Consultar
+                </a>
+              ) : null}
+            </article>
+          </SiteReveal>
+        ))}
       </div>
     </section>
   );

@@ -66,7 +66,7 @@ export const AllowedPaymentMethodsSubsection = () => {
 			description={
 				allowedMethods === null
 					? "Unset — invoices use your Stripe account's default payment methods"
-					: "Only these payment methods are offered on invoices Autumn creates"
+					: "Only these payment methods are offered on invoices GigBlade creates"
 			}
 		>
 			<DropdownMenu>

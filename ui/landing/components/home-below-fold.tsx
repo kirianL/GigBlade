@@ -17,7 +17,7 @@ export default function HomeBelowFold() {
 				<Features />
 			</div>
 			<div className="home-section">
-				<SectionDivider title="TODO INCLUIDO" />
+				<SectionDivider title="EL PLAN" />
 				<ProductionScale />
 			</div>
 			<div className="home-section">

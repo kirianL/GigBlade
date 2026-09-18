@@ -19,7 +19,7 @@ export function VerifyStripeSheet() {
 		<div className="flex flex-col h-full">
 			<SheetHeader
 				title="Verify Stripe"
-				description="Check this customer's Stripe subscriptions against the state Autumn expects"
+				description="Check this customer's Stripe subscriptions against the state GigBlade expects"
 			/>
 
 			<div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">

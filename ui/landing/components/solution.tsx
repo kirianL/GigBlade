@@ -4,7 +4,7 @@ const pageRows = [
 	{ label: "DOMINIO PROPIO", active: true },
 	{ label: "PLANTILLA PARA DJS", active: false },
 	{ label: "BIO, FOTOS Y REDES", active: false },
-	{ label: "FORMULARIO DE BOOKING", active: false },
+	{ label: "PANEL DE CONTENIDO", active: false },
 	{ label: "HOSTING Y SEGURIDAD", active: false },
 ];
 
@@ -87,7 +87,7 @@ export default function Solution() {
 						<br className="hidden sm:block" />
 						GigBlade administra el resto.{" "}
 						<span className="text-white">
-							Tu página queda lista para bookings.
+							Tu página queda lista para que te encuentren.
 						</span>
 					</p>
 				</div>

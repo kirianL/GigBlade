@@ -7,6 +7,41 @@ import type { JSX } from "react";
 
 const EMIL_EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
+function AnimatedHeroTitle({ title }: { title: string }) {
+  let characterIndex = 0;
+
+  return (
+    <h1
+      aria-label={title}
+      className="font-display text-6xl font-bold uppercase leading-[0.8] tracking-tighter text-(--site-fg) sm:text-8xl md:text-9xl lg:text-[12rem]"
+    >
+      <span aria-hidden="true">
+        {title.split(/\s+/).map((word, wordIndex) => (
+          <span
+            key={`${word}-${wordIndex}`}
+            className="mr-[0.18em] inline-block overflow-hidden pb-[0.08em] align-bottom last:mr-0"
+          >
+            {Array.from(word).map((character) => {
+              const index = characterIndex++;
+              return (
+                <span
+                  key={`${character}-${index}`}
+                  className="site-hero-letter inline-block"
+                  style={{
+                    animationDelay: `${80 + Math.min(index * 32, 480)}ms`,
+                  }}
+                >
+                  {character}
+                </span>
+              );
+            })}
+          </span>
+        ))}
+      </span>
+    </h1>
+  );
+}
+
 /* ── Real SVG icons per platform ────────────────────────────── */
 const SOCIAL_ICONS: Record<SiteLinkKey, { label: string; icon: (cls?: string) => JSX.Element }> = {
   instagram: {
@@ -72,12 +107,14 @@ export function HeroSection({ site }: SiteTemplateProps) {
   const reduce = useReducedMotion();
 
   const activeLinks = SITE_LINK_KEYS.filter((key) => Boolean(profile.links[key]));
+  const hasContact = Boolean(profile.email || profile.links.instagram);
 
   // Background image selection: DJ photo or high-res curated DJ performance
   const bgImage = profile.heroPhoto || profile.photos?.[0] || "/images/dj/dj-hero.jpg";
 
   return (
     <section
+      id="inicio"
       className="relative min-h-[92dvh] w-full flex flex-col justify-end px-5 sm:px-8 md:px-12 pb-12 pt-28 overflow-hidden"
     >
       {/* Background Image with Cinematic Overlays */}
@@ -85,7 +122,8 @@ export function HeroSection({ site }: SiteTemplateProps) {
         <img
           src={bgImage}
           alt={profile.displayName}
-          className="w-full h-full object-cover object-center brightness-75 contrast-110 scale-105 transition-transform duration-1000 ease-out"
+          className="w-full h-full object-cover brightness-75 contrast-110 scale-105"
+          style={{ objectPosition: profile.heroPosition ?? "center" }}
         />
         {/* Top gradient — ensures navbar text is always legible */}
         <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
@@ -98,14 +136,7 @@ export function HeroSection({ site }: SiteTemplateProps) {
       <div className="relative z-10 max-w-6xl w-full mx-auto">
 
         {/* DJ Display Name (Editorial Display Typography) */}
-        <motion.h1
-          initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(24px) scale(0.98)" }}
-          animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
-          transition={{ duration: 0.5, delay: 0.08, ease: EMIL_EASE_OUT }}
-          className="font-display font-bold text-6xl sm:text-8xl md:text-9xl lg:text-[12rem] tracking-tighter text-[var(--site-fg)] leading-[0.8] break-words uppercase"
-        >
-          {profile.displayName}
-        </motion.h1>
+        <AnimatedHeroTitle title={profile.displayName} />
 
         {/* Tagline / Subtitle */}
         {profile.tagline ? (
@@ -127,21 +158,24 @@ export function HeroSection({ site }: SiteTemplateProps) {
           className="mt-8 flex flex-wrap items-center gap-3"
         >
           {/* Quick CTA to Booking */}
-          <a
-            href="#contacto"
-            className="pressable inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs sm:text-sm uppercase tracking-wider shadow-lg hover:opacity-90 transition-opacity"
-          >
-            <span>Reservar DJ</span>
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+          {hasContact ? (
+            <a
+              href="#contacto"
+              className="pressable site-fill group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs sm:text-sm uppercase tracking-wider shadow-lg"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-          </a>
+              <span>Contacto</span>
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </a>
+          ) : null}
 
           {/* Social Platform Icons — real SVGs */}
           {activeLinks.map((key) => {
@@ -156,19 +190,13 @@ export function HeroSection({ site }: SiteTemplateProps) {
                 rel="noreferrer"
                 aria-label={platform.label}
                 data-link={key}
-                className="pressable inline-flex items-center justify-center w-10 h-10 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] backdrop-blur-md text-[var(--site-fg)] hover:border-[var(--site-accent)] hover:text-[var(--site-accent)] transition-colors"
+                className="pressable site-icon inline-flex items-center justify-center w-10 h-10 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] backdrop-blur-md text-[var(--site-fg)]"
               >
                 {platform.icon("w-[18px] h-[18px]")}
               </a>
             );
           })}
         </motion.div>
-      </div>
-
-      {/* Decorative Bottom Rule */}
-      <div className="relative z-10 max-w-6xl w-full mx-auto mt-12 pt-4 border-t border-[var(--site-card-border)] flex justify-between items-center text-[10px] uppercase font-mono text-[var(--site-muted)]">
-        <span>Curated Sets &amp; Performances</span>
-        <span>Scroll to Explore</span>
       </div>
     </section>
   );

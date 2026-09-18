@@ -5,8 +5,8 @@
   "scripts": {
     "predev": "node scripts/link-landing-assets.mjs",
     "prebuild": "node scripts/link-landing-assets.mjs",
-		"dev": "next dev",
-		"dev:dashboard": "bun run --cwd ui/dashboard dev",
+    "dev": "next dev",
+    "dev:dashboard": "bun run --cwd ui/dashboard dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
+    "@fontsource-variable/oswald": "^5.3.0",
     "@gsap/react": "^2.1.2",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/mdx": "^3.1.1",

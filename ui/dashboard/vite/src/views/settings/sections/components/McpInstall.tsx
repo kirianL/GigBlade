@@ -125,7 +125,7 @@ export const McpInstall = () => {
 					Install in your editor
 				</span>
 				<span className="text-xs text-tertiary-foreground">
-					Connect Autumn's MCP tools to your AI client. Sign-in happens in your
+					Connect GigBlade's MCP tools to your AI client. Sign-in happens in your
 					editor — no API key needed.
 				</span>
 			</div>

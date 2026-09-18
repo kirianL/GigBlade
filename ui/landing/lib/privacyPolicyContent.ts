@@ -16,15 +16,15 @@ export const privacyPolicySections: LegalSection[] = [
 		isUppercase: false,
 	},
 	{
-		title: "3. Artist and Booking Data",
+		title: "3. Artist Page Data",
 		content:
-			"If you publish a page, we host the content you upload (bio, photos, links) and booking requests submitted by third parties through your form. We process that data to provide the panel and the public page, not to sell it.",
+			"If you publish a page, we host the content you upload (bio, photos, links). We process that data to provide the panel and the public page, not to sell it.",
 		isUppercase: false,
 	},
 	{
 		title: "4. How We Use Information",
 		content:
-			"We use personal information to operate the waitlist and the platform, to host your page, to deliver booking requests to you, to secure the Services, to provide support, and to comply with law. We do not sell personal information.",
+			"We use personal information to operate the waitlist and the platform, to host your page, to secure the Services, to provide support, and to comply with law. We do not sell personal information.",
 		isUppercase: false,
 	},
 	{

@@ -17,7 +17,7 @@ export function SharedStripeCustomerDetails({
 
 	return (
 		<span className="block whitespace-normal break-words text-tertiary-foreground py-2">
-			Stripe customer {mismatch.stripe_customer_id} is also linked to Autumn
+			Stripe customer {mismatch.stripe_customer_id} is also linked to GigBlade
 			customer{otherCustomers.length === 1 ? "" : "(s)"}:{" "}
 			{otherCustomers.map((customer, index) => (
 				<Fragment key={customer.id}>

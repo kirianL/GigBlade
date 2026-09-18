@@ -150,7 +150,7 @@ export const ConfigureStripe = () => {
 								{!anyConnected && (
 									<span className="text-muted-foreground">
 										{" "}
-										You're currently connected to Autumn's default sandbox.
+										You're currently connected to GigBlade's default sandbox.
 									</span>
 								)}
 								{dashboardUrl && (

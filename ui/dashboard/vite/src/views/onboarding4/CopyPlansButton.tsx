@@ -108,7 +108,7 @@ export function CopyPlansButton({ pricingConfig }: CopyPlansButtonProps) {
 				onClick={handleCopyPlans}
 				disabled={isLoading}
 			>
-				{isLoading ? "Copying..." : "Copy to Autumn"}
+				{isLoading ? "Copying..." : "Copy to GigBlade"}
 			</Button>
 
 			<Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>

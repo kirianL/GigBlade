@@ -18,6 +18,16 @@ export async function updateTenantSiteContent(
 ): Promise<PublicTenant> {
   const parsed = siteContentInputSchema.safeParse(rawInput);
   if (!parsed.success) {
+    const field = parsed.error.issues[0]?.path[0];
+    if (field === "email") {
+      throw validationError("El correo no es válido.");
+    }
+    if (field === "mixes") {
+      throw validationError("Revisá los links de los mixes.");
+    }
+    if (field === "brandColor") {
+      throw validationError("El color del sitio no es válido.");
+    }
     throw validationError("El contenido del sitio no es válido");
   }
 

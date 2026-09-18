@@ -36,6 +36,7 @@ describe("updateTenantSiteContent", () => {
       tagline: "Claro y directo",
       city: "San José",
       bio: "Bio nueva",
+      email: "fechas@nox.cr",
       links: {
         instagram: "@nox",
         spotify: "https://open.spotify.com/artist/nox",
@@ -52,6 +53,7 @@ describe("updateTenantSiteContent", () => {
         tagline: "Claro y directo",
         city: "San José",
         bio: "Bio nueva",
+        email: "fechas@nox.cr",
         links: {
           instagram: "https://instagram.com/nox",
           spotify: "https://open.spotify.com/artist/nox",
@@ -100,6 +102,87 @@ describe("updateTenantSiteContent", () => {
       bio: "Resident.",
       brandColor: "#0f766e",
       links: { instagram: "https://instagram.com/old" },
+    });
+  });
+
+  it("acepta correo vacío para no publicar casilla", async () => {
+    const tenants = new InMemoryTenantRepository([
+      {
+        ...tenant,
+        themeConfig: { ...tenant.themeConfig, email: "fechas@nox.cr" },
+      },
+    ]);
+
+    const publicTenant = await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      email: "",
+    });
+
+    expect(publicTenant.profile.email).toBeUndefined();
+    const stored = await tenants.findById(tenant.id);
+    expect(stored?.themeConfig).not.toHaveProperty("email");
+  });
+
+  it("guarda mixes directos de YouTube y SoundCloud", async () => {
+    const tenants = new InMemoryTenantRepository([tenant]);
+
+    const publicTenant = await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      mixes: [
+        {
+          title: "After hours 04",
+          url: "https://soundcloud.com/nox/after-hours-04",
+        },
+        { url: "https://youtu.be/dQw4w9WgXcQ" },
+        { url: "https://soundcloud.com/nox" },
+      ],
+    });
+
+    expect(publicTenant.profile.mixes).toEqual([
+      {
+        title: "After hours 04",
+        url: "https://soundcloud.com/nox/after-hours-04",
+        platform: "soundcloud",
+      },
+      {
+        title: "YouTube mix",
+        url: "https://youtu.be/dQw4w9WgXcQ",
+        platform: "youtube",
+      },
+    ]);
+  });
+
+  it("guarda fechas, fotos, encuadre y secciones ocultas", async () => {
+    const tenants = new InMemoryTenantRepository([tenant]);
+
+    const publicTenant = await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      photos: ["https://images.example.com/nox.jpg"],
+      heroPosition: "top",
+      events: [
+        {
+          date: "2026-11-14",
+          venue: "Club Nox",
+          location: "San José",
+          ticketUrl: "https://tickets.example.com/nox",
+        },
+      ],
+      hiddenSections: ["bio"],
+    });
+
+    expect(publicTenant.profile).toMatchObject({
+      photos: ["https://images.example.com/nox.jpg"],
+      heroPhoto: "https://images.example.com/nox.jpg",
+      heroPosition: "top",
+      events: [
+        {
+          date: "2026-11-14",
+          venue: "Club Nox",
+          location: "San José",
+          ticketUrl: "https://tickets.example.com/nox",
+        },
+      ],
+      hiddenSections: ["bio"],
     });
   });
 

@@ -34,6 +34,10 @@ export function unauthorized(message = "No autorizado"): AppError {
   return new AppError("UNAUTHORIZED", message, 401);
 }
 
+export function forbidden(message = "Prohibido"): AppError {
+  return new AppError("FORBIDDEN", message, 403);
+}
+
 export function notFound(message = "Recurso no encontrado"): AppError {
   return new AppError("NOT_FOUND", message, 404);
 }

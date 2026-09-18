@@ -20,17 +20,17 @@ const plans: Plan[] = [
 	{
 		name: "PLAN",
 		price: "65",
-		description: "Todo incluido. Un solo precio, sin armar infraestructura.",
+		description: "Un solo precio. Hosting y seguridad. El dominio se cobra aparte.",
 		features: [
 			{ label: "Página con dominio personalizado" },
 			{ label: "Plantilla del catálogo para DJs" },
-			{ label: "Formulario de booking anti-spam" },
-			{ label: "Panel de contenido y solicitudes" },
+			{ label: "Bio, fotos y redes" },
+			{ label: "Panel para editar contenido" },
 			{ label: "Hosting, seguridad y cache" },
 			{ label: "Datos aislados de otros DJs" },
 			{
-				label: "Renovación de dominio",
-				note: "al costo real, sin margen",
+				label: "Dominio propio",
+				note: "se cobra aparte, al costo",
 			},
 			{ label: "Soporte de plataforma" },
 		],
@@ -61,11 +61,11 @@ export default function Pricing() {
 					<div className="text-white flex flex-col gap-6 lg:gap-0">
 						<div className="mx-auto w-full max-w-2xl px-4 lg:px-8 pt-10 lg:pt-8 pb-16 lg:pb-18 text-center">
 							<h1 className="text-[30px] leading-[32px] md:leading-[40px] md:text-3xl lg:text-[40px] tracking-[-4%] text-white font-normal font-sans">
-								Un plan. Todo incluido.
+								Un plan. Infra resuelta.
 							</h1>
 							<p className="mt-4 md:mt-5 text-[#FFFFFF99] text-pretty font-light leading-[18px] tracking-[-2%] md:font-extralight text-[16px] md:leading-[1.6]">
-								US$ 65 al mes cubre hosting, seguridad y dominio. La renovación
-								anual del dominio se cobra al costo real, sin margen.
+								US$ 65 al mes cubre hosting, seguridad y tu página. El
+								dominio se cobra aparte, al costo real, sin margen.
 							</p>
 						</div>
 

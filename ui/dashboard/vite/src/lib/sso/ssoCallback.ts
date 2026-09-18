@@ -39,18 +39,18 @@ export const parseSsoCallbackQuery = (search: string) =>
  */
 const SSO_CALLBACK_ERROR_CODE_MESSAGES: Record<string, string> = {
 	"account not linked":
-		"You already have an Autumn account with this email, but its address isn't verified yet, so we can't connect it to your provider. Verify your email, then sign in again.",
+		"You already have a GigBlade account with this email, but its address isn't verified yet, so we can't connect it to your provider. Verify your email, then sign in again.",
 };
 
 const SSO_CALLBACK_ERROR_MESSAGES: Record<string, string> = {
 	token_response_not_found:
-		"Your identity provider rejected Autumn's credentials. Check that the client ID and client secret match the OIDC app exactly.",
+		"Your identity provider rejected GigBlade's credentials. Check that the client ID and client secret match the OIDC app exactly.",
 	token_endpoint_not_found:
 		"Your provider's OIDC discovery document is missing a token endpoint. Check the issuer URL.",
 	jwks_endpoint_not_found:
 		"Your provider's OIDC discovery document is missing a JWKS endpoint. Check the issuer URL.",
 	token_not_verified:
-		"Autumn couldn't verify the token your provider returned. Check that the issuer URL matches the one that signs your tokens.",
+		"GigBlade couldn't verify the token your provider returned. Check that the issuer URL matches the one that signs your tokens.",
 	missing_user_info:
 		"Your provider didn't return an email for this user. Check that the OIDC app requests the email and profile scopes.",
 	user_info_endpoint_not_found:

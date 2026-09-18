@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
 	title: "Privacy Policy",
 	description:
-		"Política de privacidad de GigBlade: waitlist, páginas de DJ y solicitudes de booking.",
+		"Política de privacidad de GigBlade: waitlist y páginas de DJ.",
 	alternates: { canonical: "/privacy" },
 };
 

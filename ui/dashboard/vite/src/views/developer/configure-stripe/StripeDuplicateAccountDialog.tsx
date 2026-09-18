@@ -35,7 +35,7 @@ export const StripeDuplicateAccountDialog = ({
 					<DialogDescription>
 						The Stripe account <strong>{accountId}</strong>
 						{accountName && <> ({accountName})</>} is already connected to the
-						Autumn organization <strong>{connectedOrgName}</strong>
+						GigBlade organization <strong>{connectedOrgName}</strong>
 						{connectedOrgSlug && <> ({connectedOrgSlug})</>}. Please disconnect
 						it from there first before connecting to this organization.
 					</DialogDescription>

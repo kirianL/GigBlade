@@ -138,9 +138,30 @@ body,
 	transform: scale(0.96);
 }
 
+.gigblade-grid-reveal-cell {
+	animation: gigblade-grid-reveal 1200ms var(--ease-out) infinite alternate;
+	transform-origin: center;
+}
+
+@keyframes gigblade-grid-reveal {
+	from {
+		opacity: 0.92;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0.12;
+		transform: scale(0.94);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	[data-slot="button"]:not(:disabled):active {
 		transform: none;
+	}
+
+	.gigblade-grid-reveal-cell {
+		animation: none;
+		opacity: 0.35;
 	}
 }
 

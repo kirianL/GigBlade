@@ -27,7 +27,7 @@ export const SsoActiveCard = ({
 				<Badge variant="green">Active</Badge>
 			</div>
 			<p className="text-sm text-tertiary-foreground">
-				Everyone with an @{connection.domain} email signs in to Autumn through
+				Everyone with an @{connection.domain} email signs in to GigBlade through
 				your identity provider.
 			</p>
 		</div>

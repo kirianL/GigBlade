@@ -120,8 +120,8 @@ export function RevenueCatWebhookCard() {
 					</div>
 				</div>
 				<CardDescription>
-					RevenueCat sends purchase events here so Autumn can grant
-					entitlements. Autumn registers this automatically.
+					RevenueCat sends purchase events here so GigBlade can grant
+					entitlements. GigBlade registers this automatically.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">

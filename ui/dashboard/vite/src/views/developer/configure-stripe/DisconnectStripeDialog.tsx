@@ -86,7 +86,7 @@ export const DisconnectStripeDialog = ({
 					<DialogDescription>
 						Type{" "}
 						<span className="font-medium text-foreground">{CONFIRM_TEXT}</span>{" "}
-						to confirm. This stops Autumn from using
+						to confirm. This stops GigBlade from using
 						{channelLabel ? ` this ${channelLabel}` : " this connection"} for
 						Stripe operations.
 					</DialogDescription>
@@ -95,7 +95,7 @@ export const DisconnectStripeDialog = ({
 				{willRemoveCatalogMappings && (
 					<InfoBox variant="warning">
 						This will remove all existing, active and archived product and price
-						mappings to Autumn plans. This will break any links existing
+						mappings to GigBlade plans. This will break any links existing
 						customers have.
 					</InfoBox>
 				)}

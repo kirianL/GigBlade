@@ -75,7 +75,7 @@ export const CatalogMappingSaveConfirmDialog = ({
 				<DialogHeader>
 					<DialogTitle>Save Stripe product mappings?</DialogTitle>
 					<DialogDescription>
-						Confirm these mappings before Autumn updates the catalog state.
+						Confirm these mappings before GigBlade updates the catalog state.
 					</DialogDescription>
 				</DialogHeader>
 

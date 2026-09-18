@@ -152,7 +152,7 @@ function AddRcProductSelect({
 	if (availableProducts.length === 0) {
 		return (
 			<div className="text-tertiary-foreground text-xs py-1">
-				All RevenueCat products are already mapped to Autumn products. Remove an
+				All RevenueCat products are already mapped to GigBlade products. Remove an
 				existing mapping to change assignments.
 			</div>
 		);
@@ -605,7 +605,7 @@ export function RevenueCatMappingSheet({
 		);
 		if (duplicateRc.length > 0) {
 			toast.error(
-				"Each RevenueCat product can only be mapped to one Autumn product",
+				"Each RevenueCat product can only be mapped to one GigBlade product",
 			);
 			return;
 		}
@@ -674,7 +674,7 @@ export function RevenueCatMappingSheet({
 			<SheetContent className="flex flex-col overflow-hidden">
 				<SheetHeader
 					title="Map RevenueCat Products"
-					description="Connect your Autumn products to RevenueCat products"
+					description="Connect your GigBlade products to RevenueCat products"
 					noSeparator
 				/>
 

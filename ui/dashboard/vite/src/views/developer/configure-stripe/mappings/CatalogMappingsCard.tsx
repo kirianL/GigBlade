@@ -31,7 +31,7 @@ export const CatalogMappingsCard = () => {
 				<CardHeader>
 					<CardTitle className="text-base">Stripe product mappings</CardTitle>
 					<CardDescription>
-						Link each Autumn plan to a Stripe product. A plan's product is
+						Link each GigBlade plan to a Stripe product. A plan's product is
 						shared by all of its versions and variants; individual prices are
 						mapped per version on the plan itself.
 					</CardDescription>

@@ -49,6 +49,7 @@ describe("site-template", () => {
       "agenda",
       "bio",
       "enlaces",
+      "sets",
       "contacto",
     ]);
     expect(SITE_TEMPLATE_SECTIONS.festival).toEqual([
@@ -56,11 +57,13 @@ describe("site-template", () => {
       "bio",
       "agenda",
       "enlaces",
+      "sets",
       "contacto",
     ]);
     expect(SITE_TEMPLATE_SECTIONS.after).toEqual([
       "intro",
       "enlaces",
+      "sets",
       "contacto",
       "agenda",
       "bio",

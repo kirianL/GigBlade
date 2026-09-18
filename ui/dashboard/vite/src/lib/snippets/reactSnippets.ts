@@ -10,7 +10,7 @@ const REACT_SNIPPETS: Record<string, Snippet> = {
 	install: {
 		id: "install",
 		title: "Install the SDK",
-		description: "Add Autumn to your project using your package manager.",
+		description: "Add GigBlade to your project using your package manager.",
 		filename: "terminal",
 		language: "bash",
 		code: "npm install autumn-js",
@@ -19,14 +19,14 @@ const REACT_SNIPPETS: Record<string, Snippet> = {
 		id: "env-setup",
 		title: "Add your API key",
 		description:
-			"Generate a secret key in the Autumn dashboard and add it to your environment variables.",
+			"Generate a secret key in the GigBlade dashboard and add it to your environment variables.",
 		filename: ".env",
 		language: "bash",
 		code: "AUTUMN_SECRET_KEY=am_sk_test_42424242...",
 	},
 	"add-provider": {
 		id: "add-provider",
-		title: "Add Autumn provider",
+		title: "Add GigBlade provider",
 		description:
 			"Wrap your app with the AutumnProvider to enable the React hooks.",
 		filename: "layout.tsx",
@@ -53,7 +53,7 @@ export default function RootLayout({
 		id: "create-customer",
 		title: "Create a customer",
 		description:
-			"Use the useCustomer hook to access customer data. Customers are automatically created when they first interact with Autumn.",
+			"Use the useCustomer hook to access customer data. Customers are automatically created when they first interact with GigBlade.",
 		filename: "component.tsx",
 		language: "tsx",
 		code: `import { useCustomer } from "autumn-js/react";
@@ -300,7 +300,7 @@ function getBackendSetupSnippet(stackConfig: StackConfig): Snippet {
 		id: "backend-setup",
 		title: "Mount autumnHandler to your backend",
 		description:
-			"This sets up routes on /api/autumn/* which allows the React hooks to interact with Autumn.",
+			"This sets up routes on /api/autumn/* which allows the React hooks to interact with GigBlade.",
 		filename,
 		language: "typescript",
 		code,

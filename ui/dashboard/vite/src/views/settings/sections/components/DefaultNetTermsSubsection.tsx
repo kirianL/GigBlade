@@ -49,7 +49,7 @@ export const DefaultNetTermsSubsection = () => {
 			label="Net payment terms"
 			description={
 				savedDays === null
-					? "Unset — invoices Autumn creates are due 30 days after they're sent"
+					? "Unset — invoices GigBlade creates are due 30 days after they're sent"
 					: "Used when neither the request nor the invoice template sets its own terms"
 			}
 		>

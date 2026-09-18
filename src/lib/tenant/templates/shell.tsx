@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type CSSProperties, type ReactNode } from "react";
 import { getSiteTemplateAppearance, getSiteTemplateSections } from "@/domain/site-template";
 import type { SiteSectionId } from "@/domain/site-template";
+import { hasSiteSectionContent } from "@/domain/site-profile";
 import { brandColorCssVars } from "@/lib/tenant/brand-color";
 import type { SiteTemplateProps } from "@/lib/tenant/templates/types";
 import { SmoothScrollProvider } from "@/lib/tenant/templates/smooth-scroll-provider";
+import { SiteVisitBeacon } from "@/lib/tenant/templates/site-visit-beacon";
+import { ProximitySectionRail } from "@/lib/tenant/templates/proximity-section-rail";
 
 type SiteShellProps = SiteTemplateProps & {
   children: ReactNode;
@@ -15,7 +18,7 @@ const NAV_LABEL: Partial<Record<SiteSectionId, string>> = {
   agenda: "Fechas",
   bio: "Bio",
   enlaces: "Música",
-  contacto: "Booking",
+  sets: "Sets",
 };
 
 export function SiteShell({ site, children }: SiteShellProps) {
@@ -40,16 +43,31 @@ export function SiteShell({ site, children }: SiteShellProps) {
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
-  const sections = getSiteTemplateSections(site.templateId).flatMap((id) => {
-    const label = NAV_LABEL[id];
-    return label ? [{ id, label }] : [];
-  });
+  const sections = useMemo(
+    () =>
+      getSiteTemplateSections(site.templateId).flatMap((id) => {
+        if (!hasSiteSectionContent(site.profile, id)) return [];
+        const label = NAV_LABEL[id];
+        return label ? [{ id, label }] : [];
+      }),
+    [site.profile, site.templateId],
+  );
+  const hasContact = hasSiteSectionContent(site.profile, "contacto");
+  const railSections = useMemo(
+    () => [
+      { id: "inicio", label: "Inicio" },
+      ...sections,
+      ...(hasContact ? [{ id: "contacto", label: "Contacto" }] : []),
+    ],
+    [hasContact, sections],
+  );
   const brandStyle = site.profile.brandColor
     ? (brandColorCssVars(site.profile.brandColor) as CSSProperties)
     : undefined;
 
   return (
     <SmoothScrollProvider>
+      <SiteVisitBeacon />
       <div
         data-tenant-site=""
         data-template={site.templateId}
@@ -67,38 +85,40 @@ export function SiteShell({ site, children }: SiteShellProps) {
 
         {/* Floating Translucent Header */}
         <header
-          className={`fixed top-0 left-0 right-0 z-50 py-4 transition-colors duration-300 ${
+          className={`site-header fixed top-0 left-0 right-0 z-50 py-4 transition-[background-color,backdrop-filter] duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${
             scrolled || mobileMenuOpen
-              ? "bg-[var(--site-nav-bg)] backdrop-blur-md border-b border-[var(--site-card-border)]"
-              : "bg-transparent border-b border-transparent"
+              ? "is-solid bg-[var(--site-nav-bg)]/95 backdrop-blur-md"
+              : "is-overlay bg-gradient-to-b from-black/55 via-black/20 to-transparent"
           }`}
         >
           <div className="max-w-6xl mx-auto px-5 sm:px-8 md:px-12 flex items-center justify-between">
             {/* Brand Wordmark */}
             <a
               href="#site-main"
-              className="pressable font-display text-lg sm:text-xl font-bold tracking-tight uppercase text-[var(--site-fg)] relative z-10"
+              className="site-wordmark pressable font-display text-lg sm:text-xl font-bold tracking-tight uppercase text-[var(--site-fg)] relative z-10"
             >
               {site.profile.displayName}
             </a>
 
             {/* Desktop Navigation Links */}
-            <nav aria-label="Secciones" className="hidden md:flex items-center gap-6">
+            <nav aria-label="Secciones" className="hidden md:flex items-center gap-7">
               {sections.map((item) => (
                 <a
                   key={item.id}
                   href={`#${item.id}`}
-                  className="pressable text-xs font-mono uppercase tracking-widest text-[var(--site-muted)] hover:text-[var(--site-fg)] transition-colors"
+                  className="site-nav-link text-xs font-mono uppercase tracking-widest"
                 >
                   {item.label}
                 </a>
               ))}
-              <a
-                href="#contacto"
-                className="pressable px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)] hover:border-[var(--site-accent)] hover:text-[var(--site-accent)] transition-colors"
-              >
-                [ Booking ]
-              </a>
+              {hasContact ? (
+                <a
+                  href="#contacto"
+                  className="pressable site-chip px-4 py-2 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-xs font-mono uppercase tracking-wider text-[var(--site-fg)]"
+                >
+                  [ Contacto ]
+                </a>
+              ) : null}
             </nav>
 
             {/* Mobile Hamburger Toggle Button */}
@@ -107,7 +127,7 @@ export function SiteShell({ site, children }: SiteShellProps) {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={mobileMenuOpen}
-              className="pressable md:hidden w-10 h-10 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] flex items-center justify-center text-[var(--site-fg)] relative z-10"
+              className="pressable site-icon md:hidden w-10 h-10 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] flex items-center justify-center text-[var(--site-fg)] relative z-10"
             >
               {mobileMenuOpen ? (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,7 +171,7 @@ export function SiteShell({ site, children }: SiteShellProps) {
                   key={item.id}
                   href={`#${item.id}`}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-4 text-[var(--site-fg)] border-b border-[var(--site-card-border)]/40 transition-all duration-300 ease-out"
+                  className="site-menu-item py-4 text-[var(--site-fg)] border-b border-[var(--site-card-border)]/40"
                   style={{
                     opacity: mobileMenuOpen ? 1 : 0,
                     transform: mobileMenuOpen ? "translateY(0)" : "translateY(-12px)",
@@ -161,18 +181,20 @@ export function SiteShell({ site, children }: SiteShellProps) {
                   {item.label}
                 </a>
               ))}
-              <a
-                href="#contacto"
-                onClick={() => setMobileMenuOpen(false)}
-                className="mt-6 py-4 text-center bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs tracking-wider uppercase transition-all duration-300 ease-out"
-                style={{
-                  opacity: mobileMenuOpen ? 1 : 0,
-                  transform: mobileMenuOpen ? "translateY(0)" : "translateY(-12px)",
-                  transitionDelay: mobileMenuOpen ? `${80 + sections.length * 50}ms` : "0ms",
-                }}
-              >
-                Reservar Fecha
-              </a>
+              {hasContact ? (
+                <a
+                  href="#contacto"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="pressable site-fill mt-6 py-4 text-center bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs tracking-wider uppercase"
+                  style={{
+                    opacity: mobileMenuOpen ? 1 : 0,
+                    transform: mobileMenuOpen ? "translateY(0)" : "translateY(-12px)",
+                    transitionDelay: mobileMenuOpen ? `${80 + sections.length * 50}ms` : "0ms",
+                  }}
+                >
+                  Contacto
+                </a>
+              ) : null}
             </div>
           </nav>
         </div>
@@ -181,6 +203,17 @@ export function SiteShell({ site, children }: SiteShellProps) {
         <main id="site-main" className="flex-1 w-full">
           {children}
         </main>
+
+        <ProximitySectionRail sections={railSections} />
+
+        {hasContact ? (
+          <a
+            href="#contacto"
+            className="pressable site-mobile-contact fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-30 inline-flex min-h-11 -translate-x-1/2 items-center rounded-full bg-[var(--site-fg)] px-5 text-xs font-mono font-medium uppercase tracking-wider text-[var(--site-bg)] shadow-[0_12px_36px_rgba(0,0,0,0.22)] md:hidden"
+          >
+            Contacto
+          </a>
+        ) : null}
 
         {/* Architectural Footer */}
         <footer className="w-full border-t border-[var(--site-card-border)] bg-[var(--site-surface)]/50 py-16 px-5 sm:px-8 md:px-12 mt-12">
@@ -199,7 +232,7 @@ export function SiteShell({ site, children }: SiteShellProps) {
 
             <div className="flex flex-col sm:items-end gap-3 text-xs font-mono text-[var(--site-muted)]">
               <div className="flex items-center gap-4">
-                <a href="#site-main" className="pressable hover:text-[var(--site-fg)] uppercase tracking-wider">
+                <a href="#site-main" className="site-nav-link uppercase tracking-wider">
                   Volver Arriba ↑
                 </a>
               </div>

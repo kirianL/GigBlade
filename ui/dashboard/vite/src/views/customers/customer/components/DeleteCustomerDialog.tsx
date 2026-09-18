@@ -84,7 +84,7 @@ export const DeleteCustomerDialog = ({
 
 				<div className="mb-2 text-sm">
 					<p className="text-muted-foreground">
-						Are you sure you want to delete this customer in Autumn? This action
+						Are you sure you want to delete this customer in GigBlade? This action
 						cannot be undone. Select whether to delete this customer in Stripe
 						as well.
 					</p>
@@ -99,7 +99,7 @@ export const DeleteCustomerDialog = ({
 							isLoading={loadingStates.deleteCustomer}
 							disabled={loadingStates.deleteStripe}
 						>
-							Delete in Autumn only
+							Delete in GigBlade only
 						</Button>
 						<Button
 							variant="destructive"
@@ -108,7 +108,7 @@ export const DeleteCustomerDialog = ({
 							isLoading={loadingStates.deleteStripe}
 							disabled={loadingStates.deleteCustomer}
 						>
-							Delete in Autumn and Stripe
+							Delete in GigBlade and Stripe
 						</Button>
 					</div>
 				</DialogFooter>

@@ -5,7 +5,7 @@ const CURL_SNIPPETS: Record<string, Snippet> = {
 		id: "env-setup",
 		title: "Get your API key",
 		description:
-			"Generate a secret key in the Autumn dashboard. You'll use this in the Authorization header.",
+			"Generate a secret key in the GigBlade dashboard. You'll use this in the Authorization header.",
 		filename: "terminal",
 		language: "bash",
 		code: "# Your secret key: am_sk_test_42424242...",

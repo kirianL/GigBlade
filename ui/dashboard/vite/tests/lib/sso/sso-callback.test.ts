@@ -88,10 +88,10 @@ test("surfaces the server's own message for an uninvited user", () => {
 		describeSsoCallbackError({
 			error: "SSO_INVITATION_REQUIRED",
 			description:
-				"Ask your Autumn admin to invite you to Acme before signing in with SSO.",
+				"Ask your GigBlade admin to invite you to Acme before signing in with SSO.",
 		}),
 	).toBe(
-		"Ask your Autumn admin to invite you to Acme before signing in with SSO.",
+		"Ask your GigBlade admin to invite you to Acme before signing in with SSO.",
 	);
 });
 

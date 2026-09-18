@@ -1,262 +1,189 @@
-import { IconButton, Input } from "@autumn/ui";
-import { faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Mail } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { toast } from "sonner";
 import { CustomToaster } from "@/components/general/CustomToaster";
-import { authClient, signIn, useSession } from "@/lib/auth-client";
-import { googleOAuthUrlForBrowser } from "@/lib/googleOAuthProxy";
-import { isSafeSsoRedirectUrl } from "@/lib/sso/ssoCallback";
-import { getSsoHint } from "@/lib/sso/ssoHint";
-import { resolveSso } from "@/lib/sso/ssoResolve";
-import type { SsoOrgHint } from "@/lib/sso/ssoTypes";
-import { getBackendErr, getSafeNextPath } from "@/utils/genUtils";
+import { panelHomePath } from "@/gigblade/panel-session";
+import { acceptPanelToken, authClient, useSession } from "@/lib/auth-client";
+import { getSafeNextPath } from "@/utils/genUtils";
 import { AuthBackground } from "./components/AuthBackground";
-import { GigBladeMark } from "./components/GigBladeMark";
-import { OTPSignIn } from "./components/OTPSignIn";
-import { RememberedSsoSignIn } from "./components/RememberedSsoSignIn";
-
-/**
- * Check if URL has OAuth parameters (from OAuth provider redirect)
- * These params are added by better-auth when redirecting unauthenticated users
- */
-function getOAuthRedirectUrl(searchParams: URLSearchParams): string | null {
-	const clientId = searchParams.get("client_id");
-	const responseType = searchParams.get("response_type");
-	const redirectUri = searchParams.get("redirect_uri");
-	if (clientId && responseType && redirectUri) {
-		const backendUrl = import.meta.env.VITE_BACKEND_URL;
-		return `${backendUrl}/api/auth/oauth2/authorize?${searchParams.toString()}`;
-	}
-	return null;
-}
 
 export const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 
+const fieldClass =
+	"h-10 w-full rounded-md border bg-transparent px-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus-visible:border-[#5ba8ff]";
+
 export const SignIn = () => {
-	const [email, setEmail] = useState("");
-	const [googleLoading, setGoogleLoading] = useState(false);
-	const [sendOtpLoading, setSendOtpLoading] = useState(false);
-	const [otpSent, setOtpSent] = useState(false);
-	const [ssoHint, setSsoHint] = useState<SsoOrgHint | null>(() => getSsoHint());
-	const [emailFallback, setEmailFallback] = useState(false);
-
-	const { data: session, isPending: sessionLoading } = useSession();
-	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const isCapyDev = import.meta.env.VITE_CAPY_DEV === "1";
-
-	const oauthRedirectUrl = useMemo(
-		() => getOAuthRedirectUrl(searchParams),
-		[searchParams],
+	const navigate = useNavigate();
+	const id = useId();
+	const { data: session, isPending } = useSession();
+	const [email, setEmail] = useState(() => searchParams.get("email") ?? "");
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [acceptingToken, setAcceptingToken] = useState(
+		() => Boolean(searchParams.get("token")),
 	);
-
+	const hintId = `${id}-hint`;
 	const defaultPath = getSafeNextPath(searchParams);
-	const newPath = oauthRedirectUrl || defaultPath;
-	const callbackPath = oauthRedirectUrl || defaultPath;
 
 	useEffect(() => {
-		if (oauthRedirectUrl) return;
-		if (session) {
-			navigate(defaultPath, { replace: true });
-		}
-	}, [session, navigate, oauthRedirectUrl, defaultPath]);
-
-	useEffect(() => {
-		if (!isCapyDev || sessionLoading || session) return;
-		window.location.replace(
-			`/api/auth/capy-login?next=${encodeURIComponent(defaultPath)}`,
-		);
-	}, [defaultPath, isCapyDev, session, sessionLoading]);
-
-	// Passkey Conditional UI: browsers surface saved passkeys directly in the
-	// email field's autocomplete dropdown (no extra button needed). Requires
-	// the `webauthn` token in autoComplete and `autoFill: true` on signIn.
-	// Skipped during OAuth flows since the post-auth redirect would be lost.
-	useEffect(() => {
-		if (isCapyDev || oauthRedirectUrl || session) return;
-		if (typeof window === "undefined") return;
-		// Some browsers (notably Firefox) don't support Conditional UI; signIn
-		// gracefully no-ops in that case. We still call it on supported browsers.
-		const controller = new AbortController();
-		(async () => {
-			try {
-				await authClient.signIn.passkey({
-					autoFill: true,
-					fetchOptions: { signal: controller.signal },
-				});
-			} catch {
-				// Aborts, cancels, and unsupported-browser errors are non-fatal.
-			}
-		})();
-		return () => {
-			controller.abort();
-		};
-	}, [isCapyDev, oauthRedirectUrl, session]);
-
-	if (isCapyDev) return null;
-
-	const handleEmailSignIn = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!email || !emailRegex.test(email)) {
-			toast.error("Please enter a valid email address.");
+		const token = searchParams.get("token");
+		if (!token) {
+			setAcceptingToken(false);
 			return;
 		}
-		setSendOtpLoading(true);
-		try {
-			// The backend owns the decision: an active SSO domain never falls
-			// through to an email code.
-			let resolved: Awaited<ReturnType<typeof resolveSso>>;
-			try {
-				resolved = await resolveSso({ email });
-			} catch {
-				toast.error(
-					"Couldn't check how your organization signs in. Please try again.",
+		let cancelled = false;
+		setAcceptingToken(true);
+		void acceptPanelToken(token)
+			.then((next) => {
+				if (cancelled) return;
+				navigate(
+					getSafeNextPath(searchParams) === "/"
+						? panelHomePath(next.user)
+						: defaultPath,
+					{ replace: true },
 				);
-				return;
-			}
-
-			if (resolved.action === "sso") {
-				if (!isSafeSsoRedirectUrl(resolved.url)) {
-					toast.error("Received an invalid sign-in URL. Please try again.");
-					return;
-				}
-				window.location.assign(resolved.url);
-				return;
-			}
-
-			const { error } = await authClient.emailOtp.sendVerificationOtp({
-				email: email,
-				type: "sign-in",
+			})
+			.catch(() => {
+				if (cancelled) return;
+				setError("Esa sesión ya no sirve. Entrá de nuevo.");
+				setAcceptingToken(false);
 			});
-			if (error) {
-				toast.error(error.message || "Something went wrong. Please try again.");
-			} else {
-				setOtpSent(true);
-			}
-		} catch {
-			toast.error("Something went wrong. Please try again.");
-		} finally {
-			setSendOtpLoading(false);
-		}
-	};
+		return () => {
+			cancelled = true;
+		};
+	}, [defaultPath, navigate, searchParams]);
 
-	const handleGoogleSignIn = async () => {
-		setGoogleLoading(true);
-		try {
-			const frontendUrl = window.location.origin;
-			const googleCallbackUrl =
-				oauthRedirectUrl || `${frontendUrl}${defaultPath}`;
-			const googleNewUserUrl =
-				oauthRedirectUrl || `${frontendUrl}${defaultPath}`;
-			const useEmulateProxy = import.meta.env.VITE_EMULATE_GOOGLE_PROXY === "1";
-			const { data, error } = await signIn.social({
-				provider: "google",
-				callbackURL: googleCallbackUrl,
-				newUserCallbackURL: googleNewUserUrl,
-				disableRedirect: useEmulateProxy,
-			});
-			if (error) {
-				toast.error(error.message || "Failed to sign in with Google");
-				return;
-			}
-			if (useEmulateProxy && data?.url) {
-				window.location.assign(
-					googleOAuthUrlForBrowser({
-						providerUrl: data.url,
-						browserOrigin: frontendUrl,
-					}),
-				);
-			}
-		} catch (error) {
-			toast.error(getBackendErr(error, "Failed to sign in with Google"));
-		} finally {
-			setTimeout(() => setGoogleLoading(false), 1000);
+	useEffect(() => {
+		if (isPending || acceptingToken || !session) return;
+		const user = session.user as { role?: string; slug?: string };
+		const home =
+			user.role === "dj" && user.slug
+				? `/studio?dj=${encodeURIComponent(user.slug)}`
+				: defaultPath;
+		navigate(home, { replace: true });
+	}, [acceptingToken, defaultPath, isPending, navigate, session]);
+
+	const submit = async (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!email || !emailRegex.test(email)) {
+			setError("Escribí un correo válido.");
+			return;
 		}
+		if (!password || password.length < 8) {
+			setError("Escribí la contraseña que te pasamos.");
+			return;
+		}
+		setLoading(true);
+		setError(null);
+		const { data, error: nextError } = await authClient.signIn.email({
+			email,
+			password,
+		});
+		setLoading(false);
+		if (nextError || !data) {
+			setError(nextError?.message || "El correo o la contraseña no coinciden.");
+			return;
+		}
+		const user = data.user as { role?: string; slug?: string };
+		navigate(
+			user.role === "dj" && user.slug
+				? `/studio?dj=${encodeURIComponent(user.slug)}`
+				: defaultPath,
+			{ replace: true },
+		);
 	};
 
 	return (
 		<AuthBackground>
 			<CustomToaster />
-			<div className="flex flex-col items-center gap-6">
-				{/* Wordmark logo + welcome text */}
-				<div className="flex flex-col items-center gap-3">
-					<GigBladeMark className="text-[28px]" />
-					<p className="text-sm text-muted-foreground">
-						Entrá al panel para ver páginas, dominio y booking
-					</p>
-				</div>
-
-				{otpSent ? (
-					<OTPSignIn
-						email={email}
-						newPath={newPath}
-						callbackPath={callbackPath}
-					/>
-				) : ssoHint && !emailFallback ? (
-					<RememberedSsoSignIn
-						hint={ssoHint}
-						onUseAnotherEmail={() => setEmailFallback(true)}
-						onForget={() => {
-							setSsoHint(null);
-							setEmailFallback(true);
-						}}
-					/>
-				) : (
-					<div className="w-full space-y-5">
-						<IconButton
-							variant="primary"
-							onClick={handleGoogleSignIn}
-							isLoading={googleLoading}
-							icon={<FontAwesomeIcon icon={faGoogle} />}
-							className="w-full gap-2"
-						>
-							Continuar con Google
-						</IconButton>
-
-						<div className="relative">
-							<div className="absolute inset-0 flex items-center">
-								<span className="w-full border-t border-border" />
-							</div>
-							<div className="relative flex justify-center text-xs uppercase">
-								<span className="bg-background px-2 text-muted-foreground">
-									O
-								</span>
-							</div>
-						</div>
-
-						<div className="flex flex-col gap-2 w-full">
-							<Input
-								type="email"
-								placeholder="Email"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") handleEmailSignIn(e);
-								}}
-								required
-								className="text-base !w-full"
-								// "webauthn" token activates Passkey Conditional UI on
-								// Chromium/Safari — saved passkeys appear in the input's
-								// autofill dropdown.
-								autoComplete="username webauthn"
-							/>
-							<IconButton
-								type="submit"
-								variant="secondary"
-								isLoading={sendOtpLoading}
-								onClick={handleEmailSignIn}
-								className="gap-2 w-full"
-								icon={<Mail size={14} className="text-subtle" />}
-							>
-								Continuar con email
-							</IconButton>
-						</div>
-					</div>
-				)}
+			<div className="flex flex-col items-center text-center">
+				<h1 className="font-sans text-[20px] font-medium tracking-[-0.03em] text-white">
+					GigBlade
+				</h1>
+				<p
+					id={hintId}
+					className={`mt-2 text-sm leading-6 ${
+						error ? "text-[#E8A49C]" : "text-white/50"
+					}`}
+					aria-live="polite"
+				>
+					{error ?? "Entrá para continuar."}
+				</p>
 			</div>
+
+			{acceptingToken ? (
+				<p className="mt-8 text-center text-sm text-white/50">Entrando…</p>
+			) : (
+				<form
+					onSubmit={submit}
+					className="mt-8 flex w-full flex-col gap-3"
+					noValidate
+				>
+					<label htmlFor={`${id}-email`} className="sr-only">
+						Correo
+					</label>
+					<input
+						id={`${id}-email`}
+						type="email"
+						name="email"
+						placeholder="Correo"
+						value={email}
+						onChange={(event) => {
+							setError(null);
+							setEmail(event.target.value);
+						}}
+						required
+						autoComplete="username"
+						aria-invalid={Boolean(error)}
+						aria-describedby={hintId}
+						className={`${fieldClass} ${
+							error ? "border-[#E8A49C]" : "border-white/15"
+						}`}
+					/>
+					<label htmlFor={`${id}-password`} className="sr-only">
+						Contraseña
+					</label>
+					<input
+						id={`${id}-password`}
+						type="password"
+						name="password"
+						placeholder="Contraseña"
+						value={password}
+						onChange={(event) => {
+							setError(null);
+							setPassword(event.target.value);
+						}}
+						required
+						minLength={8}
+						autoComplete="current-password"
+						aria-invalid={Boolean(error)}
+						aria-describedby={hintId}
+						className={`${fieldClass} ${
+							error ? "border-[#E8A49C]" : "border-white/15"
+						}`}
+					/>
+					<button
+						type="submit"
+						disabled={loading}
+						aria-busy={loading}
+						className="mt-1 flex h-10 w-full items-center justify-center rounded-md bg-[#1a56d6] text-sm font-medium text-white transition-colors duration-160 hover:bg-[#1544b0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5ba8ff] disabled:cursor-wait disabled:opacity-50"
+					>
+						{loading ? "Entrando…" : "Entrar"}
+					</button>
+				</form>
+			)}
+			<a
+				href={`${
+					(import.meta.env.VITE_GIGBLADE_SITE_URL as string | undefined)?.replace(
+						/\/$/,
+						"",
+					) || "http://localhost:3000"
+				}/acceso`}
+				className="mt-6 hidden text-center text-sm text-white/45 transition-colors duration-160 hover:text-white lg:block"
+			>
+				Creá tu página
+			</a>
 		</AuthBackground>
 	);
 };

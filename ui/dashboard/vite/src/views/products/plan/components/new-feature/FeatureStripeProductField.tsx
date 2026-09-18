@@ -52,7 +52,7 @@ export function FeatureStripeProductField({
 			</div>
 			<span className="text-tiny text-tertiary-foreground">
 				Usage prices for this feature bill under this Stripe product. Leave
-				empty to let Autumn create one.
+				empty to let GigBlade create one.
 			</span>
 		</div>
 	);

@@ -44,7 +44,7 @@ export const OTPSignIn = ({
 				otp: otp,
 			});
 			if (error) {
-				toast.error(error.message || "Failed to verify code");
+				toast.error(error.message || "No se pudo verificar el código");
 				setVerifying(false);
 				return;
 			}
@@ -59,7 +59,7 @@ export const OTPSignIn = ({
 				window.location.href = callbackPath;
 			}
 		} catch {
-			toast.error("Failed to verify code");
+			toast.error("No se pudo verificar el código");
 		}
 		setVerifying(false);
 	};
@@ -77,7 +77,7 @@ export const OTPSignIn = ({
 			}
 			setResendCountdown(30);
 		} catch {
-			toast.error("Failed to resend code");
+			toast.error("No se pudo reenviar el código");
 			return;
 		}
 		setResending(false);
@@ -85,9 +85,9 @@ export const OTPSignIn = ({
 
 	return (
 		<div className="text-center flex flex-col items-center justify-center gap-5">
-			<p className="text-sm text-muted-foreground">
-				We sent a 6-digit code to{" "}
-				<span className="font-medium text-foreground">{email}</span>
+			<p className="text-sm leading-6 text-white/50">
+				Mandamos un código de 6 dígitos a{" "}
+				<span className="font-medium text-white">{email}</span>
 			</p>
 
 			<div className={cn(verifying && "shimmer")}>
@@ -97,6 +97,7 @@ export const OTPSignIn = ({
 					onChange={setOtp}
 					onComplete={handleSubmit}
 					disabled={verifying}
+					aria-label="Código de 6 dígitos"
 				>
 					<InputOTPGroup>
 						<InputOTPSlot index={0} />
@@ -122,7 +123,7 @@ export const OTPSignIn = ({
 					onClick={handleResend}
 					disabled={resending || resendCountdown > 0}
 				>
-					Didn't receive the code? Resend{" "}
+					¿No te llegó? Reenviar{" "}
 					{resendCountdown > 0 && `(${resendCountdown})`}
 				</Button>
 			</div>

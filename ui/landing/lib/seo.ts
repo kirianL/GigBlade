@@ -28,7 +28,7 @@ export function organizationSchema() {
 		url: SITE_URL,
 		logo: LOGO_URL,
 		description:
-			"Plataforma de presencia digital para DJs: página propia, dominio, hosting y formulario de booking, sin ocuparse de la infraestructura.",
+			"Plataforma de presencia digital para DJs: página propia, dominio, hosting y plantillas, sin ocuparse de la infraestructura.",
 		sameAs: SAME_AS,
 	};
 }
@@ -54,7 +54,7 @@ export function softwareApplicationSchema() {
 		operatingSystem: "Web",
 		url: SITE_URL,
 		description:
-			"Presencia digital para DJs. Página con dominio propio, plantillas para eventos y booking formal, todo incluido.",
+			"Presencia digital para DJs. Página con dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
 		offers: { "@type": "Offer", price: "65", priceCurrency: "USD" },
 		publisher: { "@id": `${SITE_URL}/#organization` },
 	};

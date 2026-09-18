@@ -20,6 +20,7 @@ describe("readLandingTheme", () => {
         tagline: "Sets nocturnos",
         city: "San José",
         bio: "Resident.",
+        email: "fechas@nox.cr",
         brandColor: "#E52B20",
         links: {
           instagram: "https://instagram.com/nox",
@@ -32,6 +33,7 @@ describe("readLandingTheme", () => {
       tagline: "Sets nocturnos",
       city: "San José",
       bio: "Resident.",
+      email: "fechas@nox.cr",
       brandColor: "#e52b20",
       links: {
         instagram: "https://instagram.com/nox",

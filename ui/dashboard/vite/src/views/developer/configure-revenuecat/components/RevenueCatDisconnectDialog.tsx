@@ -28,7 +28,7 @@ export const RevenueCatDisconnectDialog = ({
 				<DialogHeader>
 					<DialogTitle>Disconnect RevenueCat?</DialogTitle>
 					<DialogDescription>
-						This removes the {env} RevenueCat connection. Autumn will stop
+						This removes the {env} RevenueCat connection. GigBlade will stop
 						receiving purchase events until you reconnect. Your products and
 						mappings are kept.
 					</DialogDescription>

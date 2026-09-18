@@ -5,6 +5,9 @@ export const useTab = () => {
 	const { pathname } = useLocation();
 	const path = stripSandboxPrefix(pathname);
 
+	if (path.startsWith("/studio/visitas")) {
+		return "studio/visitas";
+	}
 	if (path.startsWith("/studio/content")) {
 		return "studio/content";
 	}

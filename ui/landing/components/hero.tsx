@@ -50,12 +50,13 @@ export default function Hero() {
 								className="hero-enter w-full max-w-xs font-sans text-[14px] leading-5 font-light tracking-[-2%] text-[#FFFFFF99] sm:max-w-[480px] md:max-w-xl md:text-[16px]"
 								style={{ ["--enter" as string]: 1 }}
 							>
-								Presencia digital lista para bookings. Elegís plantilla,
+								Presencia digital con dominio propio. Elegís plantilla,
 								cargás tu contenido y{" "}
 								<span className="font-light text-white">
 									nosotros nos ocupamos del resto
 								</span>
-								: hosting, seguridad y dominio.
+								: hosting y seguridad. El dominio se cobra aparte, al
+								costo.
 							</p>
 						</div>
 					</div>

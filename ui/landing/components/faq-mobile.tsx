@@ -82,11 +82,11 @@ export default function FAQMobile() {
 									<div className="absolute inset-0 bg-linear-to-r from-brand-ink via-brand-ink/88 to-brand/35 mix-blend-multiply" />
 								</div>
 
-								<div className="relative z-10 px-4.5 py-[30px]">
-									<div className="flex items-center justify-between gap-4">
+								<div className="relative z-10 px-4 py-7 sm:px-4.5 sm:py-[30px]">
+									<div className="flex items-start justify-between gap-5">
 										<span
 											className={cn(
-												"text-base tracking-[-2%] transition-colors duration-300",
+												"min-w-0 flex-1 text-[15px] leading-6 tracking-normal text-pretty transition-colors duration-300",
 												isOpen
 													? "font-normal text-white"
 													: "font-light text-[#FFFFFF80]",
@@ -96,7 +96,7 @@ export default function FAQMobile() {
 										</span>
 										<div
 											className={cn(
-												"shrink-0 overflow-hidden transition-colors duration-400",
+												"mt-0.5 shrink-0 overflow-hidden transition-colors duration-400",
 												isOpen ? "text-white" : "text-[#FFFFFF80]",
 											)}
 										>
@@ -113,7 +113,7 @@ export default function FAQMobile() {
 										)}
 									>
 										<div className="overflow-hidden">
-											<div className="flex max-w-[85%] flex-col gap-3.5 pt-5 text-[12px] leading-[16px] font-light tracking-[-0.5%] text-[#ffffff]">
+											<div className="flex flex-col gap-4 pt-5 pr-8 text-[14px] leading-6 font-light tracking-normal text-pretty text-[#FFFFFFCC]">
 												{faq.answer.split("\n\n").map((paragraph) => (
 													<p key={paragraph.slice(0, 24)}>{paragraph}</p>
 												))}

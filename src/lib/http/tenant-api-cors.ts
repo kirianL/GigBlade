@@ -13,8 +13,8 @@ export function tenantApiCorsHeaders(request: Request): Headers {
   if (origin && origin === allowedDashboardOrigin()) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.set("Vary", "Origin");
-    headers.set("Access-Control-Allow-Methods", "GET, PATCH, OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "content-type");
+    headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
+    headers.set("Access-Control-Allow-Headers", "content-type, authorization");
   }
   return headers;
 }
@@ -36,6 +36,20 @@ export function jsonWithTenantCors(
   headers.set("x-request-id", init.requestId);
   return new Response(JSON.stringify(body), {
     status: init.status ?? 200,
+    headers,
+  });
+}
+
+export function withTenantCors(request: Request, response: Response): Response {
+  const cors = tenantApiCorsHeaders(request);
+  const headers = new Headers(response.headers);
+  cors.forEach((value, key) => {
+    if (!headers.has(key)) {
+      headers.set(key, value);
+    }
+  });
+  return new Response(response.body, {
+    status: response.status,
     headers,
   });
 }

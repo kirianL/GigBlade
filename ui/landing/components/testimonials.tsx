@@ -7,7 +7,7 @@ const testimonialsData = [
 	{
 		id: 1,
 		quote:
-			"Quería un sitio propio y no sabía por dónde empezar. GigBlade me dejó la página lista, con dominio y formulario de booking.",
+			"Quería un sitio propio y no sabía por dónde empezar. GigBlade me dejó la página lista, con dominio y hosting.",
 		author: "NOX",
 	},
 	{
@@ -23,7 +23,7 @@ const testimonialsData = [
 	},
 	{
 		id: 4,
-		quote: "Dejé de recibir bookings mezclados entre Instagram y WhatsApp.",
+		quote: "Las productoras por fin tienen un lugar formal donde encontrarme.",
 		author: "RESIDENTE",
 	},
 	{

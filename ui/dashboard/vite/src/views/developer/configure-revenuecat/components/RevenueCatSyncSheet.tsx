@@ -44,7 +44,7 @@ const getPriceWarning = (item?: RCPreflightItem): string | null => {
 	if (!item?.rc_exists || !item.autumn_price) return null;
 	if (!item.rc_price) return "No store price set";
 	if (item.rc_price.amount_micros !== item.autumn_price.amount_micros) {
-		return `Autumn ${formatPrice(item.autumn_price.amount_micros, item.autumn_price.currency)} ≠ store ${formatPrice(item.rc_price.amount_micros, item.rc_price.currency)}`;
+		return `GigBlade ${formatPrice(item.autumn_price.amount_micros, item.autumn_price.currency)} ≠ store ${formatPrice(item.rc_price.amount_micros, item.rc_price.currency)}`;
 	}
 	return null;
 };

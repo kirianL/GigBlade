@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
 	title: "Terms of Service",
 	description:
-		"Términos de GigBlade para el uso de la página de DJ, el dominio y el formulario de booking.",
+		"Términos de GigBlade para el uso de la página de DJ y el dominio.",
 	alternates: { canonical: "/terms" },
 };
 

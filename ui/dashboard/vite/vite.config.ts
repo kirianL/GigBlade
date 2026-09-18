@@ -62,11 +62,15 @@ export default defineConfig({
 		react(),
 		tailwindcss(), // Automatically reads paths from tsconfig.json
 		tsconfigPaths(),
-		sentryVitePlugin({
-			org: process.env.VITE_SENTRY_ORG,
-			project: process.env.VITE_SENTRY_PROJECT,
-			telemetry: false,
-		}),
+		...(process.env.VITE_SENTRY_DSN
+			? [
+					sentryVitePlugin({
+						org: process.env.VITE_SENTRY_ORG,
+						project: process.env.VITE_SENTRY_PROJECT,
+						telemetry: false,
+					}),
+				]
+			: []),
 		printPortlessUrl(),
 	],
 
@@ -199,10 +203,10 @@ export default defineConfig({
 					}
 				: {}),
 		},
-		watch: {
-			usePolling: true, // Required for file watching in Docker on Windows
-			interval: 1000,
-		},
+		watch:
+			process.env.VITE_USE_POLLING === "1"
+				? { usePolling: true, interval: 1000 }
+				: undefined,
 		hmr: isCapyDev
 			? { clientPort: 443 }
 			: viteHmrClient({ frontendUrl, vitePort }),

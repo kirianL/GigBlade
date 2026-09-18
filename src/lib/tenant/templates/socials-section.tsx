@@ -126,11 +126,11 @@ export function EnlacesSection({ site }: SiteTemplateProps) {
                   target="_blank"
                   rel="noreferrer"
                   data-link={key}
-                  className="pressable group relative flex flex-col justify-between p-6 rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-card-bg)] backdrop-blur-md hover:border-[var(--site-card-hover)] hover:bg-[var(--site-surface)] transition-all duration-300 min-h-[160px]"
+                  className="pressable site-card group relative flex flex-col justify-between p-6 rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-card-bg)] backdrop-blur-md min-h-[160px]"
                 >
                   {/* Top Bar: Icon */}
                   <div className="flex items-center justify-between">
-                    <div className="text-[var(--site-fg)] group-hover:text-[var(--site-accent)] transition-colors">
+                    <div className="text-[var(--site-fg)] transition-colors duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:text-[var(--site-accent)]">
                       {platform.icon()}
                     </div>
                   </div>
@@ -140,9 +140,9 @@ export function EnlacesSection({ site }: SiteTemplateProps) {
                     <h3 className="text-lg font-semibold text-[var(--site-fg)] tracking-tight">
                       {platform.label}
                     </h3>
-                    <div className="mt-1 flex items-center justify-between text-xs font-mono text-[var(--site-muted)] group-hover:text-[var(--site-accent)] transition-colors">
+                    <div className="mt-1 flex items-center justify-between text-xs font-mono text-[var(--site-muted)] transition-colors duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:text-[var(--site-fg)]">
                       <span>[ {platform.action} ]</span>
-                      <span className="transform group-hover:translate-x-1 transition-transform duration-200">
+                      <span className="transform transition-transform duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-1">
                         →
                       </span>
                     </div>

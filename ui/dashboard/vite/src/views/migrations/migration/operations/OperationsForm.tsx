@@ -91,8 +91,8 @@ export function OperationsForm({
 							)}
 							<span className="flex-1 text-left truncate">
 								{noBillingChanges
-									? "Billing changes apply to Autumn only"
-									: "Billing changes apply to Autumn and Stripe"}
+									? "Billing changes apply to GigBlade only"
+									: "Billing changes apply to GigBlade and Stripe"}
 							</span>
 							<CaretDownIcon
 								size={12}
@@ -107,7 +107,7 @@ export function OperationsForm({
 						>
 							<AutumnMark size={14} />
 							<span className="flex-1">
-								Billing changes apply to Autumn only
+								Billing changes apply to GigBlade only
 							</span>
 							{noBillingChanges && (
 								<CheckIcon size={14} className="text-tertiary-foreground" />
@@ -119,7 +119,7 @@ export function OperationsForm({
 						>
 							<StripeMark size={14} />
 							<span className="flex-1">
-								Billing changes apply to Autumn and Stripe
+								Billing changes apply to GigBlade and Stripe
 							</span>
 							{!noBillingChanges && (
 								<CheckIcon size={14} className="text-tertiary-foreground" />

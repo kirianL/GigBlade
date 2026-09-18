@@ -51,7 +51,7 @@ export function RevenueCatProjectSheet({
 					title={`Select ${label}`}
 					description={
 						oauthConnected
-							? "Choose the RevenueCat project to sync with Autumn."
+							? "Choose the RevenueCat project to sync with GigBlade."
 							: "Enter your RevenueCat project ID. You can find this in your RevenueCat dashboard."
 					}
 					noSeparator

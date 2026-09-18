@@ -1,13 +1,13 @@
 export const planItems = [
 	{
 		id: "credits",
-		label: "Plan todo incluido",
+		label: "Plan mensual",
 		desc: "Una suscripción mensual cubre hosting, seguridad y tu página. Sin armar infraestructura por tu cuenta.",
 	},
 	{
 		id: "free-trials",
 		label: "Dominio propio",
-		desc: "Elegís un dominio como djmarco.com. Lo registramos y administramos nosotros. La renovación anual se cobra al costo, sin margen.",
+		desc: "Elegís un dominio como djmarco.com. Lo registramos y administramos nosotros. Se cobra aparte, al costo, sin margen.",
 	},
 	{
 		id: "subscriptions",
@@ -21,13 +21,13 @@ export const planItems = [
 	},
 	{
 		id: "seat",
-		label: "Formulario de booking",
-		desc: "Un canal formal para productoras y clubes. Las solicitudes llegan a tu panel, no a un DM suelto.",
+		label: "Tus redes",
+		desc: "Publicás Instagram y enlaces. Quien te quiere contactar te escribe ahí.",
 	},
 	{
 		id: "hybrid",
 		label: "Panel del DJ",
-		desc: "Gestionás contenido y ves las solicitudes de booking en un solo lugar. Sin tocar hosting ni DNS.",
+		desc: "Gestionás contenido en un solo lugar. Sin tocar hosting ni DNS.",
 	},
 	{
 		id: "rollovers",

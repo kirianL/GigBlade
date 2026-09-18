@@ -4,7 +4,7 @@ const PYTHON_SNIPPETS: Record<string, Snippet> = {
 	install: {
 		id: "install",
 		title: "Install the SDK",
-		description: "Add Autumn to your project using pip.",
+		description: "Add GigBlade to your project using pip.",
 		filename: "terminal",
 		language: "bash",
 		code: "pip install autumn-sdk",
@@ -13,7 +13,7 @@ const PYTHON_SNIPPETS: Record<string, Snippet> = {
 		id: "env-setup",
 		title: "Add your API key",
 		description:
-			"Generate a secret key in the Autumn dashboard and add it to your environment variables.",
+			"Generate a secret key in the GigBlade dashboard and add it to your environment variables.",
 		filename: ".env",
 		language: "bash",
 		code: "AUTUMN_SECRET_KEY=am_sk_test_42424242...",
@@ -22,7 +22,7 @@ const PYTHON_SNIPPETS: Record<string, Snippet> = {
 		id: "create-customer",
 		title: "Create a customer",
 		description:
-			"Use the SDK to create a customer when a user signs up or when needed. Autumn will auto-enable any free plan.",
+			"Use the SDK to create a customer when a user signs up or when needed. GigBlade will auto-enable any free plan.",
 		filename: "customers.py",
 		language: "python",
 		code: `from autumn_sdk import Autumn

@@ -285,7 +285,7 @@ export function SyncProposalCard({
 			{isEnabled && (
 				<div className="space-y-3.5">
 					<span className="text-xs text-tertiary-foreground font-medium">
-						Autumn plans
+						GigBlade plans
 					</span>
 					<div className="space-y-1.5">
 						{mappings.map((mapping, index) => (

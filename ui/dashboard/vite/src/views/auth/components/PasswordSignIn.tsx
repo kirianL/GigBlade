@@ -82,7 +82,7 @@ export const PasswordSignIn = () => {
 				{/* Title */}
 				<div className="text-center">
 					<h1 className="text-lg font-semibold text-foreground">
-						Sign in to Autumn
+						Sign in to GigBlade
 					</h1>
 				</div>
 

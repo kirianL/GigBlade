@@ -215,7 +215,7 @@ export function LeafChatPanel({
 	onSubmitCatalogDecision,
 	deciding,
 	error,
-	placeholder = "Ask Autumn anything…",
+	placeholder = "Ask GigBlade anything…",
 	queue,
 	onSendQueuedNow,
 	onRemoveQueued,

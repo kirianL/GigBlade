@@ -4,29 +4,21 @@ import { useRef, useState, useEffect } from "react";
 import type { SiteTemplateProps } from "@/lib/tenant/templates/types";
 import { SiteReveal } from "@/lib/tenant/templates/reveal";
 
-const DEFAULT_GALLERY = [
-  { url: "/images/dj/dj-hero.jpg", title: "Club Residency", tag: "LIVE SET" },
-  { url: "/images/dj/dj-portrait.jpg", title: "Studio & Analog Gear", tag: "PRODUCER" },
-  { url: "/images/dj/dj-gear.jpg", title: "Vinyl Sessions & Mixing", tag: "ANALOG" },
-  { url: "/images/dj/dj-crowd.jpg", title: "Festival Stage", tag: "AFTERHOURS" },
-];
-
 export function GallerySection({ site }: SiteTemplateProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Determine photo items
-  const customPhotos = site.profile.photos;
-  const items =
-    customPhotos && customPhotos.length > 0
-      ? customPhotos.map((url, i) => ({
-          url,
-          title: `${site.profile.displayName} — 0${i + 1}`,
-          tag: `GALLERY 0${i + 1}`,
-        }))
-      : DEFAULT_GALLERY;
+  const heroPhoto = site.profile.heroPhoto ?? site.profile.photos?.[0];
+  const items = (site.profile.photos ?? [])
+    .filter((url) => url !== heroPhoto)
+    .map((url, index) => ({
+      url,
+      title: `${site.profile.displayName}, foto ${index + 1}`,
+    }));
 
   const updateScrollState = () => {
     const el = containerRef.current;
@@ -61,11 +53,13 @@ export function GallerySection({ site }: SiteTemplateProps) {
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollStart = useRef(0);
+  const didDrag = useRef(false);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Only engage drag on mouse, let native touch handle mobile
     if (e.pointerType !== "mouse") return;
     isDragging.current = true;
+    didDrag.current = false;
     startX.current = e.clientX;
     if (containerRef.current) {
       scrollStart.current = containerRef.current.scrollLeft;
@@ -77,6 +71,7 @@ export function GallerySection({ site }: SiteTemplateProps) {
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || !containerRef.current) return;
     const deltaX = e.clientX - startX.current;
+    if (Math.abs(deltaX) > 5) didDrag.current = true;
     containerRef.current.scrollLeft = scrollStart.current - deltaX;
   };
 
@@ -92,7 +87,19 @@ export function GallerySection({ site }: SiteTemplateProps) {
     }
   };
 
+  const openPhoto = (index: number) => {
+    if (didDrag.current) {
+      didDrag.current = false;
+      return;
+    }
+    setSelectedIndex(index);
+    dialogRef.current?.showModal();
+  };
+
+  if (items.length === 0) return null;
+
   return (
+    <>
     <section
       id="galeria"
       data-component="gallery"
@@ -122,7 +129,7 @@ export function GallerySection({ site }: SiteTemplateProps) {
                 onClick={() => scrollByAmount("left")}
                 disabled={!canScrollLeft}
                 aria-label="Foto anterior"
-                className="pressable w-9 h-9 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-[var(--site-fg)] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:border-[var(--site-accent)] transition-colors"
+                className="pressable site-icon w-9 h-9 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-[var(--site-fg)] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--site-fg)] disabled:hover:border-[var(--site-card-border)]"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -133,7 +140,7 @@ export function GallerySection({ site }: SiteTemplateProps) {
                 onClick={() => scrollByAmount("right")}
                 disabled={!canScrollRight}
                 aria-label="Foto siguiente"
-                className="pressable w-9 h-9 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-[var(--site-fg)] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:border-[var(--site-accent)] transition-colors"
+                className="pressable site-icon w-9 h-9 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-[var(--site-fg)] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--site-fg)] disabled:hover:border-[var(--site-card-border)]"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -159,17 +166,21 @@ export function GallerySection({ site }: SiteTemplateProps) {
             key={index}
             className="flex-none w-[78vw] sm:w-[50vw] md:w-[36vw] lg:w-[28vw] max-w-sm snap-start group"
           >
-            <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-[var(--site-surface)] border border-[var(--site-card-border)] group-hover:border-[var(--site-card-hover)] transition-colors duration-300">
+            <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-[var(--site-surface)] border border-[var(--site-card-border)] transition-[border-color] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:border-[color-mix(in_srgb,var(--site-fg)_40%,transparent)]">
               <img
                 src={item.url}
                 alt={item.title}
                 loading="lazy"
                 draggable={false}
-                className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                className="site-gallery-photo w-full h-full object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-
-
+              <button
+                type="button"
+                onClick={() => openPhoto(index)}
+                className="absolute inset-0 cursor-zoom-in rounded-xl focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-white"
+                aria-label={`Ampliar ${item.title}`}
+              />
 
               {/* Photo Title */}
               <div className="absolute bottom-3 left-3 right-3">
@@ -182,5 +193,52 @@ export function GallerySection({ site }: SiteTemplateProps) {
         ))}
       </div>
     </section>
+    <dialog
+      ref={dialogRef}
+      aria-label={`Galería de ${site.profile.displayName}`}
+      className="m-auto max-h-[100dvh] w-full max-w-none bg-transparent p-0 text-white backdrop:bg-black/90"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) event.currentTarget.close();
+      }}
+    >
+      <div className="relative flex min-h-[100dvh] items-center justify-center p-4 sm:p-10">
+        <img
+          src={items[selectedIndex].url}
+          alt={items[selectedIndex].title}
+          className="max-h-[calc(100dvh-5rem)] max-w-full object-contain"
+        />
+        <form method="dialog">
+          <button
+            className="pressable absolute right-4 top-4 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/60 text-xl"
+            aria-label="Cerrar galería"
+          >
+            ×
+          </button>
+        </form>
+        {items.length > 1 ? (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedIndex((selectedIndex - 1 + items.length) % items.length)
+              }
+              className="pressable absolute left-3 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/60"
+              aria-label="Foto anterior"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIndex((selectedIndex + 1) % items.length)}
+              className="pressable absolute right-3 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/60"
+              aria-label="Foto siguiente"
+            >
+              →
+            </button>
+          </>
+        ) : null}
+      </div>
+    </dialog>
+    </>
   );
 }

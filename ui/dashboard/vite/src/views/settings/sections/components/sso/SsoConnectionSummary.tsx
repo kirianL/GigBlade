@@ -40,7 +40,7 @@ const DetailRow = ({
 	</div>
 );
 
-/** Domain / issuer / masked client ID / Autumn callback URL. Never the secret. */
+/** Domain / issuer / masked client ID / GigBlade callback URL. Never the secret. */
 export const SsoConnectionSummary = ({
 	connection,
 	callbackUrl,

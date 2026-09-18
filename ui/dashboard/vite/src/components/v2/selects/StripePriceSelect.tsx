@@ -51,7 +51,7 @@ const unresolvedPrice = ({ id }: { id: string }): CatalogStripePrice => ({
 });
 
 /**
- * Picks the Stripe price this Autumn price bills as. Search takes an exact
+ * Picks the Stripe price this GigBlade price bills as. Search takes an exact
  * price id, or a product id to list everything under it — Stripe cannot match
  * price ids by substring, so there is nothing to type-ahead.
  */

@@ -32,16 +32,15 @@ export const metadata: Metadata = {
     template: "%s | GigBlade",
   },
   description:
-    "Presencia digital para DJs: dominio propio, plantilla para eventos y formulario de booking. Hosting y seguridad incluidos. US$ 65 al mes.",
+    "Presencia digital para DJs: dominio propio y plantilla para eventos. US$ 65 al mes cubre hosting y seguridad. El dominio se cobra aparte.",
   applicationName: "GigBlade",
   keywords: [
     "página para DJs",
-    "booking DJ",
     "dominio para DJ",
     "sitio web DJ",
     "GigBlade",
     "presencia digital",
-    "formulario de booking",
+    "plantillas DJ",
   ],
   authors: [{ name: "GigBlade" }],
   creator: "GigBlade",
@@ -61,7 +60,7 @@ export const metadata: Metadata = {
     siteName: "GigBlade",
     title: "GigBlade — Página propia para DJs",
     description:
-      "Dominio propio, plantillas para eventos y booking formal. Hosting y seguridad incluidos.",
+      "Dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
     images: [
       {
         url: "/images/og-image.png",
@@ -75,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GigBlade — Página propia para DJs",
     description:
-      "Dominio propio, plantillas para eventos y booking formal. Hosting y seguridad incluidos.",
+      "Dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
     images: ["/images/og-image.png"],
   },
   robots: {
