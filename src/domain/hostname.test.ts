@@ -51,8 +51,8 @@ describe("hostname", () => {
   });
 
   it("trata el host de Vercel y el dominio de marca como landing, no como tenant", () => {
-    expect(isMarketingHostname("gigblade.vercel.app")).toBe(true);
-    expect(isMarketingHostname("gigblade-git-main-kirian.vercel.app")).toBe(
+    expect(isMarketingHostname("gigblades.vercel.app")).toBe(true);
+    expect(isMarketingHostname("gigblades-git-main-kirian.vercel.app")).toBe(
       true,
     );
     expect(isMarketingHostname("gigblade.com")).toBe(true);

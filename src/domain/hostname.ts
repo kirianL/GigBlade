@@ -46,7 +46,7 @@ export function isLocalNetworkHostname(hostname: string): boolean {
 const MARKETING_HOSTS = new Set([
   "gigblade.com",
   "www.gigblade.com",
-  "gigblade.vercel.app",
+  "gigblades.vercel.app",
 ]);
 
 /** Apex, www, and Vercel URLs serve the platform landing, not a tenant site. */

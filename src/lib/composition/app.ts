@@ -1,12 +1,13 @@
 import { createMemoryApp } from "@/lib/composition/memory-app";
 import { createRealApp } from "@/lib/composition/real-app";
+import { resolveAppRuntime } from "@/lib/env/supabase";
 
 type App = ReturnType<typeof createMemoryApp> | ReturnType<typeof createRealApp>;
 
 let app: App | undefined;
 
 export function getRuntime(): "memory" | "real" {
-  return process.env.APP_RUNTIME === "real" ? "real" : "memory";
+  return resolveAppRuntime();
 }
 
 export function getApp(): App {

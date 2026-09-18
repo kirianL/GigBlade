@@ -2,6 +2,13 @@ import "server-only";
 
 import { z } from "zod";
 
+import {
+  resolveAppRuntime,
+  supabaseAnonKey,
+  supabaseServiceRoleKey,
+  supabaseUrl,
+} from "@/lib/env/supabase";
+
 function optional(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -35,12 +42,10 @@ const memoryEnvSchema = sharedEnvSchema.extend({
 
 function envInput() {
   return {
-    APP_RUNTIME: process.env.APP_RUNTIME || "memory",
-    NEXT_PUBLIC_SUPABASE_URL: optional(process.env.NEXT_PUBLIC_SUPABASE_URL),
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: optional(
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    ),
-    SUPABASE_SERVICE_ROLE_KEY: optional(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    APP_RUNTIME: resolveAppRuntime(),
+    NEXT_PUBLIC_SUPABASE_URL: optional(supabaseUrl()),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: optional(supabaseAnonKey()),
+    SUPABASE_SERVICE_ROLE_KEY: optional(supabaseServiceRoleKey()),
     PLATFORM_VERCEL_TOKEN: optional(process.env.PLATFORM_VERCEL_TOKEN),
     PLATFORM_VERCEL_PROJECT_ID: optional(
       process.env.PLATFORM_VERCEL_PROJECT_ID || process.env.VERCEL_PROJECT_ID,
@@ -59,7 +64,7 @@ function envInput() {
 }
 
 export function getServerEnv() {
-  if (process.env.APP_RUNTIME === "real") {
+  if (resolveAppRuntime() === "real") {
     return realEnvSchema.parse(envInput());
   }
 

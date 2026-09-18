@@ -118,7 +118,7 @@ Un mismo deploy atiende dos superficies. El hostname decide, nunca un `tenant_id
 
 | Superficie | Hosts | Rutas públicas |
 |---|---|---|
-| Plataforma (marketing) | `gigblade.com`, `www`, `*.vercel.app`, `localhost`, IPs LAN | landing actual |
+| Plataforma (marketing) | `gigblade.com`, `www`, `gigblades.vercel.app`, `*.vercel.app`, `localhost`, IPs LAN | landing actual |
 | Sitio DJ | dominio propio del tenant o `*.localhost` de preview | rewrite interno a `/site` |
 
 `src/proxy.ts` resuelve el tenant, escribe encabezados internos y, si el host es superficie de sitio, reescribe `/` → `/site`. No se reescriben `/api/*`, `/dashboard` ni archivos estáticos.

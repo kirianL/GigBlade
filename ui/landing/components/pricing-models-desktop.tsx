@@ -15,7 +15,7 @@ export default function PricingModelsDesktop() {
 
 	return (
 		<section className="flex w-full flex-col overflow-hidden bg-[#000000]">
-			<div className="relative z-10 flex w-full items-center justify-between px-4 py-12 xl:px-22.75 xl:py-24">
+			<div className="relative z-10 flex w-full items-start justify-between gap-8 px-4 py-12 xl:px-22.75 xl:py-24">
 				<div className="flex w-full">
 					<div>
 						<h2 className="font-sans text-[40px] leading-[1.1] font-normal tracking-[-2%]">
@@ -64,7 +64,7 @@ export default function PricingModelsDesktop() {
 			<div className="relative grid w-full grid-cols-[90px_minmax(280px,380px)_1fr] border-t border-[#292929]">
 				<div className="border-l border-r border-[#292929]" />
 
-				<div className="relative z-10 flex flex-col border-r border-[#292929] bg-[#000000] py-8">
+				<div className="relative z-10 flex flex-col overflow-hidden border-r border-[#292929] bg-[#000000] py-8">
 					<ul className="flex flex-col">
 						{planItems.map((item) => {
 							const isActive = activeTab.id === item.id;
@@ -79,29 +79,26 @@ export default function PricingModelsDesktop() {
 									>
 										<div
 											className={cn(
-												"flex items-center gap-2 px-[14px] py-2 font-sans text-[20px] leading-[20px] tracking-[-5%]",
+												"flex h-9 items-center gap-2 overflow-hidden px-[14px] font-sans text-[20px] leading-none tracking-[-5%]",
 												isActive
 													? "text-[#FFFFFF99]"
 													: "text-[#FFFFFF99] opacity-50",
 											)}
 										>
-											<div className="h-[24px] w-[3px]">
-												{isActive && (
-													<motion.div
-														layoutId="activeTabIndicator"
-														className="h-[24px] w-[3px] bg-brand-glow"
-														transition={{
-															type: "spring",
-															stiffness: 420,
-															damping: 40,
-															mass: 0.55,
-														}}
-													/>
-												)}
-											</div>
+											<span className="relative h-[24px] w-[3px] shrink-0">
+												<span
+													aria-hidden="true"
+													className={cn(
+														"absolute inset-0 bg-brand-glow transition-opacity duration-200",
+														isActive ? "opacity-100" : "opacity-0",
+													)}
+												/>
+											</span>
 											<SlotLabel
 												text={item.label}
 												hover
+												hoverTint={false}
+												className="block min-w-0 overflow-hidden leading-[20px]"
 												options={{
 													rollBy: "word",
 													duration: 520,
@@ -117,18 +114,28 @@ export default function PricingModelsDesktop() {
 					</ul>
 				</div>
 
-				<div className="flex items-end border-r border-[#292929] bg-[#0F0F0F] p-8 xl:p-12">
-					<div className="max-w-xl font-sans text-[16px] leading-relaxed font-light tracking-[-2%] text-pretty text-[#FFFFFF99] xl:text-[18px]">
+				<div className="flex items-end overflow-hidden border-r border-[#292929] bg-[#0F0F0F] p-8 xl:p-12">
+					<div className="grid w-full max-w-xl font-sans text-[16px] leading-relaxed font-light tracking-[-2%] text-pretty text-[#FFFFFF99] xl:text-[18px]">
+						{planItems.map((item) => (
+							<p
+								key={`sizer-${item.id}`}
+								className="col-start-1 row-start-1 invisible"
+								aria-hidden="true"
+							>
+								{item.desc}
+							</p>
+						))}
 						<AnimatePresence mode="wait">
-							<motion.div
+							<motion.p
 								key={activeTab.id}
-								initial={{ opacity: 0, y: 5 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -5 }}
-								transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+								className="col-start-1 row-start-1"
 							>
 								{activeTab.desc}
-							</motion.div>
+							</motion.p>
 						</AnimatePresence>
 					</div>
 				</div>

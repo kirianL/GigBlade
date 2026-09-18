@@ -6,6 +6,7 @@ import {
   MEMORY_DEMO_ROUTING,
   type MemoryTenantRouting,
 } from "./memory-demo-routing";
+import { resolveAppRuntime } from "../env/supabase";
 
 async function getEdgeConfigRouting(
   hostname: string,
@@ -25,8 +26,10 @@ async function getEdgeConfigRouting(
 async function getSupabaseRouting(
   hostname: string,
 ): Promise<MemoryTenantRouting | undefined> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const serviceRole =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!supabaseUrl || !serviceRole) return undefined;
 
   const endpoint = new URL("/rest/v1/tenant_domains", supabaseUrl);
@@ -78,7 +81,7 @@ export async function resolveProxyRouting(
     return undefined;
   }
 
-  if (process.env.APP_RUNTIME === "real") {
+  if (resolveAppRuntime() === "real") {
     return getRealRouting(normalized);
   }
 

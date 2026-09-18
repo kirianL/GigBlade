@@ -12,7 +12,7 @@ describe("site-surface", () => {
     expect(servesTenantSiteSurface("127.0.0.1")).toBe(false);
     expect(servesTenantSiteSurface("192.168.50.197")).toBe(false);
     expect(servesTenantSiteSurface("gigblade.com")).toBe(false);
-    expect(servesTenantSiteSurface("gigblade.vercel.app")).toBe(false);
+    expect(servesTenantSiteSurface("gigblades.vercel.app")).toBe(false);
   });
 
   it("sirve el sitio DJ en preview *.localhost y en dominio propio", () => {

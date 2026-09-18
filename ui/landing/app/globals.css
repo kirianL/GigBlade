@@ -709,41 +709,74 @@ body {
 }
 
 /* ==========================================================================
-   ROUTE TRANSITIONS  —  whole-page dissolve, no per-element reveals
+   ROUTE TRANSITIONS  —  crossfade lento, fondo negro, sin morph
    ========================================================================== */
 
 .site-nav {
 	view-transition-name: site-nav;
 }
 
+::view-transition {
+	background-color: #000;
+}
+
+::view-transition-image-pair(root),
+::view-transition-image-pair(gigblade-page) {
+	isolation: isolate;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-	::view-transition-old(root) {
-		animation: vt-fade-out 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+	::view-transition-old(root),
+	::view-transition-old(gigblade-page) {
+		animation: vt-page-out 480ms cubic-bezier(0.4, 0, 0.2, 1) both;
+		mix-blend-mode: normal;
 	}
 
-	::view-transition-new(root) {
-		animation: vt-fade-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+	::view-transition-new(root),
+	::view-transition-new(gigblade-page) {
+		animation: vt-page-in 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+		mix-blend-mode: normal;
 	}
 
 	::view-transition-group(site-nav) {
-		animation-duration: 0.42s;
-		animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+		animation-duration: 640ms;
+		animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 	}
 }
 
-@keyframes vt-fade-out {
+@keyframes vt-page-out {
+	from {
+		opacity: 1;
+		filter: blur(0);
+		transform: scale(1);
+	}
 	to {
 		opacity: 0;
+		filter: blur(10px);
+		transform: scale(0.992);
 	}
 }
 
-@keyframes vt-fade-in {
+@keyframes vt-page-in {
 	from {
 		opacity: 0;
+		filter: blur(10px);
+		transform: scale(1.012) translate3d(0, 14px, 0);
+	}
+	to {
+		opacity: 1;
+		filter: blur(0);
+		transform: scale(1) translate3d(0, 0, 0);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root),
+	::view-transition-group(site-nav) {
+		animation: none !important;
+	}
+
 	.access-press,
 	.access-press:active {
 		transform: none;
