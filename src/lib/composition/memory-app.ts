@@ -9,6 +9,7 @@ import {
   recordSiteVisit,
 } from "@/application/sites/record-site-visit";
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
+import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
@@ -86,7 +87,7 @@ export function createMemoryApp() {
     ) => recordSiteVisit(visits, context, visitorKey),
     getSiteVisitStats: (context: Parameters<typeof getSiteVisitStats>[1]) =>
       getSiteVisitStats(visits, context),
-    listPlatformSites: () => listPlatformSites(tenants, routing, visits),
+    listPlatformSites: () => listPlatformSites(tenants, routing, visits, panelAuth),
     loginPanel: (input: unknown) => {
       const body = (input ?? {}) as { email: unknown; password: unknown };
       return loginPanel(panelAuth, body);
@@ -102,6 +103,22 @@ export function createMemoryApp() {
         name: unknown;
       };
       return generateDjPassword(panelAuth, tenants, actor, body);
+    },
+    deleteDj: (
+      actor: Parameters<typeof deleteDj>[1],
+      input: unknown,
+    ) => {
+      const body = (input ?? {}) as { slug: unknown };
+      return deleteDj(
+        {
+          tenants,
+          routing,
+          visits,
+          panelAuth,
+        },
+        actor,
+        body,
+      );
     },
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
   };

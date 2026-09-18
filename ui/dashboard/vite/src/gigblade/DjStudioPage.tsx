@@ -15,7 +15,7 @@ import {
 	KeyIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
 	djInstagramUrl,
 	djIntendedDomain,
@@ -28,6 +28,7 @@ import {
 } from "@/gigblade/concept";
 import { fetchSiteVisits, type SiteVisitStats } from "@/gigblade/site-api";
 import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
+import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
 import {
 	DjSelect,
 	DjStatusCell,
@@ -39,6 +40,7 @@ import { useSession } from "@/lib/auth-client";
 export default function DjStudioPage() {
 	const { dj, setDj, draft } = useDjProfile();
 	const { data: session } = useSession();
+	const navigate = useNavigate();
 	const isPlatform =
 		(session?.user as { role?: string } | undefined)?.role === "platform";
 	const pageUrl = djPublicUrl(dj);
@@ -232,11 +234,18 @@ export default function DjStudioPage() {
 						Generá una contraseña y pasásela a esta persona. La anterior deja de
 						servir y no se vuelve a mostrar.
 					</p>
-					<GenerateDjPasswordButton
-						slug={dj.slug}
-						email={dj.email}
-						name={dj.name}
-					/>
+					<div className="flex flex-wrap gap-2">
+						<GenerateDjPasswordButton
+							slug={dj.slug}
+							email={dj.email}
+							name={dj.name}
+						/>
+						<DeleteDjButton
+							slug={dj.slug}
+							name={dj.name}
+							onDeleted={() => navigate("/djs")}
+						/>
+					</div>
 				</section>
 			) : null}
 

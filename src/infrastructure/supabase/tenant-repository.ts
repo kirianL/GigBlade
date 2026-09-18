@@ -73,4 +73,20 @@ export class SupabaseTenantRepository implements TenantRepository {
 
     return tenant;
   }
+
+  async deleteById(id: string): Promise<void> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("tenants")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      failPostgrestQuery(error, { operation: "tenants.deleteById", tenantId: id });
+    }
+    if (!data) {
+      throw notFound("Tenant no encontrado");
+    }
+  }
 }

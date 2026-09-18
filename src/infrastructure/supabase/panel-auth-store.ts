@@ -124,6 +124,20 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
     }
   }
 
+  async deleteDjAccountsBySlug(slug: string): Promise<void> {
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase
+      .from("panel_accounts")
+      .delete()
+      .eq("slug", slug)
+      .eq("role", "dj");
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "panel_accounts.deleteDjAccountsBySlug",
+      });
+    }
+  }
+
   private async ensurePlatformAccount() {
     if (this.platformSeeded) return;
     const supabase = createSupabaseAdminClient();

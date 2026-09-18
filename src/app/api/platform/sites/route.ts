@@ -6,6 +6,7 @@ import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
   tenantApiPreflight,
+  withTenantCors,
 } from "@/lib/http/tenant-api-cors";
 
 export function OPTIONS(request: Request) {
@@ -24,20 +25,19 @@ export async function GET(request: Request) {
     const sites = await getApp().listPlatformSites();
     return jsonWithTenantCors(request, { sites }, { requestId });
   } catch (error) {
-    return withCors(request, errorResponse(error, requestId));
+    return withTenantCors(request, errorResponse(error, requestId));
   }
 }
 
-function withCors(request: Request, response: Response): Response {
-  const cors = tenantApiPreflight(request).headers;
-  const headers = new Headers(response.headers);
-  cors.forEach((value, key) => {
-    if (!headers.has(key)) {
-      headers.set(key, value);
-    }
-  });
-  return new Response(response.body, {
-    status: response.status,
-    headers,
-  });
+export async function DELETE(request: Request) {
+  const requestId = createRequestId();
+
+  try {
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const slug = new URL(request.url).searchParams.get("slug");
+    const deleted = await getApp().deleteDj(actor, { slug });
+    return jsonWithTenantCors(request, deleted, { requestId });
+  } catch (error) {
+    return withTenantCors(request, errorResponse(error, requestId));
+  }
 }

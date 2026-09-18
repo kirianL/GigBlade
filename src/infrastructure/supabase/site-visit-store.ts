@@ -73,6 +73,20 @@ export class SupabaseSiteVisitStore implements SiteVisitStore {
       statsFromRows(tenantId, month, rows),
     );
   }
+
+  async deleteByTenantId(tenantId: string): Promise<void> {
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase
+      .from("site_visits")
+      .delete()
+      .eq("tenant_id", tenantId);
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "site_visits.deleteByTenantId",
+        tenantId,
+      });
+    }
+  }
 }
 
 function statsFromRows(

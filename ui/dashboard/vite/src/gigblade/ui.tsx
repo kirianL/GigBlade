@@ -14,6 +14,7 @@ import {
 } from "@/gigblade/concept";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { useSession } from "@/lib/auth-client";
+import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
 
 export { PageContainer, PageHeader };
@@ -133,9 +134,12 @@ export function DjSelect({
 	onValueChange: (slug: string) => void;
 }) {
 	const { data: session } = useSession();
+	const { djs } = usePlatformDjs();
 	if ((session?.user as { role?: string } | undefined)?.role === "dj") {
 		return null;
 	}
+
+	const options = djs.length > 0 ? djs : GIGBLADE_DJS;
 
 	return (
 		<select
@@ -144,7 +148,7 @@ export function DjSelect({
 			onChange={(event) => onValueChange(event.target.value)}
 			className={SELECT_CLASS}
 		>
-			{GIGBLADE_DJS.map((dj) => (
+			{options.map((dj) => (
 				<option key={dj.slug} value={dj.slug}>
 					{dj.name}
 				</option>

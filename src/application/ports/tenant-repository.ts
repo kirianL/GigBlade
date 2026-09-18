@@ -8,4 +8,5 @@ export interface TenantRepository {
     context: TenantContext,
     next: Pick<Tenant, "templateId" | "themeConfig">,
   ): Promise<Tenant>;
+  deleteById(id: string): Promise<void>;
 }

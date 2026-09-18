@@ -83,6 +83,9 @@ describe("tenant application", () => {
       updateSiteContent: async () => {
         throw serviceUnavailable("No se pudo leer el tenant");
       },
+      deleteById: async () => {
+        throw serviceUnavailable("No se pudo leer el tenant");
+      },
     };
 
     await expect(

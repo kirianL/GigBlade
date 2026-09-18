@@ -46,4 +46,23 @@ describe("platform sites", () => {
       },
     ]);
   });
+
+  it("lista un DJ aunque todavía no tenga dominio cargado", async () => {
+    const tenants = new InMemoryTenantRepository([tenant]);
+    const routing = new InMemoryTenantRoutingStore();
+    const visits = new InMemorySiteVisitStore();
+    const sites = await listPlatformSites(tenants, routing, visits);
+
+    expect(sites).toEqual([
+      {
+        slug: "nox",
+        displayName: "Kiluzie",
+        domain: "nox.localhost",
+        preview: true,
+        status: "active",
+        visits: 0,
+        lastVisitedAt: null,
+      },
+    ]);
+  });
 });

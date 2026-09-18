@@ -53,6 +53,12 @@ export class InMemorySiteVisitStore implements SiteVisitStore {
     return [...this.stats.values()];
   }
 
+  async deleteByTenantId(tenantId: string): Promise<void> {
+    this.hydrate();
+    this.stats.delete(tenantId);
+    this.flush();
+  }
+
   private hydrate() {
     if (!this.persistPath) return;
     const stored = readStored(this.persistPath);

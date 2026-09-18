@@ -113,6 +113,7 @@ export type PlatformSite = {
 	status: "active" | "suspended";
 	visits: number;
 	lastVisitedAt: string | null;
+	email?: string;
 };
 
 export async function fetchPublicSite(
@@ -331,6 +332,24 @@ export async function generateDjPassword(input: {
 		throw new Error("No se pudo generar la contraseña.");
 	}
 	return body;
+}
+
+export async function deleteDj(input: {
+	slug: string;
+	token: string;
+}): Promise<{ slug: string }> {
+	const body = (await panelFetch(
+		`/api/platform/sites?slug=${encodeURIComponent(input.slug)}`,
+		{
+			method: "DELETE",
+			token: input.token,
+			timeoutMs: 15000,
+		},
+	)) as { slug?: string };
+	if (!body?.slug) {
+		throw new Error("No se pudo eliminar el DJ.");
+	}
+	return { slug: body.slug };
 }
 
 export async function uploadSitePhoto(input: {

@@ -14,6 +14,7 @@ export type PlatformSiteSummary = {
   status: "active" | "suspended";
   visits: number;
   lastVisitedAt: string | null;
+  email?: string;
 };
 
 export function calendarMonth(at = new Date()): string {

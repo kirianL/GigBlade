@@ -62,6 +62,15 @@ export class InMemoryTenantRepository implements TenantRepository {
     return updated;
   }
 
+  async deleteById(id: string): Promise<void> {
+    this.hydrate();
+    if (!this.tenants.has(id)) {
+      throw notFound("Tenant no encontrado");
+    }
+    this.tenants.delete(id);
+    this.flush();
+  }
+
   private hydrate() {
     if (!this.persistPath) return;
     const stored = readStoredTenants(this.persistPath);

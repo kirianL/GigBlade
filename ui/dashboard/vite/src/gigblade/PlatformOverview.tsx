@@ -1,29 +1,17 @@
 import { Button } from "@autumn/ui";
 import { ArrowsClockwiseIcon, ChartBarIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import {
-	GIGBLADE_DJS,
-	estimatedMrr,
-	payingDjCount,
-} from "@/gigblade/concept";
+import { PLAN } from "@/gigblade/concept";
 import { DjsTable } from "@/gigblade/DjsTable";
-import { fetchPlatformSites } from "@/gigblade/site-api";
 import { MetricCard, PageContainer } from "@/gigblade/ui";
 import { AnimatedCounter } from "@/gigblade/AnimatedCounter";
+import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 
 export default function PlatformOverview() {
-	const mrr = estimatedMrr();
-	const [visits, setVisits] = useState(0);
-
-	useEffect(() => {
-		const controller = new AbortController();
-		void fetchPlatformSites(controller.signal).then((sites) => {
-			if (!sites) return;
-			setVisits(sites.reduce((sum, site) => sum + site.visits, 0));
-		});
-		return () => controller.abort();
-	}, []);
+	const { djs, sites } = usePlatformDjs();
+	const paying = djs.filter((dj) => dj.status === "active").length;
+	const mrr = paying * PLAN.priceUsd;
+	const visits = (sites ?? []).reduce((sum, site) => sum + site.visits, 0);
 
 	return (
 		<PageContainer>
@@ -38,7 +26,7 @@ export default function PlatformOverview() {
 				label="Monthly Recurring Revenue"
 				value={`US$ ${mrr}`}
 				suffix="/mo"
-				asideValue={String(payingDjCount())}
+				asideValue={String(paying)}
 				asideLabel="active plans"
 			/>
 			<MetricCard
@@ -52,12 +40,12 @@ export default function PlatformOverview() {
 				label="Visitantes este mes"
 				value={<AnimatedCounter value={visits} />}
 				suffix={visits === 1 ? "visitante" : "visitantes"}
-				asideValue={String(GIGBLADE_DJS.length)}
+				asideValue={String(djs.length)}
 				asideLabel="dominios"
 			/>
 
 			<DjsTable
-				djs={GIGBLADE_DJS}
+				djs={djs}
 				showSearch={false}
 				getRowHref={(dj) => `/studio?dj=${dj.slug}`}
 				actions={

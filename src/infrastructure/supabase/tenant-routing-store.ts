@@ -1,16 +1,31 @@
 import "server-only";
 
-import type { TenantRoutingStore } from "@/application/ports/tenant-routing-store";
+import type {
+  ListedTenantRoute,
+  TenantRoutingStore,
+} from "@/application/ports/tenant-routing-store";
 import { normalizeHostname } from "@/domain/hostname";
 import type { TenantRouting } from "@/domain/tenant";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
-import { readPostgrestResult } from "@/infrastructure/supabase/postgrest";
+import {
+  failPostgrestQuery,
+  readPostgrestResult,
+} from "@/infrastructure/supabase/postgrest";
 
 type DomainRow = {
   tenant_id: string;
   hostname: string;
   status: "active" | "suspended";
 };
+
+function toRoute(row: DomainRow): ListedTenantRoute {
+  return {
+    id: row.tenant_id,
+    status: row.status,
+    canonicalHostname: row.hostname,
+    hostname: row.hostname,
+  };
+}
 
 export class SupabaseTenantRoutingStore implements TenantRoutingStore {
   async get(hostname: string): Promise<TenantRouting | undefined> {
@@ -25,11 +40,33 @@ export class SupabaseTenantRoutingStore implements TenantRoutingStore {
       { operation: "tenant_domains.get" },
     );
     if (!row) return undefined;
-    const typed = row as DomainRow;
-    return {
-      id: typed.tenant_id,
-      status: typed.status,
-      canonicalHostname: typed.hostname,
-    };
+    return toRoute(row as DomainRow);
+  }
+
+  async list(): Promise<ListedTenantRoute[]> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("tenant_domains")
+      .select("tenant_id, hostname, status");
+    if (error) {
+      failPostgrestQuery(error, { operation: "tenant_domains.list" });
+    }
+    return ((data ?? []) as DomainRow[]).map(toRoute);
+  }
+
+  async deleteByTenantId(tenantId: string): Promise<string[]> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("tenant_domains")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .select("hostname");
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "tenant_domains.deleteByTenantId",
+        tenantId,
+      });
+    }
+    return ((data ?? []) as Array<{ hostname: string }>).map((row) => row.hostname);
   }
 }

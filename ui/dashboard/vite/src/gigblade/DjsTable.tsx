@@ -149,6 +149,7 @@ export function DjsTable({
 	showSearch = true,
 	variant = "roster",
 	virtualize = false,
+	rowActions,
 }: {
 	djs: GigbladeDj[];
 	heading?: string;
@@ -158,9 +159,30 @@ export function DjsTable({
 	showSearch?: boolean;
 	variant?: DjsTableVariant;
 	virtualize?: boolean;
+	rowActions?: (dj: GigbladeDj) => ReactNode;
 }) {
 	const [query, setQuery] = useState("");
-	const columns = variant === "domains" ? domainColumns : rosterColumns;
+	const columns = useMemo(() => {
+		const base = variant === "domains" ? domainColumns : rosterColumns;
+		if (!rowActions) return base;
+		return [
+			...base,
+			{
+				id: "actions",
+				header: "Acciones",
+				size: 220,
+				cell: ({ row }) => (
+					<div
+						className="flex justify-end gap-2 pr-2"
+						onClick={(event) => event.stopPropagation()}
+						onKeyDown={(event) => event.stopPropagation()}
+					>
+						{rowActions(row.original)}
+					</div>
+				),
+			} satisfies ColumnDef<DjRow>,
+		];
+	}, [rowActions, variant]);
 	const icon =
 		headingIcon ??
 		(variant === "domains" ? (

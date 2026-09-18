@@ -7,6 +7,7 @@ import {
   recordSiteVisit,
 } from "@/application/sites/record-site-visit";
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
+import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
@@ -19,6 +20,7 @@ import { SupabaseTenantRoutingStore } from "@/infrastructure/supabase/tenant-rou
 import { SupabaseWaitlistRepository } from "@/infrastructure/supabase/waitlist-repository";
 import { VercelEdgeConfigWriter } from "@/infrastructure/vercel/edge-config-writer";
 import { VercelProjectDomains } from "@/infrastructure/vercel/project-domains";
+import { deleteSiteMedia } from "@/infrastructure/site-media";
 
 export function createRealApp() {
   const tenants = new SupabaseTenantRepository();
@@ -29,11 +31,12 @@ export function createRealApp() {
   const panelAuth = new SupabasePanelAuthStore(
     process.env.GIGBLADE_PANEL_PASSWORD?.trim() || "gigblade",
   );
+  const edgeConfigWriter = new VercelEdgeConfigWriter();
 
   return {
     tenants,
     routing: domainRouting,
-    edgeConfigWriter: new VercelEdgeConfigWriter(),
+    edgeConfigWriter,
     registrar: new CloudflareRegistrar(),
     siteAnalytics: new CloudflareWebAnalytics(),
     projectDomains: new VercelProjectDomains(),
@@ -59,7 +62,7 @@ export function createRealApp() {
     getSiteVisitStats: (context: Parameters<typeof getSiteVisitStats>[1]) =>
       getSiteVisitStats(visits, context),
     listPlatformSites: () =>
-      listPlatformSites(tenants, domainRouting, visits),
+      listPlatformSites(tenants, domainRouting, visits, panelAuth),
     loginPanel: (input: unknown) => {
       const body = (input ?? {}) as { email: unknown; password: unknown };
       return loginPanel(panelAuth, body);
@@ -75,6 +78,25 @@ export function createRealApp() {
         name: unknown;
       };
       return generateDjPassword(panelAuth, tenants, actor, body);
+    },
+    deleteDj: (
+      actor: Parameters<typeof deleteDj>[1],
+      input: unknown,
+    ) => {
+      const body = (input ?? {}) as { slug: unknown };
+      return deleteDj(
+        {
+          tenants,
+          routing: domainRouting,
+          visits,
+          panelAuth,
+          deleteMedia: (slug) => deleteSiteMedia(slug, "real"),
+          deleteRoutingCache: (hostname) =>
+            edgeConfigWriter.deleteTenantRouting(hostname),
+        },
+        actor,
+        body,
+      );
     },
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
   };

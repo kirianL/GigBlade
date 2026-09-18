@@ -1,17 +1,17 @@
 import { Button, MiniCopyButton, PageContainer, PageHeader } from "@autumn/ui";
 import { ArrowSquareOutIcon, GlobeIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import {
-	GIGBLADE_DJS,
-	PLAN,
 	djIntendedDomain,
 	djPublicUrl,
 	formatLastVisit,
 	formatVisitCount,
+	PLAN,
 } from "@/gigblade/concept";
-import { fetchPlatformSites, type PlatformSite } from "@/gigblade/site-api";
+import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
 import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
+import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { DjStatusCell } from "@/gigblade/ui";
 import { useSession } from "@/lib/auth-client";
 
@@ -24,40 +24,32 @@ type DomainRow = {
 	preview: boolean;
 	visits: number;
 	lastVisitedAt: string | null;
-	status: (typeof GIGBLADE_DJS)[number]["status"];
+	status: "active" | "trialing" | "canceled";
 };
 
-function mergeRows(sites: PlatformSite[] | null): DomainRow[] {
-	const bySlug = new Map((sites ?? []).map((site) => [site.slug, site]));
-	return GIGBLADE_DJS.map((dj) => {
-		const live = bySlug.get(dj.slug);
-		return {
-			slug: dj.slug,
-			name: live?.displayName || dj.name,
-			email: dj.email,
-			hostname: live?.domain || dj.domain,
-			publicDomain: djIntendedDomain(dj),
-			preview: live?.preview ?? dj.domain.includes("localhost"),
-			visits: live?.visits ?? 0,
-			lastVisitedAt: live?.lastVisitedAt ?? null,
-			status: dj.status,
-		};
-	});
-}
-
 export default function PlatformDomains() {
-	const [sites, setSites] = useState<PlatformSite[] | null>(null);
+	const { djs, sites, remove } = usePlatformDjs();
 	const { data: session } = useSession();
 	const isPlatform =
 		(session?.user as { role?: string } | undefined)?.role === "platform";
 
-	useEffect(() => {
-		const controller = new AbortController();
-		void fetchPlatformSites(controller.signal).then(setSites);
-		return () => controller.abort();
-	}, []);
-
-	const rows = useMemo(() => mergeRows(sites), [sites]);
+	const rows = useMemo<DomainRow[]>(() => {
+		const bySlug = new Map((sites ?? []).map((site) => [site.slug, site]));
+		return djs.map((dj) => {
+			const live = bySlug.get(dj.slug);
+			return {
+				slug: dj.slug,
+				name: live?.displayName || dj.name,
+				email: live?.email || dj.email,
+				hostname: live?.domain || dj.domain,
+				publicDomain: djIntendedDomain(dj),
+				preview: live?.preview ?? dj.domain.includes("localhost"),
+				visits: live?.visits ?? 0,
+				lastVisitedAt: live?.lastVisitedAt ?? null,
+				status: dj.status,
+			};
+		});
+	}, [djs, sites]);
 	const totalVisits = rows.reduce((sum, row) => sum + row.visits, 0);
 
 	return (
@@ -83,6 +75,11 @@ export default function PlatformDomains() {
 			</p>
 
 			<ul className="flex flex-col gap-3">
+				{rows.length === 0 ? (
+					<li className="border rounded-lg bg-interactive-secondary p-4 text-sm text-tertiary-foreground">
+						Todavía no hay DJs.
+					</li>
+				) : null}
 				{rows.map((row) => {
 					const pageUrl = djPublicUrl({ slug: row.slug });
 					return (
@@ -138,6 +135,13 @@ export default function PlatformDomains() {
 										slug={row.slug}
 										email={row.email}
 										name={row.name}
+									/>
+								) : null}
+								{isPlatform ? (
+									<DeleteDjButton
+										slug={row.slug}
+										name={row.name}
+										onDeleted={remove}
 									/>
 								) : null}
 							</div>

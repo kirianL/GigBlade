@@ -7,4 +7,12 @@ export class EdgeConfigRoutingStore implements TenantRoutingStore {
   async get(hostname: string): Promise<TenantRouting | undefined> {
     return get<TenantRouting>(edgeConfigKey(hostname));
   }
+
+  async list() {
+    return [];
+  }
+
+  async deleteByTenantId() {
+    return [];
+  }
 }

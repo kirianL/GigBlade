@@ -103,6 +103,18 @@ export class InMemoryPanelAuthStore implements PanelAuthStore {
     this.flush();
   }
 
+  async deleteDjAccountsBySlug(slug: string): Promise<void> {
+    this.hydrate();
+    for (const account of [...this.accounts.values()]) {
+      if (account.role !== "dj" || account.slug !== slug) continue;
+      this.accounts.delete(account.email);
+      for (const [key, session] of this.sessions) {
+        if (session.email === account.email) this.sessions.delete(key);
+      }
+    }
+    this.flush();
+  }
+
   private hydrate() {
     if (!this.persistPath) return;
     const stored = readStored(this.persistPath);

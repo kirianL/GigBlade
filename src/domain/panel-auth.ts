@@ -99,9 +99,12 @@ export function isSessionExpired(record: PanelSessionRecord, at = new Date()): b
   return Date.parse(record.expiresAt) <= at.getTime();
 }
 
-export function requirePlatform(user: PanelPublicUser): PanelPublicUser {
+export function requirePlatform(
+  user: PanelPublicUser,
+  message = "Solo la plataforma puede generar contraseñas.",
+): PanelPublicUser {
   if (user.role !== "platform") {
-    throw unauthorized("Solo la plataforma puede generar contraseñas.");
+    throw unauthorized(message);
   }
   return user;
 }

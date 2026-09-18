@@ -24,7 +24,7 @@ export function tenantApiCorsHeaders(request: Request): Headers {
   if (origin && isAllowedDashboardOrigin(origin)) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.set("Vary", "Origin");
-    headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
+    headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
     headers.set("Access-Control-Allow-Headers", "content-type, authorization");
   }
   return headers;
