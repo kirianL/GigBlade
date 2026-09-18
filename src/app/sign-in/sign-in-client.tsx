@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getDashboardUrl } from "@/lib/dashboard-url";
-import {
-	panelHomePath,
-	writePanelAuthSession,
-	type PanelUser,
-} from "@/lib/panel-session";
+import { writePanelAuthSession, type PanelUser } from "@/lib/panel-session";
+
+function dashboardOrigin(url: string) {
+	try {
+		return new URL(url).origin;
+	} catch {
+		return "";
+	}
+}
 
 export default function SignInClient() {
 	const router = useRouter();
@@ -38,24 +42,19 @@ export default function SignInClient() {
 				writePanelAuthSession({ token, user: body.user });
 
 				const dashboard = getDashboardUrl();
-				const home = searchParams.get("next") || panelHomePath(body.user);
-				let dashboardOrigin = "";
-				try {
-					dashboardOrigin = new URL(dashboard).origin;
-				} catch {
-					dashboardOrigin = "";
-				}
-
-				if (dashboardOrigin && dashboardOrigin !== window.location.origin) {
-					const remote = new URL("/sign-in", dashboard);
-					remote.searchParams.set("token", token);
-					const next = searchParams.get("next");
-					if (next) remote.searchParams.set("next", next);
-					window.location.assign(remote.toString());
+				const origin = dashboardOrigin(dashboard);
+				if (!origin || origin === window.location.origin) {
+					setMessage(
+						"Falta la URL del dashboard. En el proyecto de la landing, NEXT_PUBLIC_DASHBOARD_URL tiene que ser la URL de gig-blade (el Vite), no gigblades.vercel.app.",
+					);
 					return;
 				}
 
-				if (!cancelled) router.replace(home);
+				const remote = new URL("/sign-in", dashboard);
+				remote.searchParams.set("token", token);
+				const next = searchParams.get("next");
+				if (next) remote.searchParams.set("next", next);
+				window.location.assign(remote.toString());
 			} catch {
 				if (!cancelled) {
 					setMessage("Esa sesión ya no sirve. Entrá de nuevo.");
@@ -71,7 +70,11 @@ export default function SignInClient() {
 
 	return (
 		<main className="flex min-h-dvh items-center justify-center bg-[#09090b] px-5 text-white">
-			<p className="text-sm text-white/55" role="status" aria-live="polite">
+			<p
+				className="max-w-md text-center text-sm leading-6 text-white/55"
+				role="status"
+				aria-live="polite"
+			>
 				{message}
 			</p>
 		</main>

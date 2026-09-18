@@ -1,23 +1,28 @@
 "use client";
 
-import PanelShell from "@/components/panel-shell";
+import { useEffect } from "react";
+import { getDashboardUrl } from "@/lib/dashboard-url";
 
 export default function OverviewPage() {
-	return (
-		<PanelShell title="Plataforma">
-			{(session) =>
-				session.user.role === "dj" ? (
-					<p className="text-sm text-white/60">
-						Este usuario es DJ. Andá a su estudio desde el login.
-					</p>
-				) : (
-					<p className="text-sm leading-6 text-white/70">
-						Sesión de plataforma activa. El editor completo de DJs vive en el
-						dashboard local (`localhost:3001`). Acá ya estás autenticado en
-						producción.
-					</p>
-				)
+	useEffect(() => {
+		const dashboard = getDashboardUrl().replace(/\/$/, "");
+		try {
+			if (new URL(dashboard).origin !== window.location.origin) {
+				window.location.replace(`${dashboard}/overview`);
+				return;
 			}
-		</PanelShell>
+		} catch {
+			// keep fallback copy
+		}
+	}, []);
+
+	return (
+		<main className="flex min-h-dvh items-center justify-center bg-[#09090b] px-5 text-white">
+			<p className="max-w-md text-center text-sm leading-6 text-white/55">
+				Esta no es el dashboard. En Vercel, en el proyecto de la landing,
+				poné NEXT_PUBLIC_DASHBOARD_URL con la URL de gig-blade y volvé a
+				deployar.
+			</p>
+		</main>
 	);
 }
