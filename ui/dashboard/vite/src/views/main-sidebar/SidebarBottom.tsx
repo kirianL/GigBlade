@@ -1,6 +1,7 @@
 "use client";
 
 import { BooksIcon } from "@phosphor-icons/react";
+import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
 import { useEnv } from "@/utils/envUtils";
 import { WorkbenchButton } from "@/views/customers2/customer/workbench/WorkbenchButton";
 import { LeafButton } from "./components/LeafButton";
@@ -20,7 +21,7 @@ export default function SidebarBottom() {
 					icon={<BooksIcon size={16} weight="duotone" />}
 					title="Sitio"
 					env={env}
-					href="http://localhost:3000"
+					href={gigbladeMarketingSiteUrl()}
 				/>
 				<SidebarContact />
 			</div>

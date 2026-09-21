@@ -109,6 +109,24 @@ export default defineConfig({
 		// Directly-imported deps (phosphor, nanoid, etc.) are auto-discovered by
 		// the scanner on cold start and must NOT be listed here.
 		include: [
+			// Libs pesadas del panel GigBlade: incluirlas obliga a Vite a
+			// pre-empaquetarlas una sola vez con esbuild y evita retransformar
+			// el árbol entero en cada cold start del dev server.
+			"@tanstack/react-query",
+			"@tanstack/react-table",
+			"@tanstack/react-virtual",
+			"@tanstack/query-sync-storage-persister",
+			"@tanstack/react-query-persist-client",
+			"@phosphor-icons/react",
+			"lucide-react",
+			"react-router",
+			"react-router-dom",
+			"sonner",
+			"motion/react",
+			"clsx",
+			"tailwind-merge",
+			"class-variance-authority",
+			"nanoid",
 			"@base-ui/react/accordion",
 			"@base-ui/react/button",
 			"@base-ui/react/checkbox",

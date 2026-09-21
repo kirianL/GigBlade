@@ -54,3 +54,7 @@ export function rateLimited(retryAfterSeconds: number): AppError {
 export function serviceUnavailable(message = "Servicio no disponible"): AppError {
   return new AppError("SERVICE_UNAVAILABLE", message, 503);
 }
+
+export function conflict(message: string): AppError {
+  return new AppError("CONFLICT", message, 409);
+}

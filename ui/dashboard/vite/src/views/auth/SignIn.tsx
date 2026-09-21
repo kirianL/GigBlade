@@ -4,6 +4,7 @@ import { CustomToaster } from "@/components/general/CustomToaster";
 import { panelHomePath } from "@/gigblade/panel-session";
 import { acceptPanelToken, authClient, useSession } from "@/lib/auth-client";
 import { getSafeNextPath } from "@/utils/genUtils";
+import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
 import { AuthBackground } from "./components/AuthBackground";
 
 export const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
@@ -174,12 +175,7 @@ export const SignIn = () => {
 				</form>
 			)}
 			<a
-				href={`${
-					(import.meta.env.VITE_GIGBLADE_SITE_URL as string | undefined)?.replace(
-						/\/$/,
-						"",
-					) || "http://localhost:3000"
-				}/acceso`}
+				href={`${gigbladeMarketingSiteUrl()}/acceso`}
 				className="mt-6 hidden text-center text-sm text-white/45 transition-colors duration-160 hover:text-white lg:block"
 			>
 				Creá tu página

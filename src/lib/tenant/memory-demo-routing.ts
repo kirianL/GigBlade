@@ -106,9 +106,9 @@ export const MEMORY_DEMO_SEEDS: MemoryDemoSeed[] = [
     slug: "vera",
     templateId: "festival",
     displayName: "Vera Pulse",
-    tagline: "Página en preview local",
+    tagline: "Página pausada",
     city: "Cartago",
-    bio: "Página pausada en el panel. En local igual se puede ver la plantilla.",
+    bio: "Página pausada en el panel.",
     links: {
       instagram: "https://instagram.com/verapulse",
     },

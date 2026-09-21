@@ -5,6 +5,7 @@ import {
   calendarMonth,
   emptySiteVisitStats,
   isPreviewHostname,
+  preferredPublicHostname,
 } from "@/domain/site-visits";
 
 describe("site-visits", () => {
@@ -23,5 +24,17 @@ describe("site-visits", () => {
   it("marca preview local y dominio propio", () => {
     expect(isPreviewHostname("nox.localhost")).toBe(true);
     expect(isPreviewHostname("djmarco.com")).toBe(false);
+  });
+
+  it("elige el hostname público y ignora el de preview", () => {
+    expect(
+      preferredPublicHostname([
+        { canonicalHostname: "nox.localhost" },
+        { canonicalHostname: "nox.cr" },
+      ]),
+    ).toBe("nox.cr");
+    expect(
+      preferredPublicHostname([{ canonicalHostname: "nox.localhost" }]),
+    ).toBeNull();
   });
 });

@@ -96,7 +96,7 @@ export function BrandColorPicker({
 				/>
 			</div>
 			<p className="text-xs text-tertiary-foreground">
-				Cambia el fondo y el velo de la portada. Guardá y recargá el preview.
+				Cambia el fondo y el velo de la portada.
 			</p>
 		</div>
 	);

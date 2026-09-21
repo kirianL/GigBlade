@@ -70,5 +70,17 @@ export function publicSiteVisitStats(stats: SiteVisitStats) {
 }
 
 export function isPreviewHostname(hostname: string): boolean {
-  return hostname.endsWith(".localhost") || hostname.includes("localhost:");
+  return (
+    typeof hostname === "string" &&
+    (hostname.endsWith(".localhost") || hostname.includes("localhost:"))
+  );
+}
+
+export function preferredPublicHostname(
+  routes: Array<{ canonicalHostname: string }>,
+): string | null {
+  return (
+    routes.find((route) => !isPreviewHostname(route.canonicalHostname))
+      ?.canonicalHostname ?? null
+  );
 }

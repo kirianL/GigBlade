@@ -42,6 +42,14 @@ export class InMemoryTenantRepository implements TenantRepository {
     return [...this.tenants.values()];
   }
 
+  async create(input: Omit<Tenant, "id">): Promise<Tenant> {
+    this.hydrate();
+    const tenant: Tenant = { ...input, id: crypto.randomUUID() };
+    this.tenants.set(tenant.id, tenant);
+    this.flush();
+    return tenant;
+  }
+
   async updateSiteContent(
     context: TenantContext,
     next: Pick<Tenant, "templateId" | "themeConfig">,

@@ -1,12 +1,14 @@
 import { getPublicTenant } from "@/application/tenants/get-public-tenant";
 import { resolveTenantRouting } from "@/application/tenants/resolve-tenant-routing";
 import { updateTenantSiteContent } from "@/application/tenants/update-tenant-site-content";
+import { auditPlatformSites } from "@/application/sites/audit-platform-sites";
 import { listPlatformSites } from "@/application/sites/list-platform-sites";
 import {
   getSiteVisitStats,
   recordSiteVisit,
 } from "@/application/sites/record-site-visit";
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
+import { createDj } from "@/application/panel/create-dj";
 import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
@@ -63,6 +65,8 @@ export function createRealApp() {
       getSiteVisitStats(visits, context),
     listPlatformSites: () =>
       listPlatformSites(tenants, domainRouting, visits, panelAuth),
+    auditPlatformSites: () =>
+      auditPlatformSites(tenants, domainRouting, panelAuth),
     loginPanel: (input: unknown) => {
       const body = (input ?? {}) as { email: unknown; password: unknown };
       return loginPanel(panelAuth, body);
@@ -78,6 +82,21 @@ export function createRealApp() {
         name: unknown;
       };
       return generateDjPassword(panelAuth, tenants, actor, body);
+    },
+    createDj: (
+      actor: Parameters<typeof createDj>[1],
+      input: unknown,
+    ) => {
+      const body = (input ?? {}) as {
+        name: unknown;
+        email: unknown;
+        slug: unknown;
+      };
+      return createDj(
+        { tenants, routing: domainRouting, panelAuth },
+        actor,
+        body,
+      );
     },
     deleteDj: (
       actor: Parameters<typeof deleteDj>[1],

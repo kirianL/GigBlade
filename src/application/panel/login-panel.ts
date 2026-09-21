@@ -35,12 +35,12 @@ export async function loginPanel(
 }
 
 export async function readPanelSession(store: PanelAuthStore, token: string) {
-  if (!token) throw unauthorized();
+  if (!token) throw unauthorized("La sesión expiró. Entrá de nuevo.");
   const record = await store.findSession(hashSessionToken(token));
   if (!record || Date.parse(record.expiresAt) <= Date.now()) {
-    throw unauthorized();
+    throw unauthorized("La sesión expiró. Entrá de nuevo.");
   }
   const account = await store.findAccount(record.email);
-  if (!account) throw unauthorized();
+  if (!account) throw unauthorized("La sesión expiró. Entrá de nuevo.");
   return publicPanelUser(account);
 }

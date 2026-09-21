@@ -45,7 +45,7 @@ export default function SignInClient() {
 				const origin = dashboardOrigin(dashboard);
 				if (!origin || origin === window.location.origin) {
 					setMessage(
-						"Falta la URL del dashboard. En el proyecto de la landing, NEXT_PUBLIC_DASHBOARD_URL tiene que ser la URL de gig-blade (el Vite), no gigblades.vercel.app.",
+						"No pudimos abrir el panel. Falta configurar la URL del dashboard en GigBlade.",
 					);
 					return;
 				}

@@ -9,7 +9,7 @@ import {
 	Input,
 	LongInput,
 } from "@autumn/ui";
-import { ArrowSquareOutIcon, IdentificationCardIcon } from "@phosphor-icons/react";
+import { IdentificationCardIcon } from "@phosphor-icons/react";
 import {
 	useId,
 	useRef,
@@ -28,7 +28,7 @@ import {
 	publicSiteAssetUrl,
 	uploadSitePhoto,
 } from "@/gigblade/site-api";
-import { DjSelect, PageContainer, PageHeader } from "@/gigblade/ui";
+import { DjSelect, OpenPublicPageButton, PageContainer, PageHeader } from "@/gigblade/ui";
 import {
 	useDjProfile,
 	type DjContentDraft,
@@ -333,7 +333,9 @@ export default function DjContentPage() {
 					<BreadcrumbList className="text-tertiary-foreground text-xs">
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to={`/studio?dj=${dj.slug}`}>{dj.name}</Link>
+								<Link to={`/studio?dj=${dj.slug}`}>
+									{draft.displayName.trim() || dj.name}
+								</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
@@ -342,12 +344,7 @@ export default function DjContentPage() {
 				</Breadcrumb>
 				<div className="flex items-center gap-2">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
-					<Button variant="secondary" size="sm" asChild>
-						<a href={pageUrl} target="_blank" rel="noreferrer">
-							<ArrowSquareOutIcon size={16} aria-hidden />
-							Abrir página
-						</a>
-					</Button>
+					<OpenPublicPageButton href={pageUrl} />
 				</div>
 			</div>
 
@@ -362,18 +359,16 @@ export default function DjContentPage() {
 				}
 				title="Contenido"
 			>
-				<CopyButton
-					text={pageUrl}
-					title={pageUrl}
-					size="mini"
-					className="text-tertiary-foreground"
-					innerClassName="max-w-30 text-tiny-id truncate !font-normal"
-				/>
+				{pageUrl ? (
+					<CopyButton
+						text={pageUrl}
+						title={pageUrl}
+						size="mini"
+						className="text-tertiary-foreground"
+						innerClassName="max-w-30 text-tiny-id truncate !font-normal"
+					/>
+				) : null}
 			</PageHeader>
-			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
-				Guardá y recargá el preview local ({pageUrl.replace(/^https?:\/\//, "")})
-				para ver claro, oscuro o party. Todavía no se abre el dominio propio.
-			</p>
 
 			<form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
 				<fieldset className="border rounded-lg p-5 flex flex-col gap-4">
@@ -585,7 +580,7 @@ export default function DjContentPage() {
 						</p>
 					) : (
 						<p id={`${ids.template}-hint`} className="text-xs text-tertiary-foreground">
-							Claro, oscuro o party. El cambio se ve al recargar el preview.
+							Claro, oscuro o party. Guardá para publicar el cambio en la página.
 						</p>
 					)}
 					<BrandColorPicker

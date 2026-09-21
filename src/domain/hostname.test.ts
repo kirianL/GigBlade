@@ -30,6 +30,7 @@ describe("hostname", () => {
 
   it("rechaza hostnames públicos mal formados", () => {
     expect(isValidPublicHostname("localhost")).toBe(false);
+    expect(isValidPublicHostname("marco.localhost")).toBe(false);
     expect(isValidPublicHostname("no spaces.com")).toBe(false);
     expect(isValidPublicHostname("djá.com")).toBe(false);
     expect(isValidPublicHostname("-bad.com")).toBe(false);
@@ -38,6 +39,7 @@ describe("hostname", () => {
 
   it("solo resuelve localhost o un hostname público válido", () => {
     expect(canResolveHostname("localhost")).toBe(true);
+    expect(canResolveHostname("marco.localhost")).toBe(true);
     expect(canResolveHostname("example.com")).toBe(true);
     expect(canResolveHostname("not a host")).toBe(false);
     expect(canResolveHostname("http://evil.test")).toBe(false);

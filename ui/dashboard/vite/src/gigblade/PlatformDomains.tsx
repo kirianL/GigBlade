@@ -1,8 +1,9 @@
 import { Button, MiniCopyButton, PageContainer, PageHeader } from "@autumn/ui";
-import { ArrowSquareOutIcon, GlobeIcon } from "@phosphor-icons/react";
+import { GlobeIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import {
+	djDomainLabel,
 	djIntendedDomain,
 	djPublicUrl,
 	formatLastVisit,
@@ -12,7 +13,7 @@ import {
 import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
 import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
 import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
-import { DjStatusCell } from "@/gigblade/ui";
+import { DjStatusCell, OpenPublicPageButton } from "@/gigblade/ui";
 import { useSession } from "@/lib/auth-client";
 
 type DomainRow = {
@@ -37,13 +38,15 @@ export default function PlatformDomains() {
 		const bySlug = new Map((sites ?? []).map((site) => [site.slug, site]));
 		return djs.map((dj) => {
 			const live = bySlug.get(dj.slug);
+			const hostname = live?.domain || dj.domain;
+			const publicDomain = djIntendedDomain({ domain: hostname });
 			return {
 				slug: dj.slug,
 				name: live?.displayName || dj.name,
 				email: live?.email || dj.email,
-				hostname: live?.domain || dj.domain,
-				publicDomain: djIntendedDomain(dj),
-				preview: live?.preview ?? dj.domain.includes("localhost"),
+				hostname,
+				publicDomain,
+				preview: live?.preview ?? !publicDomain,
 				visits: live?.visits ?? 0,
 				lastVisitedAt: live?.lastVisitedAt ?? null,
 				status: dj.status,
@@ -67,8 +70,7 @@ export default function PlatformDomains() {
 			/>
 			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
 				{PLAN.domainNote} El sitio público sale en el dominio propio del DJ, no
-				en un subdominio de GigBlade. En local el preview es{" "}
-				<code className="text-xs">{`{slug}.localhost`}</code>.
+				en un subdominio de GigBlade.
 			</p>
 			<p className="text-sm text-tertiary-foreground -mt-2">
 				{formatVisitCount(totalVisits)} en todas las páginas.
@@ -81,7 +83,8 @@ export default function PlatformDomains() {
 					</li>
 				) : null}
 				{rows.map((row) => {
-					const pageUrl = djPublicUrl({ slug: row.slug });
+					const pageUrl = djPublicUrl({ slug: row.slug, domain: row.hostname });
+					const domainLabel = row.publicDomain ?? djDomainLabel({ domain: row.hostname });
 					return (
 						<li
 							key={row.slug}
@@ -96,15 +99,12 @@ export default function PlatformDomains() {
 										<DjStatusCell status={row.status} />
 									</div>
 									<p className="mt-1 font-mono text-sm text-foreground break-all">
-										{row.hostname}
+										{domainLabel}
 									</p>
 									<p className="mt-1 text-xs text-tertiary-foreground">
 										{row.preview
-											? "Preview local · administrado por GigBlade"
+											? "Dominio en preparación · administrado por GigBlade"
 											: "Dominio propio · a nombre de GigBlade"}
-										{row.publicDomain
-											? ` · público ${row.publicDomain}`
-											: ""}
 									</p>
 								</div>
 								<div className="text-right shrink-0">
@@ -117,13 +117,10 @@ export default function PlatformDomains() {
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
-								<MiniCopyButton text={row.hostname} />
-								<Button variant="secondary" size="sm" asChild>
-									<a href={pageUrl} target="_blank" rel="noreferrer">
-										<ArrowSquareOutIcon size={16} aria-hidden />
-										Abrir página
-									</a>
-								</Button>
+								{row.publicDomain ? (
+									<MiniCopyButton text={row.publicDomain} />
+								) : null}
+								<OpenPublicPageButton href={pageUrl} />
 								<Button variant="secondary" size="sm" asChild>
 									<Link to={`/studio/visitas?dj=${row.slug}`}>Ver visitas</Link>
 								</Button>

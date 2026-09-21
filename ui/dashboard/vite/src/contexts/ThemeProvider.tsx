@@ -9,7 +9,7 @@ import {
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 
-type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = "light" | "dark" | "system";
 export type ThemePreset = "modern" | "classic" | "cursed" | "scraps";
 
 interface ThemeContextType {

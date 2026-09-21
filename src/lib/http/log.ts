@@ -7,6 +7,7 @@ export type PlatformLog = {
   provider?: string;
   providerCode?: string;
   reason?: string;
+  detail?: string;
 };
 
 const ALERT_WINDOW_MS = 60_000;

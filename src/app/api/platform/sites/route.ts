@@ -1,7 +1,7 @@
 import { unauthorized } from "@/domain/errors";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken } from "@/lib/http/panel-request";
+import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -37,6 +37,18 @@ export async function DELETE(request: Request) {
     const slug = new URL(request.url).searchParams.get("slug");
     const deleted = await getApp().deleteDj(actor, { slug });
     return jsonWithTenantCors(request, deleted, { requestId });
+  } catch (error) {
+    return withTenantCors(request, errorResponse(error, requestId));
+  }
+}
+
+export async function POST(request: Request) {
+  const requestId = createRequestId();
+
+  try {
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const created = await getApp().createDj(actor, await readJsonBody(request));
+    return jsonWithTenantCors(request, created, { requestId, status: 201 });
   } catch (error) {
     return withTenantCors(request, errorResponse(error, requestId));
   }

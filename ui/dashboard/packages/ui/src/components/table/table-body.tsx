@@ -4,15 +4,10 @@ import {
 	TABLE_FADE_IN,
 	TABLE_TRANSITION,
 } from "@autumn/ui/components/table/table-motion";
-import {
-	TableRowCells,
-	TableSkeletonRows,
-} from "@autumn/ui/components/table/table-row-cells";
+import { TableRowCells } from "@autumn/ui/components/table/table-row-cells";
 import { TableCell, TableRow } from "@autumn/ui/components/ui/table";
 import { cn } from "@autumn/ui/lib/utils";
 import { useEffect, useRef } from "react";
-
-const DEFAULT_SKELETON_ROWS = 5;
 
 export function TableBody() {
 	const {
@@ -30,43 +25,30 @@ export function TableBody() {
 		selectedItemId,
 		flexibleTableColumns,
 		getRowClassName,
-		skeletonRowCount,
 	} = useTableContext();
 	const rows = table.getRowModel().rows;
-	const lastRowCountRef = useRef(DEFAULT_SKELETON_ROWS);
 	const hasLoadedRef = useRef(false);
 
 	useEffect(() => {
-		if (rows.length > 0) lastRowCountRef.current = rows.length;
 		if (!isLoading) hasLoadedRef.current = true;
 	});
 
 	const hasRows = rows.length > 0;
 	const hasLoaded = hasLoadedRef.current || !isLoading;
-	const showSkeleton =
+	const waitingForData =
 		isLoading || !!isTransitioning || (!hasRows && !hasLoaded);
 
-	const columns = table.getVisibleLeafColumns().map((col) => ({
-		id: col.id,
-		size: col.getSize(),
-		skeleton: col.columnDef.meta?.skeleton,
-	}));
-
-	if (showSkeleton) {
+	if (waitingForData && !hasRows) {
 		return (
-			<MotionTbody
-				key="skeleton"
-				{...TABLE_FADE_IN}
-				transition={TABLE_TRANSITION}
-				className="divide-y bg-interactive-secondary"
-			>
-				<TableSkeletonRows
-					columns={columns}
-					rowCount={skeletonRowCount ?? lastRowCountRef.current}
-					rowClassName={rowClassName}
-					flexibleTableColumns={flexibleTableColumns}
-					asFragment
-				/>
+			<MotionTbody key="loading" {...TABLE_FADE_IN} transition={TABLE_TRANSITION}>
+				<TableRow className="hover:bg-transparent dark:hover:bg-transparent">
+					<TableCell
+						className="h-10 py-0"
+						colSpan={numberOfColumns}
+					>
+						<span className="sr-only">Cargando</span>
+					</TableCell>
+				</TableRow>
 			</MotionTbody>
 		);
 	}

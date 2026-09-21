@@ -1,7 +1,9 @@
 import {
 	PageContainer,
 	PageHeader,
+	Button,
 } from "@autumn/ui";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router";
@@ -18,6 +20,37 @@ import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
 
 export { PageContainer, PageHeader };
+
+export function OpenPublicPageButton({
+	href,
+	label = "Abrir página",
+}: {
+	href: string | null;
+	label?: string;
+}) {
+	if (!href) {
+		return (
+			<Button
+				variant="secondary"
+				size="sm"
+				disabled
+				aria-label={`${label}. El dominio propio todavía no está asignado.`}
+			>
+				<ArrowSquareOutIcon size={16} aria-hidden />
+				{label}
+			</Button>
+		);
+	}
+
+	return (
+		<Button variant="secondary" size="sm" asChild>
+			<a href={href} target="_blank" rel="noreferrer">
+				<ArrowSquareOutIcon size={16} aria-hidden />
+				{label}
+			</a>
+		</Button>
+	);
+}
 
 const SELECT_CLASS =
 	"h-7 min-w-[160px] rounded-lg border border-input bg-input-background px-2 text-sm text-foreground outline-none shadow-sm input-base input-shadow-default";
@@ -82,13 +115,16 @@ export function useSelectedDj() {
 	const [params, setParams] = useSearchParams();
 	const [lastSlug, setLastSlug] = useLocalStorage(LAST_DJ_STORAGE_KEY, "nox");
 	const { data: session } = useSession();
+	const { djs, status: sitesStatus } = usePlatformDjs();
 	const lockedSlug = (session?.user as { role?: string; slug?: string } | undefined)
 		?.role === "dj"
 		? (session?.user as { slug?: string }).slug
 		: undefined;
 	const paramDj = params.get("dj");
 	const requested = lockedSlug || paramDj || lastSlug || "nox";
-	const dj = djBySlug(requested);
+	const catalog = djs.length > 0 ? djs : GIGBLADE_DJS;
+	const dj = catalog.find((item) => item.slug === requested) ?? djBySlug(requested);
+	const sitesReady = sitesStatus === "ready" || sitesStatus === "error";
 
 	useEffect(() => {
 		if (lastSlug !== dj.slug) {
@@ -123,7 +159,7 @@ export function useSelectedDj() {
 		);
 	};
 
-	return { dj, setDj };
+	return { dj, setDj, sitesReady };
 }
 
 export function DjSelect({

@@ -113,11 +113,11 @@ export const GIGBLADE_DJS: GigbladeDj[] = [
 		slug: "nox",
 		name: "Nox",
 		email: "nox@gigblade.com",
-		domain: "localhost:3000",
+		domain: "",
 		city: "San José",
 		template: "after",
 		status: "active",
-		bio: "Sets nocturnos para pistas que no cierran. Demo local de GigBlade.",
+		bio: "Sets nocturnos para pistas que no cierran.",
 		instagram: "@nox",
 		createdAt: NOW - DAY * 9,
 	},
@@ -161,6 +161,11 @@ export function djByArtistName(name: string | null) {
 	);
 }
 
+export function gigbladeMarketingSiteUrl() {
+	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");
+	return configured || "http://localhost:3000";
+}
+
 export function djPreviewOrigin(slug: string) {
 	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(
 		/\/$/,
@@ -178,13 +183,19 @@ export function djPreviewOrigin(slug: string) {
 	return `http://${slug}.localhost:${port}`;
 }
 
-export function djPublicUrl(dj: Pick<GigbladeDj, "slug">) {
-	return djPreviewOrigin(dj.slug);
-}
-
 export function djIntendedDomain(dj: Pick<GigbladeDj, "domain">) {
 	if (!dj.domain || dj.domain.includes("localhost")) return null;
 	return dj.domain;
+}
+
+export function djPublicUrl(dj: Pick<GigbladeDj, "slug" | "domain">) {
+	const publicDomain = djIntendedDomain(dj);
+	if (!publicDomain) return null;
+	return `https://${publicDomain}`;
+}
+
+export function djDomainLabel(dj: Pick<GigbladeDj, "domain">) {
+	return djIntendedDomain(dj) ?? "Sin dominio asignado";
 }
 
 export function formatVisitCount(visitors: number) {

@@ -40,63 +40,9 @@
         import("react-grab");
       }
     </script>
-    <style>
-      .boot-shell {
-        min-height: 100vh;
-        display: grid;
-        grid-template-columns: 13rem 1fr;
-        background: #f5f5f4;
-      }
-      .boot-sidebar {
-        padding: 1.25rem;
-        background: #fafaf9;
-      }
-      .boot-main {
-        margin: 0.75rem 0.75rem 0.75rem 0;
-        border: 1px solid #e7e5e4;
-        border-radius: 0.75rem;
-        background: #fff;
-        padding: clamp(1.5rem, 4vw, 3rem);
-      }
-      .boot-line, .boot-card {
-        background: #e7e5e4;
-        border-radius: 0.5rem;
-      }
-      .boot-line { height: 0.75rem; margin-bottom: 1rem; }
-      .boot-card { height: 7rem; margin-top: 1.5rem; }
-      .boot-brand { width: 55%; }
-      .boot-nav-first { width: 78%; margin-top: 3rem; }
-      .boot-nav-second { width: 64%; }
-      .boot-nav-third { width: 72%; }
-      .boot-kicker { width: 7rem; }
-      .boot-title { width: min(22rem, 70%); height: 1.5rem; margin-top: 2rem; }
-      @media (max-width: 639px) {
-        .boot-shell { display: block; background: #fff; }
-        .boot-sidebar { display: none; }
-        .boot-main { margin: 0; border: 0; padding-top: 5rem; }
-      }
-      .dark .boot-shell { background: #0c0a09; }
-      .dark .boot-sidebar, .dark .boot-main { background: #171412; border-color: #292524; }
-      .dark .boot-line, .dark .boot-card { background: #292524; }
-    </style>
   </head>
   <body>
-    <div id="root">
-      <div class="boot-shell" role="status" aria-label="Abriendo panel">
-        <aside class="boot-sidebar" aria-hidden="true">
-          <div class="boot-line boot-brand"></div>
-          <div class="boot-line boot-nav-first"></div>
-          <div class="boot-line boot-nav-second"></div>
-          <div class="boot-line boot-nav-third"></div>
-        </aside>
-        <main class="boot-main" aria-hidden="true">
-          <div class="boot-line boot-kicker"></div>
-          <div class="boot-line boot-title"></div>
-          <div class="boot-card"></div>
-          <div class="boot-card"></div>
-        </main>
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

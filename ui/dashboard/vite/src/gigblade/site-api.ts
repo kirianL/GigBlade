@@ -1,7 +1,10 @@
-import { djPreviewOrigin } from "@/gigblade/concept";
-import { readPanelAuthSession } from "@/gigblade/panel-session";
+import { djPreviewOrigin, gigbladeMarketingSiteUrl } from "@/gigblade/concept";
+import {
+	clearPanelAuthSession,
+	readPanelAuthSession,
+} from "@/gigblade/panel-session";
 
-const FETCH_TIMEOUT_MS = 4000;
+const FETCH_TIMEOUT_MS = 15_000;
 
 export type PublicSiteProfile = {
 	displayName: string;
@@ -80,8 +83,7 @@ function withTimeout(parent?: AbortSignal, timeoutMs = FETCH_TIMEOUT_MS) {
 }
 
 function siteOrigin() {
-	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");
-	return configured || "http://localhost:3000";
+	return gigbladeMarketingSiteUrl();
 }
 
 function tenantApi(slug: string, path = "/api/tenant") {
@@ -114,6 +116,33 @@ export type PlatformSite = {
 	visits: number;
 	lastVisitedAt: string | null;
 	email?: string;
+};
+
+export type SiteHealthLevel = "ok" | "warn" | "critical";
+
+export type SiteHealthCheck = {
+	id: string;
+	level: SiteHealthLevel;
+	label: string;
+	detail: string;
+};
+
+export type PlatformSiteAudit = {
+	slug: string;
+	displayName: string;
+	domain: string;
+	preview: boolean;
+	tenantStatus: "active" | "suspended" | "canceled";
+	routeStatus: "active" | "suspended" | "missing";
+	overall: SiteHealthLevel;
+	checks: SiteHealthCheck[];
+	checkedAt: string;
+};
+
+export type PlatformSiteAuditReport = {
+	checkedAt: string;
+	totals: Record<SiteHealthLevel, number>;
+	sites: PlatformSiteAudit[];
 };
 
 export async function fetchPublicSite(
@@ -203,25 +232,108 @@ export async function fetchSiteVisits(
 	}
 }
 
+export type PlatformSiteHealthResult = {
+	report: PlatformSiteAuditReport | null;
+	error: string | null;
+};
+
+export async function fetchPlatformSiteHealth(
+	signal?: AbortSignal,
+): Promise<PlatformSiteHealthResult> {
+	const timeout = withTimeout(signal, 30_000);
+	try {
+		const session = readPanelAuthSession();
+		if (!session?.token) {
+			return {
+				report: null,
+				error: "Volvé a entrar con la cuenta de plataforma.",
+			};
+		}
+		const headers = new Headers({
+			authorization: `Bearer ${session.token}`,
+		});
+		const response = await fetch(
+			`${platformApiOrigin()}/api/platform/site-health`,
+			{
+				headers,
+				signal: timeout.signal,
+			},
+		);
+		const body = (await readJson(response)) as
+			| PlatformSiteAuditReport
+			| { message?: string }
+			| null;
+		if (response.status === 401) {
+			clearPanelAuthSession();
+			return {
+				report: null,
+				error: "La sesión expiró. Entrá de nuevo.",
+			};
+		}
+		if (!response.ok) {
+			return {
+				report: null,
+				error:
+					(typeof body?.message === "string" && body.message) ||
+					`La API respondió ${response.status}.`,
+			};
+		}
+		if (!body || !Array.isArray((body as PlatformSiteAuditReport).sites)) {
+			return {
+				report: null,
+				error: "La API devolvió una respuesta inválida.",
+			};
+		}
+		return { report: body as PlatformSiteAuditReport, error: null };
+	} catch (error) {
+		if (error instanceof Error && error.name === "AbortError") {
+			return { report: null, error: "La auditoría tardó demasiado." };
+		}
+		return {
+			report: null,
+			error: "No se pudo contactar la API de GigBlade.",
+		};
+	} finally {
+		timeout.cancel();
+	}
+}
+
 export async function fetchPlatformSites(
 	signal?: AbortSignal,
-): Promise<PlatformSite[] | null> {
+): Promise<PlatformSite[]> {
 	const timeout = withTimeout(signal);
 	try {
 		const session = readPanelAuthSession();
-		const headers = new Headers();
-		if (session?.token) {
-			headers.set("authorization", `Bearer ${session.token}`);
+		if (!session?.token) {
+			throw new Error("Volvé a entrar con la cuenta de plataforma.");
 		}
+		const headers = new Headers({
+			authorization: `Bearer ${session.token}`,
+		});
 		const response = await fetch(`${platformApiOrigin()}/api/platform/sites`, {
 			headers,
 			signal: timeout.signal,
 		});
-		if (!response.ok) return null;
-		const body = (await readJson(response)) as { sites?: PlatformSite[] } | null;
-		return Array.isArray(body?.sites) ? body.sites : null;
-	} catch {
-		return null;
+		const body = (await readJson(response)) as
+			| { sites?: PlatformSite[]; message?: string }
+			| null;
+		if (response.status === 401) {
+			clearPanelAuthSession();
+			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+		}
+		if (!response.ok) {
+			throw new Error(body?.message || "No se pudieron cargar los DJs.");
+		}
+		if (!Array.isArray(body?.sites)) {
+			throw new Error("No se pudieron cargar los DJs.");
+		}
+		return body.sites;
+	} catch (error) {
+		if (error instanceof Error && error.name === "AbortError") {
+			throw new Error("La API no respondió.");
+		}
+		if (error instanceof Error) throw error;
+		throw new Error("No se pudieron cargar los DJs.");
 	} finally {
 		timeout.cancel();
 	}
@@ -270,7 +382,12 @@ async function panelFetch(
 		});
 		const body = await readJson(response);
 		if (!response.ok) {
-			throw new Error(body?.message || "No se pudo completar el acceso.");
+			const error = new Error(
+				(typeof body?.message === "string" && body.message) ||
+					"No se pudo completar el acceso.",
+			) as Error & { status: number };
+			error.status = response.status;
+			throw error;
 		}
 		return body;
 	} catch (error) {
@@ -350,6 +467,36 @@ export async function deleteDj(input: {
 		throw new Error("No se pudo eliminar el DJ.");
 	}
 	return { slug: body.slug };
+}
+
+export type CreatedDj = {
+	slug: string;
+	email: string;
+	name: string;
+	password: string;
+	site: PlatformSite;
+};
+
+export async function createDj(input: {
+	name: string;
+	email: string;
+	slug: string;
+	token: string;
+}): Promise<CreatedDj> {
+	const body = (await panelFetch("/api/platform/sites", {
+		method: "POST",
+		token: input.token,
+		body: JSON.stringify({
+			name: input.name,
+			email: input.email,
+			slug: input.slug,
+		}),
+		timeoutMs: 15000,
+	})) as Partial<CreatedDj>;
+	if (!body?.slug || !body.password || !body.email || !body.site) {
+		throw new Error("No se pudo crear el DJ.");
+	}
+	return body as CreatedDj;
 }
 
 export async function uploadSitePhoto(input: {

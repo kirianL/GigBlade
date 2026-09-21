@@ -4,7 +4,9 @@ import type {
   ListedTenantRoute,
   TenantRoutingStore,
 } from "@/application/ports/tenant-routing-store";
+import { conflict } from "@/domain/errors";
 import { normalizeHostname } from "@/domain/hostname";
+import { isPreviewHostname } from "@/domain/site-visits";
 import type { TenantRouting } from "@/domain/tenant";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
 import {
@@ -52,6 +54,26 @@ export class SupabaseTenantRoutingStore implements TenantRoutingStore {
       failPostgrestQuery(error, { operation: "tenant_domains.list" });
     }
     return ((data ?? []) as DomainRow[]).map(toRoute);
+  }
+
+  async put(hostname: string, routing: TenantRouting): Promise<void> {
+    const canonicalHostname = normalizeHostname(hostname);
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase.from("tenant_domains").insert({
+      tenant_id: routing.id,
+      hostname: canonicalHostname,
+      status: routing.status === "suspended" ? "suspended" : "active",
+      is_canonical: !isPreviewHostname(canonicalHostname),
+    });
+    if (error?.code === "23505") {
+      throw conflict("Ese dominio ya está en uso.");
+    }
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "tenant_domains.put",
+        tenantId: routing.id,
+      });
+    }
   }
 
   async deleteByTenantId(tenantId: string): Promise<string[]> {

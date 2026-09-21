@@ -38,7 +38,7 @@ describe("platform sites", () => {
       {
         slug: "nox",
         displayName: "Kiluzie",
-        domain: "nox.localhost",
+        domain: "",
         preview: true,
         status: "active",
         visits: 2,
@@ -57,12 +57,28 @@ describe("platform sites", () => {
       {
         slug: "nox",
         displayName: "Kiluzie",
-        domain: "nox.localhost",
+        domain: "",
         preview: true,
         status: "active",
         visits: 0,
         lastVisitedAt: null,
       },
     ]);
+  });
+
+  it("muestra el dominio propio cuando hay uno público", async () => {
+    const tenants = new InMemoryTenantRepository([tenant]);
+    const routing = new InMemoryTenantRoutingStore([
+      ["nox.localhost", createTenantRouting(tenant, "nox.localhost")],
+      ["nox.cr", createTenantRouting(tenant, "nox.cr")],
+    ]);
+    const visits = new InMemorySiteVisitStore();
+    const sites = await listPlatformSites(tenants, routing, visits);
+
+    expect(sites[0]).toMatchObject({
+      slug: "nox",
+      domain: "nox.cr",
+      preview: false,
+    });
   });
 });

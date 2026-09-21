@@ -31,12 +31,10 @@ export function SavePublishControl({
 	const published = saved && live && !error;
 	const status = error
 		? { key: "error", text: error, tone: "error" as const }
-		: saved
+		: saved && live
 			? {
-					key: live ? "live" : "local",
-					text: live
-						? "Publicado en tu página."
-						: "Guardado en este navegador.",
+					key: "live",
+					text: "Publicado en tu página.",
 					tone: "ok" as const,
 				}
 			: null;

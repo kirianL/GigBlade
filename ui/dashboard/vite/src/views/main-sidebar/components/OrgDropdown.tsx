@@ -1,4 +1,4 @@
-import { Button, Skeleton } from "@autumn/ui";
+import { Button } from "@autumn/ui";
 import {
 	ChevronDown,
 	Monitor,
@@ -62,13 +62,13 @@ export const OrgDropdown = () => {
 	useMemberships();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 
-	if (isLoading)
+	if (isLoading) {
 		return (
-			<div className="h-7 w-32 px-4 flex items-center gap-2">
-				<Skeleton className="min-w-5 h-5" />
-				<Skeleton className="w-32 h-5" />
+			<div className="h-7 w-32 px-4" role="status" aria-label="Cargando">
+				<span className="sr-only">Cargando</span>
 			</div>
 		);
+	}
 
 	if (!org || error) return null;
 

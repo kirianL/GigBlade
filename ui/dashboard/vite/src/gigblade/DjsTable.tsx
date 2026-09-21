@@ -150,6 +150,8 @@ export function DjsTable({
 	variant = "roster",
 	virtualize = false,
 	rowActions,
+	isLoading = false,
+	emptyStateText = "Ningún DJ coincide.",
 }: {
 	djs: GigbladeDj[];
 	heading?: string;
@@ -160,6 +162,8 @@ export function DjsTable({
 	variant?: DjsTableVariant;
 	virtualize?: boolean;
 	rowActions?: (dj: GigbladeDj) => ReactNode;
+	isLoading?: boolean;
+	emptyStateText?: string;
 }) {
 	const [query, setQuery] = useState("");
 	const columns = useMemo(() => {
@@ -213,7 +217,8 @@ export function DjsTable({
 				table,
 				numberOfColumns: columns.length,
 				enableSorting: false,
-				emptyStateText: "Ningún DJ coincide.",
+				isLoading,
+				emptyStateText,
 				rowClassName: "h-10",
 				flexibleTableColumns: true,
 				getRowHref: getRowHref
@@ -222,7 +227,6 @@ export function DjsTable({
 				virtualization: virtualize
 					? {
 							containerHeight: "calc(100vh - 190px)",
-							skeletonRowCount: Math.max(rows.length, 5),
 							rowHeight: 40,
 						}
 					: undefined,

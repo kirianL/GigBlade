@@ -87,6 +87,11 @@ function storageKey(slug: string) {
 	return `gigblade.dj-content.${slug}`;
 }
 
+function cacheDraft(slug: string, draft: DjContentDraft) {
+	if (typeof window === "undefined") return;
+	window.localStorage.setItem(storageKey(slug), JSON.stringify(draft));
+}
+
 function isTemplateId(value: string): value is SiteTemplateId {
 	return DJ_TEMPLATES.some((template) => template.id === value);
 }
@@ -199,29 +204,39 @@ function instagramHandle(value: string) {
 
 export function useDjProfile(options?: { syncLive?: boolean }) {
 	const syncLive = options?.syncLive ?? false;
-	const { dj, setDj } = useSelectedDj();
+	const { dj, setDj, sitesReady } = useSelectedDj();
 	const [draft, setDraft] = useState<DjContentDraft>(() =>
-		readDjContent(dj.slug),
+		syncLive ? defaultsFrom(dj) : readDjContent(dj.slug),
 	);
 	const [live, setLive] = useState(false);
 
 	useEffect(() => {
-		const local = readDjContent(dj.slug);
-		setDraft(local);
+		if (!syncLive) {
+			setDraft(readDjContent(dj.slug));
+			setLive(false);
+			return;
+		}
+
 		setLive(false);
-		if (!syncLive) return;
+		setDraft(defaultsFrom(dj));
 
 		const controller = new AbortController();
 		void fetchPublicSite(dj.slug, controller.signal).then((site) => {
-			if (controller.signal.aborted || !site || site.slug !== dj.slug) return;
-			setDraft(draftFromSite(site));
+			if (controller.signal.aborted) return;
+			if (!site || site.slug !== dj.slug) {
+				setDraft(readDjContent(dj.slug));
+				return;
+			}
+			const next = draftFromSite(site);
+			setDraft(next);
+			cacheDraft(dj.slug, next);
 			setLive(true);
 		});
 
 		return () => {
 			controller.abort();
 		};
-	}, [dj.slug, syncLive]);
+	}, [dj.slug, dj.name, dj.city, dj.template, sitesReady, syncLive]);
 
 	const profile: GigbladeDj = {
 		...dj,
@@ -233,7 +248,7 @@ export function useDjProfile(options?: { syncLive?: boolean }) {
 	};
 
 	const save = async (next: DjContentDraft) => {
-		window.localStorage.setItem(storageKey(dj.slug), JSON.stringify(next));
+		cacheDraft(dj.slug, next);
 		setDraft(next);
 
 		const site = await savePublicSite(dj.slug, {

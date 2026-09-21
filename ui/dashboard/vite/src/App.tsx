@@ -2,7 +2,7 @@ import * as React from "react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { GigbladeLayout } from "./app/GigbladeLayout";
-import { BootScreen } from "./gigblade/BootScreen";
+import { ScreenReaderLoading } from "./components/general/ScreenReaderLoading";
 import { useSession } from "./lib/auth-client";
 import { SignIn } from "./views/auth/SignIn";
 
@@ -27,14 +27,13 @@ const PlatformOverview = React.lazy(
 const PlatformDjs = React.lazy(() => import("./gigblade/PlatformDjs"));
 const PlatformDomains = React.lazy(() => import("./gigblade/PlatformDomains"));
 const PlatformPlan = React.lazy(() => import("./gigblade/PlatformPlan"));
+const PlatformSiteHealth = React.lazy(
+	() => import("./gigblade/PlatformSiteHealth"),
+);
 const DjStudioPage = React.lazy(() => import("./gigblade/DjStudioPage"));
 const DjContentPage = React.lazy(() => import("./gigblade/DjContentPage"));
 const DjVisitsPage = React.lazy(() => import("./gigblade/DjVisitsPage"));
-const SettingsView = React.lazy(() =>
-	import("./views/settings/SettingsView").then(({ SettingsView }) => ({
-		default: SettingsView,
-	})),
-);
+const SettingsView = React.lazy(() => import("./gigblade/GigbladeSettingsPage"));
 
 export default function App() {
 	const { data } = useSession();
@@ -69,7 +68,7 @@ export default function App() {
 				<Route
 					path="/pw-sign-in"
 					element={
-						<React.Suspense fallback={<BootScreen />}>
+						<React.Suspense fallback={<ScreenReaderLoading />}>
 							<PasswordSignIn />
 						</React.Suspense>
 					}
@@ -77,7 +76,7 @@ export default function App() {
 				<Route
 					path="/accept"
 					element={
-						<React.Suspense fallback={<BootScreen />}>
+						<React.Suspense fallback={<ScreenReaderLoading />}>
 							<AcceptInvitation />
 						</React.Suspense>
 					}
@@ -85,7 +84,7 @@ export default function App() {
 				<Route
 					path="/close"
 					element={
-						<React.Suspense fallback={<BootScreen />}>
+						<React.Suspense fallback={<ScreenReaderLoading />}>
 							<CloseScreen />
 						</React.Suspense>
 					}
@@ -96,6 +95,7 @@ export default function App() {
 					<Route path="/overview" element={<PlatformOverview />} />
 					<Route path="/djs" element={<PlatformDjs />} />
 					<Route path="/domains" element={<PlatformDomains />} />
+					<Route path="/health" element={<PlatformSiteHealth />} />
 					<Route path="/plan" element={<PlatformPlan />} />
 					<Route
 						path="/bookings"

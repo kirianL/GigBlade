@@ -1,5 +1,5 @@
 import { notFound, validationError } from "@/domain/errors";
-import { isValidPublicHostname, normalizeHostname } from "@/domain/hostname";
+import { canResolveHostname, normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile, type SiteProfile } from "@/domain/site-profile";
 import {
   assertRegisteredTemplate,
@@ -90,10 +90,7 @@ export function createTenantRouting(
 ): TenantRouting {
   const canonicalHostname = normalizeHostname(hostname);
 
-  if (
-    !isValidPublicHostname(canonicalHostname) &&
-    canonicalHostname !== "localhost"
-  ) {
+  if (!canResolveHostname(canonicalHostname)) {
     throw validationError("El hostname del tenant no es válido");
   }
 

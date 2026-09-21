@@ -60,7 +60,7 @@ export function isMarketingHostname(hostname: string): boolean {
 }
 
 export function isValidPublicHostname(hostname: string): boolean {
-  if (isLocalHostname(hostname)) {
+  if (isLocalHostname(hostname) || hostname.endsWith(".localhost")) {
     return false;
   }
 
@@ -69,5 +69,8 @@ export function isValidPublicHostname(hostname: string): boolean {
 
 export function canResolveHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);
-  return isLocalHostname(normalized) || isValidPublicHostname(normalized);
+  if (isLocalHostname(normalized) || normalized.endsWith(".localhost")) {
+    return true;
+  }
+  return isValidPublicHostname(normalized);
 }

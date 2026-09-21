@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { TenantRepository } from "@/application/ports/tenant-repository";
-import { notFound, serviceUnavailable } from "@/domain/errors";
+import { conflict, notFound, serviceUnavailable } from "@/domain/errors";
 import type { Tenant, TenantContext } from "@/domain/tenant";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
 import { failPostgrestQuery } from "@/infrastructure/supabase/postgrest";
@@ -45,6 +45,33 @@ export class SupabaseTenantRepository implements TenantRepository {
       }
       return tenant;
     });
+  }
+
+  async create(input: Omit<Tenant, "id">): Promise<Tenant> {
+    const supabase = createSupabaseAdminClient();
+    const result = await supabase
+      .from("tenants")
+      .insert({
+        slug: input.slug,
+        plan: input.plan,
+        template_id: input.templateId,
+        theme_config: input.themeConfig,
+        status: input.status,
+      })
+      .select(TENANT_COLUMNS)
+      .maybeSingle();
+
+    if (result.error?.code === "23505") {
+      throw conflict("Ya hay un DJ con ese slug.");
+    }
+
+    const tenant = readTenantQueryResult(result, {
+      operation: "tenants.create",
+    });
+    if (!tenant) {
+      throw serviceUnavailable("No se pudo crear el DJ.");
+    }
+    return tenant;
   }
 
   async updateSiteContent(

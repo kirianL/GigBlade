@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
+import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
 
 interface AuthBackgroundProps {
 	children: ReactNode;
 }
 
 export function AuthBackground({ children }: AuthBackgroundProps) {
-	const siteUrl =
-		(import.meta.env.VITE_GIGBLADE_SITE_URL as string | undefined)?.replace(
-			/\/$/,
-			"",
-		) || "http://localhost:3000";
+	const siteUrl = gigbladeMarketingSiteUrl();
 
 	return (
 		<div className="flex min-h-dvh bg-[#09090b] text-white">

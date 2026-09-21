@@ -8,7 +8,6 @@ import {
 	CopyButton,
 } from "@autumn/ui";
 import {
-	ArrowSquareOutIcon,
 	ChartBarIcon,
 	GlobeIcon,
 	IdentificationCardIcon,
@@ -17,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
+	djDomainLabel,
 	djInstagramUrl,
 	djIntendedDomain,
 	djMailto,
@@ -32,6 +32,7 @@ import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
 import {
 	DjSelect,
 	DjStatusCell,
+	OpenPublicPageButton,
 	PageContainer,
 } from "@/gigblade/ui";
 import { useDjProfile } from "@/gigblade/useDjContent";
@@ -44,6 +45,7 @@ export default function DjStudioPage() {
 	const isPlatform =
 		(session?.user as { role?: string } | undefined)?.role === "platform";
 	const pageUrl = djPublicUrl(dj);
+	const domainLabel = djDomainLabel(dj);
 	const instagramUrl = djInstagramUrl(dj);
 	const mailUrl = djMailto(dj);
 	const contentHref = `/studio/content?dj=${dj.slug}`;
@@ -75,12 +77,7 @@ export default function DjStudioPage() {
 				</Breadcrumb>
 				<div className="flex items-center gap-2">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
-					<Button variant="secondary" size="sm" asChild>
-						<a href={pageUrl} target="_blank" rel="noreferrer">
-							<ArrowSquareOutIcon size={16} aria-hidden />
-							Abrir página
-						</a>
-					</Button>
+					<OpenPublicPageButton href={pageUrl} />
 				</div>
 			</div>
 
@@ -105,13 +102,15 @@ export default function DjStudioPage() {
 						className="text-tertiary-foreground"
 						innerClassName="max-w-30 text-tiny-id truncate !font-normal"
 					/>
-					<CopyButton
-						text={pageUrl}
-						title={pageUrl}
-						size="mini"
-						className="text-tertiary-foreground"
-						innerClassName="max-w-30 text-tiny-id truncate !font-normal"
-					/>
+					{pageUrl ? (
+						<CopyButton
+							text={pageUrl}
+							title={pageUrl}
+							size="mini"
+							className="text-tertiary-foreground"
+							innerClassName="max-w-30 text-tiny-id truncate !font-normal"
+						/>
+					) : null}
 				</div>
 			</div>
 
@@ -121,7 +120,7 @@ export default function DjStudioPage() {
 						<div className="min-w-0">
 							<p className="text-xs text-tertiary-foreground">Dominio</p>
 							<p className="text-sm font-medium text-foreground break-all">
-								{pageUrl.replace(/^https?:\/\//, "")}
+								{domainLabel}
 							</p>
 						</div>
 						<GlobeIcon
@@ -131,18 +130,12 @@ export default function DjStudioPage() {
 						/>
 					</div>
 					<p className="text-sm text-tertiary-foreground leading-6">
-						GigBlade registra y administra este dominio. En local ves el preview;
-						en producción sale el dominio propio
-						{intendedDomain ? ` (${intendedDomain})` : ""}, no un subdominio de
-						GigBlade. La renovación se cobra al costo.
+						{intendedDomain
+							? `GigBlade registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlade. La renovación se cobra al costo.`
+							: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
 					</p>
 					<div className="flex flex-wrap gap-2">
-						<Button variant="secondary" size="sm" asChild>
-							<a href={pageUrl} target="_blank" rel="noreferrer">
-								<ArrowSquareOutIcon size={16} aria-hidden />
-								Abrir
-							</a>
-						</Button>
+						<OpenPublicPageButton href={pageUrl} label="Abrir" />
 					</div>
 				</section>
 				<section className="border rounded-lg p-5 flex flex-col gap-3">
@@ -171,11 +164,9 @@ export default function DjStudioPage() {
 			<section className="border rounded-lg bg-interactive-secondary p-5 flex flex-col gap-4">
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
-						<p className="text-xs text-tertiary-foreground">
-							Preview local
-						</p>
+						<p className="text-xs text-tertiary-foreground">Tu página</p>
 						<p className="text-sm font-medium text-foreground truncate">
-							{pageUrl.replace(/^https?:\/\//, "")}
+							{domainLabel}
 						</p>
 					</div>
 					<p className="text-xs text-tertiary-foreground shrink-0">

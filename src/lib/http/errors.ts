@@ -15,7 +15,16 @@ export function errorResponse(error: unknown, requestId = createRequestId()) {
       event: error instanceof AppError ? "app_error" : "unhandled_error",
       requestId,
       reason: error instanceof AppError ? error.code : "INTERNAL_ERROR",
+      detail:
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "unknown",
     });
+    if (!(error instanceof AppError) && error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
   }
 
   const body: ErrorBody =

@@ -1,8 +1,7 @@
 import { Component, type ReactNode } from "react";
-import { BootScreen } from "@/gigblade/BootScreen";
 
 export class AppErrorBoundary extends Component<
-	{ children: ReactNode },
+	{ children: ReactNode; pathname?: string; message?: string },
 	{ failed: boolean }
 > {
 	state = { failed: false };
@@ -11,9 +10,24 @@ export class AppErrorBoundary extends Component<
 		return { failed: true };
 	}
 
+	componentDidUpdate(prevProps: { pathname?: string }) {
+		if (
+			this.state.failed &&
+			prevProps.pathname !== undefined &&
+			prevProps.pathname !== this.props.pathname
+		) {
+			this.setState({ failed: false });
+		}
+	}
+
 	render() {
 		if (this.state.failed) {
-			return <BootScreen message="No se pudo abrir el panel. Recargá la página." />;
+			return (
+				<p role="alert" className="p-6 text-sm text-destructive">
+					{this.props.message ??
+						"No se pudo abrir el panel. Recargá la página."}
+				</p>
+			);
 		}
 		return this.props.children;
 	}

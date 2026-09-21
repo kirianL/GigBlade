@@ -22,6 +22,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@autumn/ui";
+import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
 import { useAxiosInstance } from "@/services/useAxiosInstance";
 import { useEnv } from "@/utils/envUtils";
 import { useOnboardingVisibility } from "@/views/onboarding4/hooks/useOnboardingProgress";
@@ -85,7 +86,7 @@ export function SidebarContact() {
 						</div>
 					</DropdownMenuItem>
 					<DropdownMenuItem
-						onClick={() => window.open("http://localhost:3000", "_blank")}
+						onClick={() => window.open(gigbladeMarketingSiteUrl(), "_blank")}
 						className="cursor-pointer"
 					>
 						Ver la landing

@@ -7,7 +7,6 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
-	Skeleton,
 } from "@autumn/ui";
 import { Check, Import, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -81,8 +80,12 @@ export const EnvDropdown = ({ env }: { env: AppEnv }) => {
 
 	if (isResolving || willRedirectToSandbox) {
 		return (
-			<div className={cn("flex text-muted-foreground text-xs gap-1 px-3")}>
-				<Skeleton className={cn("h-6", expanded ? "w-full" : "w-7")} />
+			<div
+				className={cn("flex text-muted-foreground text-xs gap-1 px-3 h-6")}
+				role="status"
+				aria-label="Cargando"
+			>
+				<span className="sr-only">Cargando</span>
 			</div>
 		);
 	}

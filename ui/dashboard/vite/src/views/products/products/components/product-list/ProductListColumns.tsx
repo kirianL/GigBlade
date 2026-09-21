@@ -1,5 +1,5 @@
 import type { ProductV2 } from "@autumn/shared";
-import { MiniCopyButton, Skeleton } from "@autumn/ui";
+import { MiniCopyButton } from "@autumn/ui";
 import type { Row } from "@tanstack/react-table";
 import type { SandboxSummary } from "@/hooks/queries/useSandboxesQuery";
 import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
@@ -66,7 +66,7 @@ export const createProductListColumns = ({
 			return (
 				<div className="text-muted-foreground">
 					{isCountsLoading ? (
-						<Skeleton aria-label="Loading" className="h-4 w-14" />
+						<span className="sr-only">Cargando</span>
 					) : (
 						<ProductCountsTooltip product={row.original} />
 					)}

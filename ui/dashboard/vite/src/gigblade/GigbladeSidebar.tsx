@@ -22,11 +22,15 @@ import {
 	GlobeIcon,
 	HouseIcon,
 	IdentificationCardIcon,
+	ShieldCheckIcon,
 	UserCircleIcon,
 } from "@phosphor-icons/react";
 import { ChevronDown, Monitor, Moon, PanelLeft, Sun } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { NavLink, useLocation } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
+import { prefetchPanelRoute } from "@/gigblade/prefetch";
 import { DashboardSwitcher } from "@/gigblade/DashboardSwitcher";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { authClient, useSession } from "@/lib/auth-client";
@@ -42,6 +46,7 @@ const platformLinks = [
 	{ to: "/overview", title: "Resumen", icon: HouseIcon },
 	{ to: "/djs", title: "DJs", icon: UserCircleIcon },
 	{ to: "/domains", title: "Dominios", icon: GlobeIcon },
+	{ to: "/health", title: "Estado", icon: ShieldCheckIcon },
 	{ to: "/plan", title: "Plan", icon: CubeIcon },
 	{ to: "/settings", title: "Ajustes", icon: GearIcon },
 ] as const;
@@ -67,6 +72,8 @@ export function GigbladeSidebar({
 	const isMobileSheet = !!onNavigate;
 	const expanded = isMobileSheet ? true : storedExpanded;
 	const links = isDjStudio ? studioLinks : platformLinks;
+	const queryClient = useQueryClient();
+	const prefetch = (to: string) => prefetchPanelRoute(to, queryClient);
 
 	useHotkeys(["meta+b", "ctrl+b"], () => {
 		setExpanded((prev) => !prev);
@@ -115,6 +122,9 @@ export function GigbladeSidebar({
 									to={{ pathname: link.to, search }}
 									end={"end" in link ? link.end : false}
 									onClick={() => onNavigate?.()}
+									onMouseEnter={() => prefetch(link.to)}
+									onFocus={() => prefetch(link.to)}
+									onTouchStart={() => prefetch(link.to)}
 									className={({ isActive }) =>
 										cn(
 											"cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground border border-transparent",
@@ -149,7 +159,7 @@ export function GigbladeSidebar({
 
 				<div className="px-2 flex flex-col gap-1 mb-2">
 					<a
-						href="http://localhost:3000"
+						href={gigbladeMarketingSiteUrl()}
 						target="_blank"
 						rel="noreferrer"
 						className="cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground border border-transparent"

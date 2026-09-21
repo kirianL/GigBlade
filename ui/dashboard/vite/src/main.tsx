@@ -1,6 +1,8 @@
 import "@autumn/ui/styles.css";
 import "./styles/gigblade.css";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -26,15 +28,44 @@ const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
 			refetchOnWindowFocus: false,
+			// Datos frescos por 30s tras montar; evita refetch al navegar.
+			staleTime: 30_000,
+			gcTime: 24 * 60 * 60_000,
+			// El persister guarda queries hasta 24h — reload muestra datos al toque.
 		},
 	},
+});
+
+const persister = createSyncStoragePersister({
+	storage: typeof window === "undefined" ? undefined : window.localStorage,
+	key: "gigblade.query-cache.v1",
+	throttleTime: 1000,
 });
 
 const shouldInitializePostHog = process.env.NODE_ENV === "production";
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
+		<PersistQueryClientProvider
+			client={queryClient}
+			persistOptions={{
+				persister,
+				maxAge: 24 * 60 * 60_000,
+				buster: "v2",
+				dehydrateOptions: {
+					shouldDehydrateQuery: (query) => {
+						const key = query.queryKey[0];
+						if (key !== "platform" || query.state.status !== "success") {
+							return false;
+						}
+						if (query.queryKey[1] === "sites") {
+							return Array.isArray(query.state.data);
+						}
+						return true;
+					},
+				},
+			}}
+		>
 			<ThemeProvider>
 				<AppErrorBoundary>
 					{shouldInitializePostHog ? (
@@ -46,6 +77,6 @@ createRoot(document.getElementById("root")!).render(
 					)}
 				</AppErrorBoundary>
 			</ThemeProvider>
-		</QueryClientProvider>
+		</PersistQueryClientProvider>
 	</StrictMode>,
 );

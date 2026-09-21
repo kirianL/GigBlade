@@ -37,19 +37,68 @@ function toAuthSession(session: PanelAuthSession) {
 	};
 }
 
+let sessionRevalidated = false;
+
 export const useSession = () => {
 	const [stored, setStored] = useState<PanelAuthSession | null>(() =>
 		readPanelAuthSession(),
 	);
-	const [isPending, setPending] = useState(typeof window === "undefined");
+	const [isPending, setPending] = useState(() => {
+		if (typeof window === "undefined") return true;
+		return !sessionRevalidated && readPanelAuthSession() !== null;
+	});
 
 	useEffect(() => {
-		setStored(readPanelAuthSession());
-		setPending(false);
+		let cancelled = false;
+		const local = readPanelAuthSession();
+
 		const onChange = () => setStored(readPanelAuthSession());
 		window.addEventListener(PANEL_SESSION_EVENT, onChange);
 		window.addEventListener("storage", onChange);
+
+		if (!local?.token || sessionRevalidated) {
+			setPending(false);
+			return () => {
+				window.removeEventListener(PANEL_SESSION_EVENT, onChange);
+				window.removeEventListener("storage", onChange);
+			};
+		}
+
+		void readPanelAccount(local.token)
+			.then((user) => {
+				if (cancelled) return;
+				const next = { token: local.token, user };
+				if (
+					user.email !== local.user.email ||
+					user.role !== local.user.role ||
+					user.name !== local.user.name ||
+					user.slug !== local.user.slug
+				) {
+					writePanelAuthSession(next);
+				}
+				setStored(next);
+				setPending(false);
+				sessionRevalidated = true;
+			})
+			.catch((error: unknown) => {
+				if (cancelled) return;
+				const status =
+					typeof error === "object" &&
+					error !== null &&
+					"status" in error &&
+					typeof error.status === "number"
+						? error.status
+						: null;
+				if (status === 401) {
+					clearPanelAuthSession();
+					setStored(null);
+				}
+				setPending(false);
+				sessionRevalidated = true;
+			});
+
 		return () => {
+			cancelled = true;
 			window.removeEventListener(PANEL_SESSION_EVENT, onChange);
 			window.removeEventListener("storage", onChange);
 		};

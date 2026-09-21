@@ -36,11 +36,15 @@ export async function listPlatformSites(
 
   return allTenants.map((tenant) => {
     const tenantRoutes = routesByTenant.get(tenant.id) ?? [];
+    const domain =
+      tenantRoutes.find(
+        (route) =>
+          typeof route.canonicalHostname === "string" &&
+          !isPreviewHostname(route.canonicalHostname),
+      )?.canonicalHostname ?? "";
     const preferred =
-      tenantRoutes.find((route) => route.hostname.endsWith(".localhost")) ??
-      tenantRoutes.find((route) => route.hostname === route.canonicalHostname) ??
+      tenantRoutes.find((route) => route.canonicalHostname === domain) ??
       tenantRoutes[0];
-    const domain = preferred?.canonicalHostname ?? `${tenant.slug}.localhost`;
     const stats = visitsByTenant.get(tenant.id) ?? emptySiteVisitStats(tenant.id);
     const profile = readSiteProfile(tenant.slug, tenant.themeConfig);
     const email = emailBySlug.get(tenant.slug);
@@ -49,7 +53,7 @@ export async function listPlatformSites(
       slug: tenant.slug,
       displayName: profile.displayName,
       domain,
-      preview: isPreviewHostname(domain),
+      preview: !domain,
       status: preferred?.status ?? (tenant.status === "suspended" ? "suspended" : "active"),
       visits: stats.uniqueVisitors,
       lastVisitedAt: stats.lastVisitedAt,

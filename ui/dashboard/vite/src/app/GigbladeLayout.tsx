@@ -1,14 +1,18 @@
 import { Suspense, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { Toaster } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	GigbladeMobileSidebar,
 	GigbladeSidebar,
 } from "@/gigblade/GigbladeSidebar";
 import { useSession } from "@/lib/auth-client";
-import { BootScreen } from "@/gigblade/BootScreen";
+import { ScreenReaderLoading } from "@/components/general/ScreenReaderLoading";
+import { AppErrorBoundary } from "@/gigblade/AppErrorBoundary";
 import { djPreviewOrigin } from "@/gigblade/concept";
+import { prefetchAllPanelRoutes } from "@/gigblade/prefetch";
 import { MobileTopBar } from "@/views/main-sidebar/MobileTopBar";
+import type { QueryClient } from "@tanstack/react-query";
 
 function schedule(work: () => void) {
 	const idle =
@@ -19,12 +23,13 @@ function schedule(work: () => void) {
 	else window.setTimeout(work, 200);
 }
 
-function warmPanel(slug: string | undefined) {
-	// Precompila los routes pesados del panel en Vite dev cache.
-	void import("@/gigblade/DjStudioPage");
-	void import("@/gigblade/DjContentPage");
-	void import("@/gigblade/DjVisitsPage");
-	if (!slug) return;
+function warmPanel(
+	role: string | undefined,
+	slug: string | undefined,
+	queryClient: QueryClient,
+) {
+	prefetchAllPanelRoutes(role, queryClient);
+	if (role !== "dj" || !slug) return;
 	// Calienta el route handler de Next para que fetchPublicSite responda al toque.
 	const controller = new AbortController();
 	window.setTimeout(() => controller.abort(), 6000);
@@ -42,12 +47,17 @@ export function GigbladeLayout() {
 		| { role?: string; slug?: string }
 		| undefined;
 
+	const queryClient = useQueryClient();
 	useEffect(() => {
 		if (sessionLoading || !session) return;
-		schedule(() => warmPanel(panelUser?.slug));
-	}, [sessionLoading, session, panelUser?.slug]);
+		schedule(() => warmPanel(panelUser?.role, panelUser?.slug, queryClient));
+	}, [sessionLoading, session, panelUser?.role, panelUser?.slug, queryClient]);
 
-	if (!sessionLoading && !session) {
+	if (sessionLoading) {
+		return <ScreenReaderLoading label="Abriendo panel" />;
+	}
+
+	if (!session) {
 		const destination = `${pathname}${search}`;
 		const next =
 			destination !== "/" ? `?next=${encodeURIComponent(destination)}` : "";
@@ -81,9 +91,14 @@ export function GigbladeLayout() {
 						className="w-full h-full overflow-auto flex justify-center bg-background relative"
 					>
 						<div className="w-full min-h-full justify-center">
-							<Suspense fallback={<BootScreen />}>
-								<Outlet />
-							</Suspense>
+							<AppErrorBoundary
+								pathname={pathname}
+								message="No se pudo abrir esta página. Probá otra del menú."
+							>
+								<Suspense fallback={<ScreenReaderLoading />}>
+									<Outlet />
+								</Suspense>
+							</AppErrorBoundary>
 						</div>
 					</div>
 				</div>
