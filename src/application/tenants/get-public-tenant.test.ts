@@ -80,6 +80,9 @@ describe("tenant application", () => {
         throw serviceUnavailable("No se pudo leer el tenant");
       },
       list: async () => [],
+      create: async () => {
+        throw serviceUnavailable("No se pudo leer el tenant");
+      },
       updateSiteContent: async () => {
         throw serviceUnavailable("No se pudo leer el tenant");
       },
