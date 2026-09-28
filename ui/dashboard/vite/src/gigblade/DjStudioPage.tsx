@@ -20,7 +20,7 @@ import {
 	djInstagramUrl,
 	djIntendedDomain,
 	djMailto,
-	djPublicUrl,
+	djEditorPageUrl,
 	djTemplateLabel,
 	formatLastVisit,
 	formatVisitCount,
@@ -44,7 +44,7 @@ export default function DjStudioPage() {
 	const navigate = useNavigate();
 	const isPlatform =
 		(session?.user as { role?: string } | undefined)?.role === "platform";
-	const pageUrl = djPublicUrl(dj);
+	const pageUrl = djEditorPageUrl(dj);
 	const domainLabel = djDomainLabel(dj);
 	const instagramUrl = djInstagramUrl(dj);
 	const mailUrl = djMailto(dj);
@@ -77,7 +77,10 @@ export default function DjStudioPage() {
 				</Breadcrumb>
 				<div className="flex items-center gap-2">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
-					<OpenPublicPageButton href={pageUrl} />
+					<OpenPublicPageButton
+						href={pageUrl}
+						label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir página"}
+					/>
 				</div>
 			</div>
 
@@ -135,7 +138,10 @@ export default function DjStudioPage() {
 							: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
 					</p>
 					<div className="flex flex-wrap gap-2">
-						<OpenPublicPageButton href={pageUrl} label="Abrir" />
+						<OpenPublicPageButton
+							href={pageUrl}
+							label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir"}
+						/>
 					</div>
 				</section>
 				<section className="border rounded-lg p-5 flex flex-col gap-3">

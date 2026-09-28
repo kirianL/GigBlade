@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Footer from "@/components/footer";
+import { pageSeo } from "@/lib/seo";
 import { TERMS_EFFECTIVE_DATE, termsSections } from "@/lib/termsContent";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = pageSeo({
 	title: "Terms of Service",
 	description:
 		"Términos de GigBlade para el uso de la página de DJ y el dominio.",
-	alternates: { canonical: "/terms" },
-};
+	path: "/terms",
+});
 
 export default function TermsOfService() {
 	return (

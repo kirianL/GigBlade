@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import {
 	fetchPlatformSiteHealth,
 	fetchPlatformSites,
+	fetchPlatformWaitlist,
 } from "@/gigblade/site-api";
 import { PLATFORM_SITES_QUERY_KEY } from "@/gigblade/usePlatformDjs";
 
@@ -10,6 +11,7 @@ import { PLATFORM_SITES_QUERY_KEY } from "@/gigblade/usePlatformDjs";
 const ROUTE_IMPORTS: Record<string, () => Promise<unknown>> = {
 	"/overview": () => import("@/gigblade/PlatformOverview"),
 	"/djs": () => import("@/gigblade/PlatformDjs"),
+	"/lista": () => import("@/gigblade/PlatformWaitlist"),
 	"/domains": () => import("@/gigblade/PlatformDomains"),
 	"/health": () => import("@/gigblade/PlatformSiteHealth"),
 	"/plan": () => import("@/gigblade/PlatformPlan"),
@@ -36,6 +38,13 @@ function warmData(path: string, queryClient: QueryClient) {
 			staleTime: 30_000,
 		});
 	}
+	if (path === "/lista") {
+		void queryClient.prefetchQuery({
+			queryKey: ["platform", "waitlist"],
+			queryFn: ({ signal }) => fetchPlatformWaitlist(signal),
+			staleTime: 15_000,
+		});
+	}
 	if (path === "/health") {
 		void queryClient.prefetchQuery({
 			queryKey: ["platform", "site-health"],
@@ -57,6 +66,7 @@ export function prefetchAllPanelRoutes(
 	for (const path of Object.keys(ROUTE_IMPORTS)) warmChunk(path);
 	if (role === "platform") {
 		warmData("/djs", queryClient);
+		warmData("/lista", queryClient);
 		warmData("/health", queryClient);
 	}
 }

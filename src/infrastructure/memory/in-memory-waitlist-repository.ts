@@ -19,4 +19,10 @@ export class InMemoryWaitlistRepository implements WaitlistRepository {
     this.byEmail.set(draft.email, signup);
     return signup;
   }
+
+  async list(): Promise<WaitlistSignup[]> {
+    return [...this.byEmail.values()].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+  }
 }

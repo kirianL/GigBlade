@@ -11,11 +11,12 @@ import { IconArrowLeft, IconArrowRight } from "@/app/constant";
 import AppLink from "./app-link";
 
 type Country = "CR" | "US";
-type Step = 0 | 1 | 2 | 3 | 4;
+type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
 type Fields = {
 	artistName: string;
 	email: string;
+	phone: string;
 	country: Country;
 	city: string;
 	instagram: string;
@@ -25,6 +26,7 @@ type Fields = {
 const QUESTIONS = [
 	"¿Tu nombre artístico?",
 	"¿Tu mejor correo?",
+	"¿Tu número?",
 	"¿En qué país?",
 	"¿En qué provincia?",
 	"¿Tu Instagram?",
@@ -33,6 +35,7 @@ const QUESTIONS = [
 const HINTS = [
 	"Tu nombre artístico.",
 	"Solo lo usaremos para contactarte.",
+	"Opcional. Para avisarte por WhatsApp.",
 	"Empezamos en Costa Rica.",
 	"Así organizamos los primeros cupos.",
 	"Instagram es opcional.",
@@ -61,6 +64,7 @@ const PROVINCE_HINTS: Record<(typeof PROVINCES)[number], string> = {
 const EMPTY: Fields = {
 	artistName: "",
 	email: "",
+	phone: "",
 	country: "CR",
 	city: "",
 	instagram: "",
@@ -252,15 +256,28 @@ export default function AccesoForm() {
 				return false;
 			}
 		}
-		if (step === 2 && fields.country !== "CR") {
+		if (step === 2 && fields.phone.trim()) {
+			const phone = fields.phone.trim();
+			const digits = phone.replace(/\D/g, "").length;
+			if (
+				phone.length > 30 ||
+				digits < 7 ||
+				digits > 15 ||
+				!/^\+?[\d\s().-]+$/.test(phone)
+			) {
+				setError("El número no es válido.");
+				return false;
+			}
+		}
+		if (step === 3 && fields.country !== "CR") {
 			setError("De momento no estamos ahí.");
 			return false;
 		}
-		if (step === 3 && !PROVINCES.includes(fields.city as (typeof PROVINCES)[number])) {
+		if (step === 4 && !PROVINCES.includes(fields.city as (typeof PROVINCES)[number])) {
 			setError("Elegí una provincia.");
 			return false;
 		}
-		if (step === 4 && fields.instagram.trim()) {
+		if (step === 5 && fields.instagram.trim()) {
 			const handle = fields.instagram.trim().replace(/^@+/, "").toLowerCase();
 			if (!/^[a-z0-9._]{1,30}$/.test(handle)) {
 				setError("El Instagram no es válido.");
@@ -273,6 +290,8 @@ export default function AccesoForm() {
 	const joinWaitlist = async (instagram: string) => {
 		setStatus("submitting");
 		setError(null);
+		const controller = new AbortController();
+		const timer = window.setTimeout(() => controller.abort(), 45_000);
 		try {
 			const response = await fetch("/api/waitlist", {
 				method: "POST",
@@ -280,26 +299,34 @@ export default function AccesoForm() {
 				body: JSON.stringify({
 					artistName: fields.artistName.trim(),
 					email: fields.email.trim(),
+					phone: fields.phone.trim() || undefined,
 					country: fields.country,
 					city: fields.city.trim(),
 					instagram: instagram.trim() || undefined,
 					website: fields.website,
 				}),
+				signal: controller.signal,
 			});
-			const payload = (await response.json()) as {
+			const payload = (await response.json().catch(() => null)) as {
 				alreadyJoined?: boolean;
 				message?: string;
-			};
+			} | null;
 			if (!response.ok) {
 				setStatus("idle");
-				setError(payload.message ?? "No pudimos anotarte. Intentá de nuevo.");
+				setError(payload?.message ?? "No pudimos anotarte. Intentá de nuevo.");
 				return;
 			}
-			setAlreadyJoined(Boolean(payload.alreadyJoined));
+			setAlreadyJoined(Boolean(payload?.alreadyJoined));
 			setStatus("done");
-		} catch {
+		} catch (error) {
 			setStatus("idle");
-			setError("No hay conexión. Intentá de nuevo.");
+			setError(
+				error instanceof DOMException && error.name === "AbortError"
+					? "La solicitud tardó demasiado. Intentá de nuevo."
+					: "No hay conexión. Intentá de nuevo.",
+			);
+		} finally {
+			window.clearTimeout(timer);
 		}
 	};
 
@@ -307,7 +334,7 @@ export default function AccesoForm() {
 		event.preventDefault();
 		if (!validate()) return;
 
-		if (step < 4) {
+		if (step < 5) {
 			moveTo((step + 1) as Step);
 			return;
 		}
@@ -356,7 +383,7 @@ export default function AccesoForm() {
 
 		event.preventDefault();
 		if (!validate()) return;
-		if (step < 4) {
+		if (step < 5) {
 			moveTo((step + 1) as Step);
 			return;
 		}
@@ -364,7 +391,7 @@ export default function AccesoForm() {
 	};
 
 	const provinceHint =
-		step === 3 && PROVINCES.includes(fields.city as (typeof PROVINCES)[number])
+		step === 4 && PROVINCES.includes(fields.city as (typeof PROVINCES)[number])
 			? PROVINCE_HINTS[fields.city as (typeof PROVINCES)[number]]
 			: HINTS[step];
 
@@ -519,6 +546,37 @@ export default function AccesoForm() {
 											/>
 										)}
 										{step === 2 && (
+											<LineInput
+												id={`${id}-phone`}
+												value={fields.phone}
+												placeholder="+506 8888 0000"
+												ariaLabel="Número de teléfono"
+												type="tel"
+												inputMode="tel"
+												autoComplete="tel"
+												invalid={Boolean(error)}
+												describedBy={`${id}-hint`}
+												onChange={(phone) => {
+													setError(null);
+													setFields((current) => ({ ...current, phone }));
+												}}
+											/>
+										)}
+										{step === 2 && (
+											<button
+												type="button"
+												onClick={() => {
+													if (status !== "idle") return;
+													setError(null);
+													setFields((current) => ({ ...current, phone: "" }));
+													moveTo(3);
+												}}
+												className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
+											>
+												Saltar
+											</button>
+										)}
+										{step === 3 && (
 											<CountrySelect
 												value={fields.country}
 												onChange={(country) => {
@@ -530,7 +588,7 @@ export default function AccesoForm() {
 												}
 											/>
 										)}
-										{step === 3 && (
+										{step === 4 && (
 											<ProvinceSelect
 												value={fields.city}
 												onChange={(city) => {
@@ -539,7 +597,7 @@ export default function AccesoForm() {
 												}}
 											/>
 										)}
-										{step === 4 && (
+										{step === 5 && (
 											<InstagramInput
 												id={`${id}-instagram`}
 												value={fields.instagram}
@@ -550,7 +608,7 @@ export default function AccesoForm() {
 												}
 											/>
 										)}
-										{step === 4 && (
+										{step === 5 && (
 											<button
 												type="button"
 												onClick={() => {
@@ -616,7 +674,7 @@ export default function AccesoForm() {
 										text={
 											status === "submitting"
 												? "Enviando…"
-												: step === 4
+												: step === 5
 													? "Anotarme"
 													: "Continuar"
 										}
@@ -691,7 +749,7 @@ function Progress({
 	live?: boolean;
 }) {
 	return (
-		<div className="flex items-center gap-3" aria-label={done ? "Completado" : `Paso ${step + 1} de 5`}>
+		<div className="flex items-center gap-3" aria-label={done ? "Completado" : `Paso ${step + 1} de ${QUESTIONS.length}`}>
 			<div className="flex gap-1" aria-hidden="true">
 				{QUESTIONS.map((question, index) => {
 					const active = done || index <= step;
@@ -922,7 +980,9 @@ function LineInput({
 	onChange,
 	placeholder,
 	type = "text",
+	inputMode,
 	autoComplete,
+	ariaLabel,
 	invalid = false,
 	describedBy,
 }: {
@@ -931,7 +991,9 @@ function LineInput({
 	onChange: (value: string) => void;
 	placeholder: string;
 	type?: string;
+	inputMode?: "text" | "tel" | "email";
 	autoComplete?: string;
+	ariaLabel?: string;
 	invalid?: boolean;
 	describedBy?: string;
 }) {
@@ -939,12 +1001,13 @@ function LineInput({
 		<input
 			id={id}
 			type={type}
+			inputMode={inputMode}
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
 			autoComplete={autoComplete}
 			data-access-input
-			aria-label={placeholder}
+			aria-label={ariaLabel ?? placeholder}
 			aria-invalid={invalid}
 			aria-describedby={describedBy}
 			className={`h-16 w-full border-0 border-b bg-transparent px-0 text-2xl text-white outline-none transition-[border-color] duration-200 placeholder:text-white/35 sm:text-[28px] ${

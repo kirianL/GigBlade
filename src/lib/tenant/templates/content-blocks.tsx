@@ -19,13 +19,25 @@ export function BioSection({ site }: SiteTemplateProps) {
         </h2>
       </SiteReveal>
 
-      <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+      <div
+        className={
+          profile.bioStyle === "columns"
+            ? "mt-12 grid grid-cols-1 items-start gap-8 md:grid-cols-2"
+            : "mt-12 grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-16"
+        }
+      >
         {/* Left Column: Big Editorial Quote / Bio */}
-        <div className="lg:col-span-8">
+        <div className={profile.bioStyle === "columns" ? undefined : "lg:col-span-8"}>
           <SiteReveal delay={0.08} yOffset={24}>
             {profile.bio ? (
-              <p className="text-xl sm:text-2xl md:text-3xl text-[var(--site-fg)] font-light leading-relaxed">
-                &ldquo;{profile.bio}&rdquo;
+              <p
+                className={
+                  profile.bioStyle === "columns"
+                    ? "text-base font-light leading-relaxed text-[var(--site-fg)] sm:text-lg"
+                    : "text-xl font-light leading-relaxed text-[var(--site-fg)] sm:text-2xl md:text-3xl"
+                }
+              >
+                {profile.bioStyle === "columns" ? profile.bio : <>&ldquo;{profile.bio}&rdquo;</>}
               </p>
             ) : null}
           </SiteReveal>
@@ -40,7 +52,7 @@ export function BioSection({ site }: SiteTemplateProps) {
         </div>
 
         {profile.city ? (
-          <div className="lg:col-span-4 mt-8 lg:mt-0">
+          <div className={profile.bioStyle === "columns" ? undefined : "mt-8 lg:col-span-4 lg:mt-0"}>
             <SiteReveal delay={0.12} yOffset={20}>
             <div>
               <p className="text-xl sm:text-2xl font-medium text-[var(--site-fg)] uppercase tracking-tight">
@@ -60,7 +72,7 @@ export function BioSection({ site }: SiteTemplateProps) {
 
 export function AgendaSection({ site }: SiteTemplateProps) {
   const events = site.profile.events ?? [];
-  const hasContact = Boolean(site.profile.email || site.profile.links.instagram);
+  const hasContact = Boolean(site.profile.email || site.profile.phone || site.profile.links.instagram);
 
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat("es-CR", {
@@ -90,11 +102,66 @@ export function AgendaSection({ site }: SiteTemplateProps) {
         </div>
       </SiteReveal>
 
-      {/* Tour dates list with interactive rows */}
+      {site.profile.agendaStyle === "cards" ? (
+        <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2">
+          {events.map((event, index) => (
+            <li key={`${event.date}-${event.venue}`}>
+              <SiteReveal delay={Math.min(index * 0.05, 0.2)}>
+                <article className="site-card flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-card-bg)]">
+                  {event.photo ? (
+                    <img
+                      src={event.photo}
+                      alt={`Foto de ${event.venue}`}
+                      className="aspect-video w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="flex flex-1 flex-col gap-4 p-4">
+                  <time
+                    dateTime={event.date}
+                    className="font-mono text-sm font-semibold uppercase text-[var(--site-accent)]"
+                  >
+                    {formatDate(event.date)}
+                  </time>
+                  <div>
+                    <h3 className="text-lg font-medium text-[var(--site-fg)]">{event.venue}</h3>
+                    <p className="text-sm text-[var(--site-muted)]">{event.location}</p>
+                  </div>
+                  {event.ticketUrl ? (
+                    <a
+                      href={event.ticketUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="pressable site-chip mt-auto inline-flex min-h-11 items-center self-start rounded-full border border-[var(--site-card-border)] px-4 text-xs font-mono uppercase tracking-wider text-[var(--site-fg)]"
+                    >
+                      Entradas <span aria-hidden="true">↗</span>
+                    </a>
+                  ) : hasContact ? (
+                    <a
+                      href="#contacto"
+                      className="pressable site-chip mt-auto inline-flex min-h-11 items-center self-start rounded-full border border-[var(--site-card-border)] px-4 text-xs font-mono uppercase tracking-wider text-[var(--site-fg)]"
+                    >
+                      Consultar
+                    </a>
+                  ) : null}
+                  </div>
+                </article>
+              </SiteReveal>
+            </li>
+          ))}
+        </ul>
+      ) : (
       <div className="flex flex-col divide-y divide-[var(--site-card-border)] border-y border-[var(--site-card-border)]">
         {events.map((event, index) => (
           <SiteReveal key={`${event.date}-${event.venue}`} delay={Math.min(index * 0.05, 0.2)}>
             <article className="site-agenda-row py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group px-3 -mx-3 rounded-lg transition-colors duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)]">
+              <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-center">
+              {event.photo ? (
+                <img
+                  src={event.photo}
+                  alt={`Foto de ${event.venue}`}
+                  className="aspect-video w-full rounded-xl object-cover sm:aspect-square sm:h-20 sm:w-20 sm:shrink-0"
+                />
+              ) : null}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
                 <time
                   dateTime={event.date}
@@ -110,6 +177,7 @@ export function AgendaSection({ site }: SiteTemplateProps) {
                     {event.location}
                   </p>
                 </div>
+              </div>
               </div>
               {event.ticketUrl ? (
                 <a
@@ -132,6 +200,7 @@ export function AgendaSection({ site }: SiteTemplateProps) {
           </SiteReveal>
         ))}
       </div>
+      )}
     </section>
   );
 }

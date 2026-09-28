@@ -24,11 +24,44 @@ export const HERO_POSITIONS = [
 
 export type HeroPosition = (typeof HERO_POSITIONS)[number];
 
+export const HERO_STYLES = ["cinematic", "poster", "band", "type", "duo"] as const;
+export const HERO_ALIGNS = ["start", "center"] as const;
+export const SURFACE_STYLES = ["plain", "gradient", "bands", "frame"] as const;
+export const AGENDA_STYLES = ["list", "cards"] as const;
+export const BIO_STYLES = ["quote", "columns"] as const;
+export const MIX_STYLES = ["grid", "row", "list"] as const;
+export const LINK_STYLES = ["cards", "icons"] as const;
+export const BUTTON_STYLES = ["pill", "square", "text"] as const;
+export const CORNER_STYLES = ["round", "sharp"] as const;
+export const TITLE_STYLES = ["tight", "wide", "spaced"] as const;
+
+export type HeroStyle = (typeof HERO_STYLES)[number];
+export type HeroAlign = (typeof HERO_ALIGNS)[number];
+export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
+export type AgendaStyle = (typeof AGENDA_STYLES)[number];
+export type BioStyle = (typeof BIO_STYLES)[number];
+export type MixStyle = (typeof MIX_STYLES)[number];
+export type LinkStyle = (typeof LINK_STYLES)[number];
+export type ButtonStyle = (typeof BUTTON_STYLES)[number];
+export type CornerStyle = (typeof CORNER_STYLES)[number];
+export type TitleStyle = (typeof TITLE_STYLES)[number];
+
+export const BACKGROUND_PATTERNS = [
+  "none",
+  "dots",
+  "grid",
+  "diagonal",
+  "grain",
+] as const;
+
+export type BackgroundPattern = (typeof BACKGROUND_PATTERNS)[number];
+
 export type SiteEvent = {
   date: string;
   venue: string;
   location: string;
   ticketUrl?: string;
+  photo?: string;
 };
 
 export type SiteProfile = {
@@ -37,11 +70,23 @@ export type SiteProfile = {
   city: string;
   bio: string;
   email?: string;
+  phone?: string;
   links: SiteLinks;
   mixes?: SiteMix[];
   photos?: string[];
   heroPhoto?: string;
   heroPosition?: HeroPosition;
+  heroStyle?: HeroStyle;
+  heroAlign?: HeroAlign;
+  surfaceStyle?: SurfaceStyle;
+  agendaStyle?: AgendaStyle;
+  bioStyle?: BioStyle;
+  mixStyle?: MixStyle;
+  linkStyle?: LinkStyle;
+  buttonStyle?: ButtonStyle;
+  cornerStyle?: CornerStyle;
+  titleStyle?: TitleStyle;
+  backgroundPattern?: BackgroundPattern;
   events?: SiteEvent[];
   hiddenSections?: SiteSectionId[];
   brandColor?: string;
@@ -57,7 +102,7 @@ export function hasSiteSectionContent(
   if (section === "bio") return Boolean(profile.bio || profile.city);
   if (section === "sets") return Boolean(profile.mixes?.length);
   if (section === "contacto") {
-    return Boolean(profile.email || profile.links.instagram);
+    return Boolean(profile.email || profile.phone || profile.links.instagram);
   }
   return SITE_LINK_KEYS.some((key) => Boolean(profile.links[key]));
 }
@@ -75,6 +120,12 @@ const optionalPublicEmail = z
     message: "Correo inválido",
   });
 
+const optionalPublicPhone = z
+  .union([z.literal(""), z.string().max(30)])
+  .refine((value) => value === "" || Boolean(readPublicPhone(value)), {
+    message: "Número inválido",
+  });
+
 export const siteContentInputSchema = z
   .object({
     templateId: z.enum(SITE_TEMPLATE_IDS),
@@ -83,6 +134,7 @@ export const siteContentInputSchema = z
     city: z.string().max(80).optional(),
     bio: z.string().max(2000).optional(),
     email: optionalPublicEmail.optional(),
+    phone: optionalPublicPhone.optional(),
     brandColor: brandColorInput.optional(),
     links: z
       .object({
@@ -109,6 +161,17 @@ export const siteContentInputSchema = z
       .optional(),
     photos: z.array(z.string().max(500)).max(12).optional(),
     heroPosition: z.enum(HERO_POSITIONS).optional(),
+    heroStyle: z.enum(HERO_STYLES).optional(),
+    heroAlign: z.enum(HERO_ALIGNS).optional(),
+    surfaceStyle: z.enum(SURFACE_STYLES).optional(),
+    agendaStyle: z.enum(AGENDA_STYLES).optional(),
+    bioStyle: z.enum(BIO_STYLES).optional(),
+    mixStyle: z.enum(MIX_STYLES).optional(),
+    linkStyle: z.enum(LINK_STYLES).optional(),
+    buttonStyle: z.enum(BUTTON_STYLES).optional(),
+    cornerStyle: z.enum(CORNER_STYLES).optional(),
+    titleStyle: z.enum(TITLE_STYLES).optional(),
+    backgroundPattern: z.enum(BACKGROUND_PATTERNS).optional(),
     events: z
       .array(
         z
@@ -117,6 +180,7 @@ export const siteContentInputSchema = z
             venue: z.string().max(100),
             location: z.string().max(120),
             ticketUrl: z.string().max(500).optional(),
+            photo: z.string().max(500).optional(),
           })
           .strict(),
       )
@@ -140,6 +204,17 @@ export function readPublicEmail(value: unknown): string | undefined {
   if (!email) return undefined;
   if (email.length > 254 || !EMAIL_PATTERN.test(email)) return undefined;
   return email;
+}
+
+export function readPublicPhone(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const phone = value.trim().replace(/\s+/g, " ");
+  if (!phone || phone.length > 30 || !/^\+?[\d\s().-]+$/.test(phone)) {
+    return undefined;
+  }
+  const digits = phone.replace(/\D/g, "").length;
+  if (digits < 7 || digits > 15) return undefined;
+  return phone;
 }
 
 function readPhotos(value: unknown): string[] | undefined {
@@ -205,6 +280,37 @@ function readHeroPosition(value: unknown): HeroPosition | undefined {
     : undefined;
 }
 
+function readHeroStyle(value: unknown): HeroStyle | undefined {
+  return HERO_STYLES.includes(value as HeroStyle)
+    ? (value as HeroStyle)
+    : undefined;
+}
+
+function readBackgroundPattern(value: unknown): BackgroundPattern | undefined {
+  return BACKGROUND_PATTERNS.includes(value as BackgroundPattern)
+    ? (value as BackgroundPattern)
+    : undefined;
+}
+
+function readEnum<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+): T | undefined {
+  return allowed.includes(value as T) ? (value as T) : undefined;
+}
+
+const DESIGN_FIELDS = [
+  ["heroAlign", HERO_ALIGNS],
+  ["surfaceStyle", SURFACE_STYLES],
+  ["agendaStyle", AGENDA_STYLES],
+  ["bioStyle", BIO_STYLES],
+  ["mixStyle", MIX_STYLES],
+  ["linkStyle", LINK_STYLES],
+  ["buttonStyle", BUTTON_STYLES],
+  ["cornerStyle", CORNER_STYLES],
+  ["titleStyle", TITLE_STYLES],
+] as const;
+
 function readEvents(value: unknown): SiteEvent[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -217,7 +323,16 @@ function readEvents(value: unknown): SiteEvent[] {
       return [];
     }
     const ticketUrl = readHttpUrl(event.ticketUrl);
-    return [{ date, venue, location, ...(ticketUrl ? { ticketUrl } : {}) }];
+    const photo = readPhotoUrl(event.photo);
+    return [
+      {
+        date,
+        venue,
+        location,
+        ...(ticketUrl ? { ticketUrl } : {}),
+        ...(photo ? { photo } : {}),
+      },
+    ];
   });
 }
 
@@ -241,6 +356,7 @@ export function readSiteProfile(
     typeof themeConfig.brandColor === "string" ? themeConfig.brandColor : "",
   );
   const email = readPublicEmail(themeConfig.email);
+  const phone = readPublicPhone(themeConfig.phone);
   const mixes = readSiteMixes(themeConfig);
   const events = readEvents(themeConfig.events);
   const hiddenSections = readHiddenSections(themeConfig.hiddenSections);
@@ -255,12 +371,25 @@ export function readSiteProfile(
     ...(readHeroPosition(themeConfig.heroPosition)
       ? { heroPosition: readHeroPosition(themeConfig.heroPosition) }
       : {}),
+    ...(readHeroStyle(themeConfig.heroStyle)
+      ? { heroStyle: readHeroStyle(themeConfig.heroStyle) }
+      : {}),
+    ...Object.fromEntries(
+      DESIGN_FIELDS.flatMap(([key, allowed]) => {
+        const value = readEnum(themeConfig[key], allowed);
+        return value ? [[key, value]] : [];
+      }),
+    ),
+    ...(readBackgroundPattern(themeConfig.backgroundPattern)
+      ? { backgroundPattern: readBackgroundPattern(themeConfig.backgroundPattern) }
+      : {}),
     ...(events.length > 0 ? { events } : {}),
     ...(hiddenSections.length > 0 ? { hiddenSections } : {}),
     ...(photos ? { photos } : {}),
     ...(heroPhoto ? { heroPhoto } : {}),
     ...(brandColor ? { brandColor } : {}),
     ...(email ? { email } : {}),
+    ...(phone ? { phone } : {}),
     ...(mixes.length > 0 ? { mixes } : {}),
   };
 }
@@ -289,6 +418,11 @@ export function buildSiteThemeConfig(
     const email = readPublicEmail(input.email);
     if (email) next.email = email;
     else delete next.email;
+  }
+  if (input.phone !== undefined) {
+    const phone = readPublicPhone(input.phone);
+    if (phone) next.phone = phone;
+    else delete next.phone;
   }
   if (input.links !== undefined) {
     const rawLinks: Record<string, unknown> = {};
@@ -325,8 +459,28 @@ export function buildSiteThemeConfig(
   if (input.heroPosition !== undefined) {
     next.heroPosition = input.heroPosition;
   }
+  if (input.heroStyle !== undefined) {
+    next.heroStyle = input.heroStyle;
+  }
+  for (const [key] of DESIGN_FIELDS) {
+    if (input[key] !== undefined) next[key] = input[key];
+  }
+  if (input.backgroundPattern !== undefined) {
+    next.backgroundPattern = input.backgroundPattern;
+  }
   if (input.events !== undefined) {
-    const events = readEvents(input.events);
+    const previous = readEvents(current.events);
+    const events = input.events.flatMap((event) => {
+      const nextEvent = readEvents([event])[0];
+      if (!nextEvent) return [];
+      if (!Object.hasOwn(event, "photo")) {
+        const prior = previous.find(
+          (item) => item.date === nextEvent.date && item.venue === nextEvent.venue,
+        );
+        if (prior?.photo) return [{ ...nextEvent, photo: prior.photo }];
+      }
+      return [nextEvent];
+    });
     if (events.length > 0) next.events = events;
     else delete next.events;
   }

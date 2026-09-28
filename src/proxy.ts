@@ -17,6 +17,7 @@ import {
   TENANT_ID_HEADER,
 } from "./lib/tenant/headers";
 import { resolveProxyRouting } from "./lib/tenant/resolve-proxy-routing";
+import { tenantCanonicalRedirectUrl } from "./lib/tenant/site-seo";
 
 function stripClientTenantHeaders(headers: Headers) {
   headers.delete(TENANT_ID_HEADER);
@@ -55,6 +56,15 @@ export async function proxy(request: NextRequest) {
       status: 404,
       headers: { "content-type": "text/plain; charset=utf-8" },
     });
+  }
+
+  const canonicalUrl = tenantCanonicalRedirectUrl(
+    request.nextUrl,
+    hostname,
+    tenant.canonicalHostname,
+  );
+  if (canonicalUrl) {
+    return NextResponse.redirect(canonicalUrl, 308);
   }
 
   const requestHeaders = new Headers(request.headers);

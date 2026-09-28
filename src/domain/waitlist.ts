@@ -9,6 +9,7 @@ export const waitlistRequestSchema = z
     country: z.string().optional(),
     city: z.string().optional(),
     instagram: z.string().optional(),
+    phone: z.string().optional(),
     note: z.string().optional(),
     website: z.string().optional(),
   })
@@ -22,6 +23,7 @@ export type WaitlistDraft = {
   country: "CR" | "US";
   city: string | null;
   instagram: string | null;
+  phone: string | null;
   note: string | null;
 };
 
@@ -66,12 +68,26 @@ export function normalizeInstagram(value: unknown): string | null {
   return handle;
 }
 
+function normalizePhone(value: unknown): string | null {
+  const phone = asTrimmedString(value).replace(/\s+/g, " ");
+  if (!phone) return null;
+  if (phone.length > 30 || !/^\+?[\d\s().-]+$/.test(phone)) {
+    throw validationError("El número no es válido");
+  }
+  const digits = phone.replace(/\D/g, "").length;
+  if (digits < 7 || digits > 15) {
+    throw validationError("El número no es válido");
+  }
+  return phone;
+}
+
 export function normalizeWaitlistDraft(input: {
   artistName?: unknown;
   email?: unknown;
   country?: unknown;
   city?: unknown;
   instagram?: unknown;
+  phone?: unknown;
   note?: unknown;
   website?: unknown;
 }): WaitlistDraft | { discarded: true } {
@@ -101,6 +117,7 @@ export function normalizeWaitlistDraft(input: {
     country,
     city: optionalText(input.city, 80, "La ciudad"),
     instagram: normalizeInstagram(input.instagram),
+    phone: normalizePhone(input.phone),
     note: optionalText(input.note, 280, "La nota"),
   };
 }

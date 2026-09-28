@@ -12,6 +12,7 @@ export type PublicSiteProfile = {
 	city: string;
 	bio: string;
 	email?: string;
+	phone?: string;
 	links: {
 		instagram?: string;
 		tiktok?: string;
@@ -25,11 +26,23 @@ export type PublicSiteProfile = {
 	photos?: string[];
 	heroPhoto?: string;
 	heroPosition?: "center" | "top" | "bottom" | "left" | "right";
+	heroStyle?: "cinematic" | "poster" | "band" | "type" | "duo";
+	heroAlign?: "start" | "center";
+	surfaceStyle?: "plain" | "gradient" | "bands" | "frame";
+	agendaStyle?: "list" | "cards";
+	bioStyle?: "quote" | "columns";
+	mixStyle?: "grid" | "row" | "list";
+	linkStyle?: "cards" | "icons";
+	buttonStyle?: "pill" | "square" | "text";
+	cornerStyle?: "round" | "sharp";
+	titleStyle?: "tight" | "wide" | "spaced";
+	backgroundPattern?: "none" | "dots" | "grid" | "diagonal" | "grain";
 	events?: Array<{
 		date: string;
 		venue: string;
 		location: string;
 		ticketUrl?: string;
+		photo?: string;
 	}>;
 	hiddenSections?: Array<
 		"agenda" | "bio" | "enlaces" | "sets" | "contacto"
@@ -56,9 +69,21 @@ export type SiteContentPatch = {
 	city?: string;
 	bio?: string;
 	email?: string;
+	phone?: string;
 	brandColor?: string;
 	photos?: string[];
 	heroPosition?: PublicSiteProfile["heroPosition"];
+	heroStyle?: PublicSiteProfile["heroStyle"];
+	heroAlign?: PublicSiteProfile["heroAlign"];
+	surfaceStyle?: PublicSiteProfile["surfaceStyle"];
+	agendaStyle?: PublicSiteProfile["agendaStyle"];
+	bioStyle?: PublicSiteProfile["bioStyle"];
+	mixStyle?: PublicSiteProfile["mixStyle"];
+	linkStyle?: PublicSiteProfile["linkStyle"];
+	buttonStyle?: PublicSiteProfile["buttonStyle"];
+	cornerStyle?: PublicSiteProfile["cornerStyle"];
+	titleStyle?: PublicSiteProfile["titleStyle"];
+	backgroundPattern?: PublicSiteProfile["backgroundPattern"];
 	events?: PublicSiteProfile["events"];
 	hiddenSections?: PublicSiteProfile["hiddenSections"];
 	links?: PublicSiteProfile["links"];
@@ -93,7 +118,11 @@ function tenantApi(slug: string, path = "/api/tenant") {
 }
 
 export function publicSiteAssetUrl(slug: string, url: string) {
-	return url.startsWith("/") ? `${djPreviewOrigin(slug)}${url}` : url;
+	if (!url.startsWith("/")) return url;
+	const origin = import.meta.env.PROD
+		? gigbladeMarketingSiteUrl()
+		: djPreviewOrigin(slug);
+	return `${origin}${url}`;
 }
 
 function platformApiOrigin() {
@@ -105,6 +134,19 @@ export type SiteVisitStats = {
 	month: string | null;
 	lastVisitedAt: string | null;
 	source?: "preview" | "cloudflare";
+};
+
+export type WaitlistSignup = {
+	id: string;
+	artistName: string;
+	email: string;
+	country: "CR" | "US";
+	city: string | null;
+	instagram: string | null;
+	phone: string | null;
+	note: string | null;
+	status: "pending" | "contacted" | "onboarded" | "declined";
+	createdAt: string;
 };
 
 export type PlatformSite = {
@@ -293,6 +335,41 @@ export async function fetchPlatformSiteHealth(
 			report: null,
 			error: "No se pudo contactar la API de GigBlade.",
 		};
+	} finally {
+		timeout.cancel();
+	}
+}
+
+export async function fetchPlatformWaitlist(
+	signal?: AbortSignal,
+): Promise<WaitlistSignup[]> {
+	const timeout = withTimeout(signal);
+	try {
+		const session = readPanelAuthSession();
+		if (!session?.token) {
+			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+		}
+		const response = await fetch(`${platformApiOrigin()}/api/platform/waitlist`, {
+			headers: { authorization: `Bearer ${session.token}` },
+			signal: timeout.signal,
+		});
+		const body = (await readJson(response)) as
+			| { signups?: WaitlistSignup[]; message?: string }
+			| null;
+		if (response.status === 401) {
+			clearPanelAuthSession();
+			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+		}
+		if (!response.ok || !Array.isArray(body?.signups)) {
+			throw new Error(body?.message || "No se pudo cargar la lista de espera.");
+		}
+		return body.signups;
+	} catch (error) {
+		if (error instanceof Error && error.name === "AbortError") {
+			throw new Error("La API no respondió.");
+		}
+		if (error instanceof Error) throw error;
+		throw new Error("No se pudo cargar la lista de espera.");
 	} finally {
 		timeout.cancel();
 	}

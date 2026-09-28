@@ -1,4 +1,5 @@
 import { notFound } from "@/domain/errors";
+import { isPreviewHostname } from "@/domain/site-visits";
 import type { TenantContext } from "@/domain/tenant";
 import { getApp } from "@/lib/composition/app";
 import { getTenantContext } from "@/lib/tenant/from-headers";
@@ -11,12 +12,21 @@ export async function getRequestTenantContext(
     return getTenantContext();
   }
 
-  const tenant = (await getApp().tenants.list()).find((item) => item.slug === slug);
+  const app = getApp();
+  const [tenants, routes] = await Promise.all([
+    app.tenants.list(),
+    app.routing.list(),
+  ]);
+  const tenant = tenants.find((item) => item.slug === slug);
   if (!tenant) {
     throw notFound("Tenant no encontrado");
   }
 
-  const hostname = `${tenant.slug}.localhost`;
+  const publicHostname = routes.find(
+    (route) =>
+      route.id === tenant.id && !isPreviewHostname(route.canonicalHostname),
+  )?.canonicalHostname;
+  const hostname = publicHostname ?? `${tenant.slug}.localhost`;
   return {
     tenantId: tenant.id,
     hostname,

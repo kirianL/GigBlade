@@ -37,6 +37,7 @@ describe("updateTenantSiteContent", () => {
       city: "San José",
       bio: "Bio nueva",
       email: "fechas@nox.cr",
+      phone: "+506 8888 0000",
       links: {
         instagram: "@nox",
         spotify: "https://open.spotify.com/artist/nox",
@@ -54,6 +55,7 @@ describe("updateTenantSiteContent", () => {
         city: "San José",
         bio: "Bio nueva",
         email: "fechas@nox.cr",
+        phone: "+506 8888 0000",
         links: {
           instagram: "https://instagram.com/nox",
           spotify: "https://open.spotify.com/artist/nox",
@@ -159,12 +161,24 @@ describe("updateTenantSiteContent", () => {
       templateId: "after",
       photos: ["https://images.example.com/nox.jpg"],
       heroPosition: "top",
+      heroStyle: "poster",
+      heroAlign: "center",
+      surfaceStyle: "gradient",
+      agendaStyle: "cards",
+      bioStyle: "columns",
+      mixStyle: "row",
+      linkStyle: "icons",
+      buttonStyle: "square",
+      cornerStyle: "sharp",
+      titleStyle: "spaced",
+      backgroundPattern: "dots",
       events: [
         {
           date: "2026-11-14",
           venue: "Club Nox",
           location: "San José",
           ticketUrl: "https://tickets.example.com/nox",
+          photo: "https://images.example.com/nox-event.jpg",
         },
       ],
       hiddenSections: ["bio"],
@@ -174,16 +188,56 @@ describe("updateTenantSiteContent", () => {
       photos: ["https://images.example.com/nox.jpg"],
       heroPhoto: "https://images.example.com/nox.jpg",
       heroPosition: "top",
+      heroStyle: "poster",
+      heroAlign: "center",
+      surfaceStyle: "gradient",
+      agendaStyle: "cards",
+      bioStyle: "columns",
+      mixStyle: "row",
+      linkStyle: "icons",
+      buttonStyle: "square",
+      cornerStyle: "sharp",
+      titleStyle: "spaced",
+      backgroundPattern: "dots",
       events: [
         {
           date: "2026-11-14",
           venue: "Club Nox",
           location: "San José",
           ticketUrl: "https://tickets.example.com/nox",
+          photo: "https://images.example.com/nox-event.jpg",
         },
       ],
       hiddenSections: ["bio"],
     });
+  });
+
+  it("conserva la foto de una fecha si el guardado no la envía", async () => {
+    const tenants = new InMemoryTenantRepository([tenant]);
+    const event = {
+      date: "2026-11-14",
+      venue: "Club Nox",
+      location: "San José",
+    };
+
+    await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      events: [{ ...event, photo: "https://images.example.com/nox-event.jpg" }],
+    });
+
+    const kept = await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      events: [event],
+    });
+    expect(kept.profile.events?.[0]?.photo).toBe(
+      "https://images.example.com/nox-event.jpg",
+    );
+
+    const cleared = await updateTenantSiteContent(tenants, context, {
+      templateId: "after",
+      events: [{ ...event, photo: "" }],
+    });
+    expect(cleared.profile.events?.[0]?.photo).toBeUndefined();
   });
 
   it("rechaza un color de marca inválido", async () => {

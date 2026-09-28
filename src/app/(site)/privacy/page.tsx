@@ -1,17 +1,16 @@
-import type { Metadata } from "next";
 import Footer from "@/components/footer";
 import {
 	PRIVACY_EFFECTIVE_DATE,
 	privacyPolicySections,
 } from "@/lib/privacyPolicyContent";
+import { pageSeo } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata = pageSeo({
 	title: "Privacy Policy",
-	description:
-		"Política de privacidad de GigBlade: waitlist y páginas de DJ.",
-	alternates: { canonical: "/privacy" },
-};
+	description: "Política de privacidad de GigBlade: waitlist y páginas de DJ.",
+	path: "/privacy",
+});
 
 export default function PrivacyPolicy() {
 	return (

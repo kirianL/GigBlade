@@ -25,6 +25,9 @@ const PlatformOverview = React.lazy(
 	() => import("./gigblade/PlatformOverview"),
 );
 const PlatformDjs = React.lazy(() => import("./gigblade/PlatformDjs"));
+const PlatformWaitlist = React.lazy(
+	() => import("./gigblade/PlatformWaitlist"),
+);
 const PlatformDomains = React.lazy(() => import("./gigblade/PlatformDomains"));
 const PlatformPlan = React.lazy(() => import("./gigblade/PlatformPlan"));
 const PlatformSiteHealth = React.lazy(
@@ -94,6 +97,7 @@ export default function App() {
 					<Route path="/" element={<Navigate to="/overview" replace />} />
 					<Route path="/overview" element={<PlatformOverview />} />
 					<Route path="/djs" element={<PlatformDjs />} />
+					<Route path="/lista" element={<PlatformWaitlist />} />
 					<Route path="/domains" element={<PlatformDomains />} />
 					<Route path="/health" element={<PlatformSiteHealth />} />
 					<Route path="/plan" element={<PlatformPlan />} />

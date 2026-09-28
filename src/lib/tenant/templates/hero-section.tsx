@@ -7,13 +7,19 @@ import type { JSX } from "react";
 
 const EMIL_EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
-function AnimatedHeroTitle({ title }: { title: string }) {
+function AnimatedHeroTitle({
+  title,
+  className = "font-display text-6xl font-bold uppercase leading-[0.8] tracking-tighter text-(--site-fg) sm:text-8xl md:text-9xl lg:text-[12rem]",
+}: {
+  title: string;
+  className?: string;
+}) {
   let characterIndex = 0;
 
   return (
     <h1
       aria-label={title}
-      className="font-display text-6xl font-bold uppercase leading-[0.8] tracking-tighter text-(--site-fg) sm:text-8xl md:text-9xl lg:text-[12rem]"
+      className={className}
     >
       <span aria-hidden="true">
         {title.split(/\s+/).map((word, wordIndex) => (
@@ -102,26 +108,87 @@ const SOCIAL_ICONS: Record<SiteLinkKey, { label: string; icon: (cls?: string) =>
   },
 };
 
-export function HeroSection({ site }: SiteTemplateProps) {
+function heroImage(site: SiteTemplateProps["site"]) {
+  return site.profile.heroPhoto || site.profile.photos?.[0] || "/images/dj/dj-hero.jpg";
+}
+
+function HeroActions({ site }: SiteTemplateProps) {
   const profile = site.profile;
   const reduce = useReducedMotion();
-
   const activeLinks = SITE_LINK_KEYS.filter((key) => Boolean(profile.links[key]));
-  const hasContact = Boolean(profile.email || profile.links.instagram);
+  const hasContact = Boolean(profile.email || profile.phone || profile.links.instagram);
 
-  // Background image selection: DJ photo or high-res curated DJ performance
-  const bgImage = profile.heroPhoto || profile.photos?.[0] || "/images/dj/dj-hero.jpg";
+  return (
+    <motion.div
+      initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(16px)" }}
+      animate={{ opacity: 1, transform: "translateY(0px)" }}
+      transition={{ duration: 0.4, delay: 0.24, ease: EMIL_EASE_OUT }}
+      className="site-actions mt-8 flex w-full flex-col items-start gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+    >
+      {hasContact ? (
+        <a
+          href="#contacto"
+          className="pressable site-fill group inline-flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs sm:text-sm uppercase tracking-wider shadow-lg"
+        >
+          <span>Contacto</span>
+          <svg
+            className="w-3.5 h-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </a>
+      ) : null}
+
+      {activeLinks.length > 0 ? (
+        <ul className="m-0 flex w-full list-none flex-wrap justify-start gap-2.5 p-0 sm:w-auto sm:gap-3">
+          {activeLinks.map((key) => {
+            const href = profile.links[key];
+            const platform = SOCIAL_ICONS[key];
+            if (!href || !platform) return null;
+            return (
+              <li key={key}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={platform.label}
+                  data-link={key}
+                  className="pressable site-icon inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] text-[var(--site-fg)] backdrop-blur-md"
+                >
+                  {platform.icon("w-[18px] h-[18px]")}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </motion.div>
+  );
+}
+
+function CinematicHero({ site }: SiteTemplateProps) {
+  const profile = site.profile;
+  const reduce = useReducedMotion();
+  const bgImage = heroImage(site);
 
   return (
     <section
       id="inicio"
+      data-hero="cinematic"
       className="relative min-h-[92dvh] w-full flex flex-col justify-end px-5 sm:px-8 md:px-12 pb-12 pt-28 overflow-hidden"
     >
       {/* Background Image with Cinematic Overlays */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none">
         <img
           src={bgImage}
-          alt={profile.displayName}
+          alt={`Foto de ${profile.displayName}`}
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover brightness-75 contrast-110 scale-105"
           style={{ objectPosition: profile.heroPosition ?? "center" }}
         />
@@ -133,7 +200,7 @@ export function HeroSection({ site }: SiteTemplateProps) {
       </div>
 
       {/* Hero Content Container */}
-      <div className="relative z-10 max-w-6xl w-full mx-auto">
+      <div className="site-hero-copy relative z-10 mx-auto w-full max-w-6xl">
 
         {/* DJ Display Name (Editorial Display Typography) */}
         <AnimatedHeroTitle title={profile.displayName} />
@@ -144,60 +211,187 @@ export function HeroSection({ site }: SiteTemplateProps) {
             initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(16px)" }}
             animate={{ opacity: 1, transform: "translateY(0px)" }}
             transition={{ duration: 0.4, delay: 0.16, ease: EMIL_EASE_OUT }}
-            className="mt-6 max-w-2xl text-base sm:text-lg md:text-xl text-[var(--site-muted)] leading-relaxed font-light"
+            className="site-hero-tagline mt-6 max-w-2xl text-base font-light leading-relaxed text-[var(--site-muted)] sm:text-lg md:text-xl"
           >
             {profile.tagline}
           </motion.p>
         ) : null}
 
-        {/* Action CTA & Social Icon Links */}
-        <motion.div
-          initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(16px)" }}
-          animate={{ opacity: 1, transform: "translateY(0px)" }}
-          transition={{ duration: 0.4, delay: 0.24, ease: EMIL_EASE_OUT }}
-          className="mt-8 flex flex-wrap items-center gap-3"
-        >
-          {/* Quick CTA to Booking */}
-          {hasContact ? (
-            <a
-              href="#contacto"
-              className="pressable site-fill group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--site-fg)] text-[var(--site-bg)] font-medium text-xs sm:text-sm uppercase tracking-wider shadow-lg"
-            >
-              <span>Contacto</span>
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </a>
-          ) : null}
-
-          {/* Social Platform Icons — real SVGs */}
-          {activeLinks.map((key) => {
-            const href = profile.links[key];
-            const platform = SOCIAL_ICONS[key];
-            if (!href || !platform) return null;
-            return (
-              <a
-                key={key}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={platform.label}
-                data-link={key}
-                className="pressable site-icon inline-flex items-center justify-center w-10 h-10 rounded-full border border-[var(--site-card-border)] bg-[var(--site-card-bg)] backdrop-blur-md text-[var(--site-fg)]"
-              >
-                {platform.icon("w-[18px] h-[18px]")}
-              </a>
-            );
-          })}
-        </motion.div>
+        <HeroActions site={site} />
       </div>
     </section>
   );
+}
+
+function PosterHero({ site }: SiteTemplateProps) {
+  const profile = site.profile;
+  const reduce = useReducedMotion();
+  const bgImage = heroImage(site);
+
+  return (
+    <section
+      id="inicio"
+      data-hero="poster"
+      className="relative w-full px-5 pb-16 pt-28 sm:px-8 md:px-12"
+    >
+      <div className="mx-auto grid max-w-6xl items-start gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.8fr)] md:gap-14">
+        <div className="site-hero-copy order-2 md:order-1">
+          {profile.city ? (
+            <p className="site-hero-tagline mb-4 font-mono text-xs uppercase tracking-[0.22em] text-[var(--site-muted)]">
+              {profile.city}
+            </p>
+          ) : null}
+          <AnimatedHeroTitle
+            title={profile.displayName}
+            className="font-display text-5xl font-bold uppercase leading-[0.85] tracking-tighter text-(--site-fg) sm:text-7xl md:text-8xl"
+          />
+          {profile.tagline ? (
+            <motion.p
+              initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(16px)" }}
+              animate={{ opacity: 1, transform: "translateY(0px)" }}
+              transition={{ duration: 0.4, delay: 0.16, ease: EMIL_EASE_OUT }}
+              className="site-hero-tagline mt-6 max-w-xl text-base font-light leading-relaxed text-[var(--site-muted)] sm:text-lg"
+            >
+              {profile.tagline}
+            </motion.p>
+          ) : null}
+          <HeroActions site={site} />
+        </div>
+        <div className="order-1 md:order-2">
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-[2rem] border border-[var(--site-card-border)] bg-[var(--site-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+            <img
+              src={bgImage}
+              alt={`Foto de ${profile.displayName}`}
+              fetchPriority="high"
+              decoding="async"
+              className="h-full w-full object-cover"
+              style={{ objectPosition: profile.heroPosition ?? "center" }}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroCopy({
+  site,
+  titleClassName,
+}: SiteTemplateProps & { titleClassName: string }) {
+  const profile = site.profile;
+  const reduce = useReducedMotion();
+
+  return (
+    <>
+      <AnimatedHeroTitle title={profile.displayName} className={titleClassName} />
+      {profile.tagline ? (
+        <motion.p
+          initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(16px)" }}
+          animate={{ opacity: 1, transform: "translateY(0px)" }}
+          transition={{ duration: 0.4, delay: 0.16, ease: EMIL_EASE_OUT }}
+          className="site-hero-tagline mt-6 max-w-xl text-base font-light leading-relaxed text-[var(--site-muted)] sm:text-lg"
+        >
+          {profile.tagline}
+        </motion.p>
+      ) : null}
+      <HeroActions site={site} />
+    </>
+  );
+}
+
+const STACKED_TITLE =
+  "font-display text-5xl font-bold uppercase leading-[0.85] tracking-tighter text-(--site-fg) sm:text-7xl md:text-8xl";
+
+function BandHero({ site }: SiteTemplateProps) {
+  const profile = site.profile;
+
+  return (
+    <section id="inicio" data-hero="band" className="w-full pb-12 pt-24">
+      <div className="aspect-[5/3] w-full overflow-hidden sm:aspect-[16/7] md:h-[28rem] md:aspect-auto">
+        <img
+          src={heroImage(site)}
+          alt={`Foto de ${profile.displayName}`}
+          fetchPriority="high"
+          decoding="async"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: profile.heroPosition ?? "center" }}
+        />
+      </div>
+      <div className="site-hero-copy mx-auto w-full max-w-6xl px-5 pt-6 sm:px-8 md:px-12">
+        <HeroCopy site={site} titleClassName={STACKED_TITLE} />
+      </div>
+    </section>
+  );
+}
+
+function TypeHero({ site }: SiteTemplateProps) {
+  const profile = site.profile;
+
+  return (
+    <section id="inicio" data-hero="type" className="w-full px-5 pb-12 pt-28 sm:px-8 md:px-12">
+      <div className="site-hero-copy mx-auto w-full max-w-6xl">
+        <AnimatedHeroTitle
+          title={profile.displayName}
+          className="font-display block w-full max-w-full text-[clamp(2.6rem,12vw,6.5rem)] font-bold uppercase leading-[0.85] tracking-tighter text-(--site-fg)"
+        />
+        <div className="site-hero-row mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-end">
+          <img
+            src={heroImage(site)}
+            alt=""
+            aria-hidden="true"
+            fetchPriority="high"
+            decoding="async"
+            className="h-28 w-24 shrink-0 rounded-2xl object-cover"
+            style={{ objectPosition: profile.heroPosition ?? "center" }}
+          />
+          {profile.tagline ? (
+            <p className="site-hero-tagline max-w-xl text-base font-light leading-relaxed text-[var(--site-muted)] sm:text-lg">
+              {profile.tagline}
+            </p>
+          ) : null}
+        </div>
+        <HeroActions site={site} />
+      </div>
+    </section>
+  );
+}
+
+function DuoHero({ site }: SiteTemplateProps) {
+  const profile = site.profile;
+  const first = heroImage(site);
+  const second = profile.photos?.find((url) => url !== first);
+
+  return (
+    <section id="inicio" data-hero="duo" className="w-full px-5 pb-12 pt-28 sm:px-8 md:px-12">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-3 sm:grid-cols-2">
+        {[first, second].filter((url): url is string => Boolean(url)).map((url, index) => (
+          <div
+            key={`${url}-${index}`}
+            className="aspect-[5/3] overflow-hidden rounded-2xl sm:aspect-[4/5]"
+          >
+            <img
+              src={url}
+              alt={index === 0 ? `Foto de ${profile.displayName}` : ""}
+              aria-hidden={index === 0 ? undefined : true}
+              fetchPriority={index === 0 ? "high" : undefined}
+              decoding="async"
+              className="h-full w-full object-cover"
+              style={{ objectPosition: profile.heroPosition ?? "center" }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="site-hero-copy mx-auto w-full max-w-6xl pt-6">
+        <HeroCopy site={site} titleClassName={STACKED_TITLE} />
+      </div>
+    </section>
+  );
+}
+
+export function HeroSection({ site }: SiteTemplateProps) {
+  if (site.profile.heroStyle === "poster") return <PosterHero site={site} />;
+  if (site.profile.heroStyle === "band") return <BandHero site={site} />;
+  if (site.profile.heroStyle === "type") return <TypeHero site={site} />;
+  if (site.profile.heroStyle === "duo") return <DuoHero site={site} />;
+  return <CinematicHero site={site} />;
 }

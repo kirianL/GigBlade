@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -7,6 +7,13 @@ import "./globals.css";
 import RouteTransition from "@/components/route-transition";
 import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#000000",
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,15 +32,23 @@ const geistMono = Geist_Mono({
 });
 
 const url = getSiteUrl();
+const description =
+  "Presencia digital para DJs: dominio propio y plantilla para eventos. US$ 65 al mes cubre hosting y seguridad. El dominio se cobra aparte.";
+const title = "Página propia para DJs | GigBlade";
+const previewDeploy = process.env.VERCEL_ENV === "preview";
 
 export const metadata: Metadata = {
   title: {
-    default: "Página propia para DJs | GigBlade",
+    default: title,
     template: "%s | GigBlade",
   },
-  description:
-    "Presencia digital para DJs: dominio propio y plantilla para eventos. US$ 65 al mes cubre hosting y seguridad. El dominio se cobra aparte.",
+  description,
   applicationName: "GigBlade",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "GigBlade",
+  },
   keywords: [
     "página para DJs",
     "dominio para DJ",
@@ -58,9 +73,11 @@ export const metadata: Metadata = {
     locale: "es_CR",
     url,
     siteName: "GigBlade",
-    title: "GigBlade — Página propia para DJs",
-    description:
-      "Dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
+    title: {
+      default: title,
+      template: "%s | GigBlade",
+    },
+    description,
     images: [
       {
         url: "/images/og-image.png",
@@ -72,22 +89,26 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "GigBlade — Página propia para DJs",
-    description:
-      "Dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
+    title: {
+      default: title,
+      template: "%s | GigBlade",
+    },
+    description,
     images: ["/images/og-image.png"],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+  robots: previewDeploy
+    ? { index: false, follow: false }
+    : {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+        },
+      },
 };
 
 type RootLayoutProps = Readonly<{

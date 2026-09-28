@@ -161,8 +161,14 @@ export function djByArtistName(name: string | null) {
 	);
 }
 
+const PRODUCTION_SITE_URL = "https://gigblades.vercel.app";
+
 export function gigbladeMarketingSiteUrl() {
 	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");
+	if (configured && !(import.meta.env.PROD && configured.includes("localhost"))) {
+		return configured;
+	}
+	if (import.meta.env.PROD) return PRODUCTION_SITE_URL;
 	return configured || "http://localhost:3000";
 }
 
@@ -192,6 +198,11 @@ export function djPublicUrl(dj: Pick<GigbladeDj, "slug" | "domain">) {
 	const publicDomain = djIntendedDomain(dj);
 	if (!publicDomain) return null;
 	return `https://${publicDomain}`;
+}
+
+/** En local abre la plantilla en el sitio de Next. En producción, solo el dominio público. */
+export function djEditorPageUrl(dj: Pick<GigbladeDj, "slug" | "domain">) {
+	return djPublicUrl(dj) ?? (import.meta.env.PROD ? null : djPreviewOrigin(dj.slug));
 }
 
 export function djDomainLabel(dj: Pick<GigbladeDj, "domain">) {

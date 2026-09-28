@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
+import JsonLd from "@/components/json-ld";
 import { loadTenantSite } from "@/lib/tenant/load-site";
+import { tenantStructuredData } from "@/lib/tenant/site-seo";
 import { getSiteTemplateRenderer } from "@/lib/tenant/templates/registry";
 
 export const dynamic = "force-dynamic";
@@ -20,5 +22,10 @@ export default async function TenantSitePage({
   const site = await loadTenantSite();
   const Template = getSiteTemplateRenderer(site.templateId);
 
-  return <Template site={site} />;
+  return (
+    <>
+      <JsonLd data={tenantStructuredData(site)} />
+      <Template site={site} />
+    </>
+  );
 }

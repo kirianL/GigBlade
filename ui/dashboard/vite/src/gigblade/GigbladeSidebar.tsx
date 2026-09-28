@@ -18,6 +18,7 @@ import {
 	BooksIcon,
 	ChartBarIcon,
 	CubeIcon,
+	EnvelopeSimpleIcon,
 	GearIcon,
 	GlobeIcon,
 	HouseIcon,
@@ -45,6 +46,7 @@ import { SidebarRail } from "@/views/main-sidebar/SidebarRail";
 const platformLinks = [
 	{ to: "/overview", title: "Resumen", icon: HouseIcon },
 	{ to: "/djs", title: "DJs", icon: UserCircleIcon },
+	{ to: "/lista", title: "Lista", icon: EnvelopeSimpleIcon },
 	{ to: "/domains", title: "Dominios", icon: GlobeIcon },
 	{ to: "/health", title: "Estado", icon: ShieldCheckIcon },
 	{ to: "/plan", title: "Plan", icon: CubeIcon },

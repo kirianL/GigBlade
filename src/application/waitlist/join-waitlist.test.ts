@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
+import { listWaitlist } from "@/application/waitlist/list-waitlist";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
 
 describe("joinWaitlist", () => {
@@ -11,6 +12,7 @@ describe("joinWaitlist", () => {
       email: "nox@example.com",
       city: "San José",
       instagram: "@nox.dj",
+      phone: "+506 8888 0000",
     });
 
     expect(result).toEqual({ alreadyJoined: false });
@@ -18,6 +20,7 @@ describe("joinWaitlist", () => {
       artistName: "Nox",
       instagram: "nox.dj",
       city: "San José",
+      phone: "+506 8888 0000",
     });
   });
 
@@ -43,6 +46,18 @@ describe("joinWaitlist", () => {
     await expect(waitlist.findByEmail("bot@example.com")).resolves.toBeNull();
   });
 
+  it("rechaza un número inválido", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+
+    await expect(
+      joinWaitlist(waitlist, {
+        artistName: "Nox",
+        email: "nox@example.com",
+        phone: "123",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
   it("rechaza un correo inválido", async () => {
     const waitlist = new InMemoryWaitlistRepository();
 
@@ -61,6 +76,26 @@ describe("joinWaitlist", () => {
         tenantId: "11111111-1111-4111-8111-111111111111",
       }),
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("deja la inscripción lista para que la plataforma la lea", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+    await joinWaitlist(waitlist, {
+      artistName: "Nox",
+      email: "nox@example.com",
+      city: "San José",
+      instagram: "nox.dj",
+    });
+
+    await expect(listWaitlist(waitlist)).resolves.toEqual([
+      expect.objectContaining({
+        artistName: "Nox",
+        email: "nox@example.com",
+        city: "San José",
+        instagram: "nox.dj",
+        status: "pending",
+      }),
+    ]);
   });
 
   it("mantiene Estados Unidos bloqueado hasta su lanzamiento", async () => {

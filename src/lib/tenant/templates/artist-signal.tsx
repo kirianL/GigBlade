@@ -26,16 +26,18 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
     ? nextEvent.ticketUrl
     : profile.email
       ? `mailto:${profile.email}`
-      : profile.links.instagram;
+      : profile.phone
+        ? `tel:${profile.phone.replace(/[^\d+]/g, "")}`
+        : profile.links.instagram;
   const hasDetails = Boolean(featuredMix || nextEvent);
 
   return (
     <section
       aria-label={`Señal de ${profile.displayName}`}
-      className="site-signal relative mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 md:px-12"
+      className="site-signal relative mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-5 py-8 sm:px-8 md:px-12"
     >
       <SiteReveal yOffset={16}>
-        <div className="site-signal-card relative isolate overflow-hidden rounded-[1.75rem] border border-(--site-card-border) bg-(--site-surface) p-5 sm:p-7">
+        <div className="site-signal-card relative isolate w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-(--site-card-border) bg-(--site-surface) p-5 sm:p-7">
           <svg
             aria-hidden="true"
             className="site-signal-vinyl absolute -right-20 -top-36 -z-10 h-112 w-md opacity-20"
@@ -59,14 +61,14 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
           <div
             className={
               hasDetails
-                ? "grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:items-center"
-                : "grid"
+                ? "grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-center"
+                : "grid min-w-0"
             }
           >
-            <div>
+            <div className="min-w-0">
               <svg
                 aria-hidden="true"
-                className="h-28 w-full overflow-visible text-(--site-fg) sm:h-36"
+                className="block h-28 w-full max-w-full text-(--site-fg) sm:h-36"
                 viewBox={`0 0 ${bars.length * 8} 100`}
                 preserveAspectRatio="none"
               >
@@ -92,13 +94,13 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
             </div>
 
             {hasDetails ? (
-              <div className="grid gap-3">
+              <div className="grid min-w-0 gap-3">
                 {featuredMix ? (
                   <a
                     href={featuredMix.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="pressable site-card group flex min-h-28 items-center justify-between gap-4 rounded-2xl border border-(--site-card-border) bg-(--site-bg) p-4 text-(--site-fg)"
+                    className="pressable site-card group flex min-h-16 flex-col items-start justify-center gap-2 rounded-2xl border border-(--site-card-border) bg-(--site-bg) p-4 text-(--site-fg) sm:min-h-24 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <span className="min-w-0">
                       <strong className="block truncate text-base font-medium">
@@ -115,7 +117,7 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
                 ) : null}
 
                 {nextEvent ? (
-                  <div className="flex min-h-28 items-center justify-between gap-4 rounded-2xl border border-(--site-card-border) bg-(--site-bg) p-4">
+                  <div className="flex min-h-16 flex-col items-start justify-center gap-3 rounded-2xl border border-(--site-card-border) bg-(--site-bg) p-4 sm:min-h-24 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <time
                         dateTime={nextEvent.date}
@@ -135,7 +137,7 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
                         href={eventAction}
                         target={nextEvent.ticketUrl ? "_blank" : undefined}
                         rel={nextEvent.ticketUrl ? "noreferrer" : undefined}
-                        className="pressable site-chip shrink-0 rounded-full border border-(--site-card-border) px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-(--site-fg)"
+                        className="pressable site-chip inline-flex min-h-11 shrink-0 items-center rounded-full border border-(--site-card-border) px-3 font-mono text-[10px] uppercase tracking-widest text-(--site-fg)"
                       >
                         {nextEvent.ticketUrl ? "Entradas" : "Consultar"}
                       </a>

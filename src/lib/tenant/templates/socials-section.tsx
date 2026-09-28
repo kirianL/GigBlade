@@ -112,6 +112,28 @@ export function EnlacesSection({ site }: SiteTemplateProps) {
             Próximamente enlaces oficiales en Spotify, SoundCloud y redes.
           </div>
         </SiteReveal>
+      ) : profile.linkStyle === "icons" ? (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0 sm:flex-row sm:flex-wrap">
+          {activeKeys.map((key) => {
+            const href = profile.links[key];
+            const platform = PLATFORMS[key];
+            if (!href || !platform) return null;
+            return (
+              <li key={key} className="w-full sm:w-auto">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-link={key}
+                  className="pressable site-card flex min-h-11 w-full items-center gap-3 rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-card-bg)] px-4 text-[var(--site-fg)] sm:w-auto"
+                >
+                  {platform.icon("h-5 w-5")}
+                  <span className="text-sm font-medium">{platform.label}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {activeKeys.map((key, index) => {

@@ -22,6 +22,9 @@ export async function updateTenantSiteContent(
     if (field === "email") {
       throw validationError("El correo no es válido.");
     }
+    if (field === "phone") {
+      throw validationError("El número no es válido.");
+    }
     if (field === "mixes") {
       throw validationError("Revisá los links de los mixes.");
     }

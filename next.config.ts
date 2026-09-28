@@ -57,7 +57,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "192.168.50.197",
     "localhost:3001",
-    "demo.localhost",
+    "*.localhost",
     "marco.localhost",
     "luna.localhost",
     "nox.localhost",
@@ -100,6 +100,18 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_DASHBOARD_URL?.replace(/\/$/, "") ||
       "http://localhost:3001";
     return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.gigblade.com" }],
+        destination: "https://gigblade.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/",
+        has: [{ type: "host", value: "www.gigblade.com" }],
+        destination: "https://gigblade.com",
+        permanent: true,
+      },
       {
         source: "/dashboard",
         destination: dashboard,

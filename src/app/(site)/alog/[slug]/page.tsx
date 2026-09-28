@@ -33,7 +33,7 @@ export async function generateMetadata({
 			title: doc.title,
 			description: doc.description,
 			type: "article",
-			siteName: "Autumn",
+			siteName: "GigBlade",
 			...(doc.date ? { publishedTime: doc.date } : {}),
 			...(doc.updated ? { modifiedTime: doc.updated } : {}),
 			authors: [doc.author],

@@ -1,33 +1,42 @@
 import type { MetadataRoute } from "next";
-import { getAllAlogDocs } from "@/lib/alogUtils";
-import { getAllPosts } from "@/lib/blogUtils";
+import { headers } from "next/headers";
+
+import { normalizeHostname } from "@/domain/hostname";
 import { SITE_URL } from "@/lib/seo";
+import {
+  TENANT_CANONICAL_HEADER,
+  TENANT_HOSTNAME_HEADER,
+  TENANT_ID_HEADER,
+} from "@/lib/tenant/headers";
+import {
+  platformSitemap,
+  tenantShouldIndex,
+  tenantSitemap,
+} from "@/lib/tenant/site-seo";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-	const staticRoutes: MetadataRoute.Sitemap = [
-		{ url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-		{ url: `${SITE_URL}/pricing`, changeFrequency: "monthly", priority: 0.9 },
-		{ url: `${SITE_URL}/blog`, changeFrequency: "weekly", priority: 0.8 },
-		{ url: `${SITE_URL}/alog`, changeFrequency: "weekly", priority: 0.8 },
-		{ url: `${SITE_URL}/terms`, changeFrequency: "yearly", priority: 0.3 },
-		{ url: `${SITE_URL}/privacy`, changeFrequency: "yearly", priority: 0.3 },
-	];
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const requestHeaders = await headers();
+  const tenantId = requestHeaders.get(TENANT_ID_HEADER);
 
-	const blogRoutes: MetadataRoute.Sitemap = getAllPosts().map((post) => ({
-		url: `${SITE_URL}/blog/${post.slug}`,
-		lastModified: post.date ? new Date(post.date) : undefined,
-		changeFrequency: "monthly",
-		priority: 0.6,
-	}));
+  if (!tenantId) {
+    return platformSitemap(SITE_URL);
+  }
 
-	const alogRoutes: MetadataRoute.Sitemap = getAllAlogDocs().map((doc) => ({
-		url: `${SITE_URL}/alog/${doc.slug}`,
-		lastModified: doc.updated ? new Date(doc.updated) : undefined,
-		changeFrequency: "monthly",
-		priority: 0.7,
-	}));
+  const requestHost = normalizeHostname(
+    requestHeaders.get(TENANT_HOSTNAME_HEADER) ||
+      requestHeaders.get("host") ||
+      "",
+  );
+  const canonicalHost = normalizeHostname(
+    requestHeaders.get(TENANT_CANONICAL_HEADER) || requestHost,
+  );
+  const index = tenantShouldIndex({
+    requestHostname: requestHost,
+    canonicalHostname: canonicalHost,
+    blockIndexing: process.env.VERCEL_ENV === "preview",
+  });
 
-	return [...staticRoutes, ...blogRoutes, ...alogRoutes];
+  return index ? tenantSitemap(canonicalHost) : [];
 }

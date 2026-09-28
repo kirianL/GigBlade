@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { faqData } from "@/app/constant";
 import type { BlogPostSummary } from "@/lib/blogUtils";
 import { getSiteUrl } from "@/lib/site-url";
@@ -9,6 +11,40 @@ const SAME_AS: string[] = [];
 
 export function absoluteUrl(path: string) {
 	return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
+
+const OG_IMAGE = {
+	url: "/images/og-image.png",
+	width: 1200,
+	height: 630,
+	alt: "GigBlade — Página propia para DJs",
+};
+
+export function pageSeo(input: {
+	title: string;
+	description: string;
+	path: string;
+}): Metadata {
+	return {
+		title: input.title,
+		description: input.description,
+		alternates: { canonical: input.path },
+		openGraph: {
+			title: input.title,
+			description: input.description,
+			url: absoluteUrl(input.path),
+			type: "website",
+			locale: "es_CR",
+			siteName: ORG_NAME,
+			images: [OG_IMAGE],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: input.title,
+			description: input.description,
+			images: [OG_IMAGE.url],
+		},
+	};
 }
 
 // Strip markdown artifacts so schema text is plain prose for crawlers/LLMs.

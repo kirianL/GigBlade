@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
 import AccesoForm from "@/components/acceso-form";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageSeo({
 	title: "Acceso para DJs",
 	description:
 		"Anotate en la lista de GigBlade. Te avisamos cuando haya cupo para armar tu página con dominio propio.",
-	alternates: { canonical: "/acceso" },
-};
+	path: "/acceso",
+});
 
 export default function AccesoPage() {
 	return (

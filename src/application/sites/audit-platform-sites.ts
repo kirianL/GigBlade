@@ -209,7 +209,9 @@ async function auditTenant(input: {
   }
 
   const hasContact = Boolean(
-    profile.email?.trim() || profile.links.instagram?.trim(),
+    profile.email?.trim() ||
+      profile.phone?.trim() ||
+      profile.links.instagram?.trim(),
   );
   checks.push(
     check(
@@ -217,8 +219,8 @@ async function auditTenant(input: {
       hasContact ? "ok" : "warn",
       hasContact ? "Contacto publicado" : "Sin contacto público",
       hasContact
-        ? "Hay correo o Instagram visible para booking."
-        : "No hay correo ni Instagram; revisá la superficie de contacto.",
+        ? "Hay correo, teléfono o Instagram visible para booking."
+        : "No hay correo, teléfono ni Instagram; revisá la superficie de contacto.",
     ),
   );
 

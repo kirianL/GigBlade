@@ -72,8 +72,14 @@ export function SiteShell({ site, children }: SiteShellProps) {
         data-tenant-site=""
         data-template={site.templateId}
         data-appearance={getSiteTemplateAppearance(site.templateId)}
+        data-pattern={site.profile.backgroundPattern ?? "none"}
+        data-hero-align={site.profile.heroAlign ?? "start"}
+        data-surface={site.profile.surfaceStyle ?? "plain"}
+        data-buttons={site.profile.buttonStyle ?? "pill"}
+        data-corners={site.profile.cornerStyle ?? "round"}
+        data-titles={site.profile.titleStyle ?? "tight"}
         style={brandStyle}
-        className="relative min-h-[100dvh] flex flex-col bg-[var(--site-bg)] text-[var(--site-fg)] selection:bg-[var(--site-accent)] selection:text-white"
+        className="relative min-h-[100dvh] flex flex-col bg-[var(--site-bg)] text-[var(--site-fg)]"
       >
         {/* Accessible Skip Link */}
         <a
@@ -205,15 +211,6 @@ export function SiteShell({ site, children }: SiteShellProps) {
         </main>
 
         <ProximitySectionRail sections={railSections} />
-
-        {hasContact ? (
-          <a
-            href="#contacto"
-            className="pressable site-mobile-contact fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-30 inline-flex min-h-11 -translate-x-1/2 items-center rounded-full bg-[var(--site-fg)] px-5 text-xs font-mono font-medium uppercase tracking-wider text-[var(--site-bg)] shadow-[0_12px_36px_rgba(0,0,0,0.22)] md:hidden"
-          >
-            Contacto
-          </a>
-        ) : null}
 
         {/* Architectural Footer */}
         <footer className="w-full border-t border-[var(--site-card-border)] bg-[var(--site-surface)]/50 py-16 px-5 sm:px-8 md:px-12 mt-12">

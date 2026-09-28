@@ -7,6 +7,35 @@ const PLATFORM_LABEL = {
   soundcloud: "SoundCloud",
 } as const;
 
+function MixTile({
+  mix,
+  fallbackCover,
+}: {
+  mix: NonNullable<SiteTemplateProps["site"]["profile"]["mixes"]>[number];
+  fallbackCover: string;
+}) {
+  return (
+    <a
+      href={mix.url}
+      target="_blank"
+      rel="noreferrer"
+      className="pressable site-card group relative block aspect-square overflow-hidden rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-surface)]"
+    >
+      <MixCover mix={mix} fallbackSrc={fallbackCover} />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+        <p className="truncate text-sm font-medium text-white sm:text-base">{mix.title}</p>
+        <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-white/70">
+          {PLATFORM_LABEL[mix.platform]}
+        </p>
+      </div>
+    </a>
+  );
+}
+
 export function MixesSection({ site }: SiteTemplateProps) {
   const mixes = site.profile.mixes ?? [];
   const hasMixes = mixes.length > 0;
@@ -38,8 +67,8 @@ export function MixesSection({ site }: SiteTemplateProps) {
             Cuando el DJ publique un mix, el link directo aparece acá.
           </div>
         </SiteReveal>
-      ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+      ) : site.profile.mixStyle === "list" ? (
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {mixes.map((mix, index) => (
             <li key={`${mix.url}-${index}`}>
               <SiteReveal delay={index * 0.04} yOffset={16}>
@@ -47,22 +76,40 @@ export function MixesSection({ site }: SiteTemplateProps) {
                   href={mix.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="pressable site-card group relative block aspect-square overflow-hidden rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-surface)]"
+                  className="pressable site-card group flex min-h-16 items-center gap-3 rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-surface)] p-2"
                 >
-                  <MixCover mix={mix} fallbackSrc={fallbackCover} />
-                  <div
-                    className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"
-                    aria-hidden="true"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
-                    <p className="text-sm sm:text-base font-medium text-white truncate">
+                  <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+                    <MixCover mix={mix} fallbackSrc={fallbackCover} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-base font-medium text-[var(--site-fg)]">
                       {mix.title}
-                    </p>
-                    <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-white/70">
+                    </span>
+                    <span className="mt-1 block text-[10px] font-mono uppercase tracking-widest text-[var(--site-muted)]">
                       {PLATFORM_LABEL[mix.platform]}
-                    </p>
-                  </div>
+                    </span>
+                  </span>
                 </a>
+              </SiteReveal>
+            </li>
+          ))}
+        </ul>
+      ) : site.profile.mixStyle === "row" ? (
+        <ul className="no-scrollbar -mx-5 m-0 flex list-none snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:px-0">
+          {mixes.map((mix, index) => (
+            <li key={`${mix.url}-${index}`} className="w-[78%] shrink-0 snap-start sm:w-64">
+              <SiteReveal delay={index * 0.04} yOffset={16}>
+                <MixTile mix={mix} fallbackCover={fallbackCover} />
+              </SiteReveal>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+          {mixes.map((mix, index) => (
+            <li key={`${mix.url}-${index}`}>
+              <SiteReveal delay={index * 0.04} yOffset={16}>
+                <MixTile mix={mix} fallbackCover={fallbackCover} />
               </SiteReveal>
             </li>
           ))}

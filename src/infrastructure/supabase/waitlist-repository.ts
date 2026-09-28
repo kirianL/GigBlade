@@ -4,7 +4,10 @@ import type { WaitlistRepository } from "@/application/ports/waitlist-repository
 import { serviceUnavailable } from "@/domain/errors";
 import type { WaitlistDraft, WaitlistSignup, WaitlistStatus } from "@/domain/waitlist";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
-import { readPostgrestResult } from "@/infrastructure/supabase/postgrest";
+import {
+  failPostgrestQuery,
+  readPostgrestResult,
+} from "@/infrastructure/supabase/postgrest";
 
 type WaitlistRow = {
   id: string;
@@ -13,13 +16,14 @@ type WaitlistRow = {
   country: "CR" | "US";
   city: string | null;
   instagram: string | null;
+  phone: string | null;
   note: string | null;
   status: WaitlistStatus;
   created_at: string;
 };
 
 const WAITLIST_COLUMNS =
-  "id, artist_name, email, country, city, instagram, note, status, created_at";
+  "id, artist_name, email, country, city, instagram, phone, note, status, created_at";
 
 export class SupabaseWaitlistRepository implements WaitlistRepository {
   async findByEmail(email: string): Promise<WaitlistSignup | null> {
@@ -47,6 +51,7 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
           country: draft.country,
           city: draft.city,
           instagram: draft.instagram,
+          phone: draft.phone,
           note: draft.note,
         })
         .select(WAITLIST_COLUMNS)
@@ -60,6 +65,21 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
 
     return mapSignup(row as WaitlistRow);
   }
+
+  async list(): Promise<WaitlistSignup[]> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("dj_waitlist")
+      .select(WAITLIST_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      failPostgrestQuery(error, { operation: "waitlist.list" });
+    }
+
+    return ((data ?? []) as WaitlistRow[]).map(mapSignup);
+  }
 }
 
 function mapSignup(row: WaitlistRow): WaitlistSignup {
@@ -70,6 +90,7 @@ function mapSignup(row: WaitlistRow): WaitlistSignup {
     country: row.country,
     city: row.city,
     instagram: row.instagram,
+    phone: row.phone,
     note: row.note,
     status: row.status,
     createdAt: row.created_at,

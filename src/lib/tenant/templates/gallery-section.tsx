@@ -182,9 +182,8 @@ export function GallerySection({ site }: SiteTemplateProps) {
                 aria-label={`Ampliar ${item.title}`}
               />
 
-              {/* Photo Title */}
-              <div className="absolute bottom-3 left-3 right-3">
-                <p className="text-sm font-medium text-white tracking-wide truncate">
+              <div className="site-gallery-caption pointer-events-none absolute inset-x-0 bottom-0 px-4">
+                <p className="text-sm font-medium leading-5 text-white">
                   {item.title}
                 </p>
               </div>
@@ -196,12 +195,12 @@ export function GallerySection({ site }: SiteTemplateProps) {
     <dialog
       ref={dialogRef}
       aria-label={`Galería de ${site.profile.displayName}`}
-      className="m-auto max-h-[100dvh] w-full max-w-none bg-transparent p-0 text-white backdrop:bg-black/90"
+      className="m-0 h-dvh max-h-dvh w-full max-w-none overflow-hidden bg-transparent p-0 text-white backdrop:bg-black/90"
       onClick={(event) => {
         if (event.target === event.currentTarget) event.currentTarget.close();
       }}
     >
-      <div className="relative flex min-h-[100dvh] items-center justify-center p-4 sm:p-10">
+      <div className="relative flex h-full items-center justify-center p-4 sm:p-10">
         <img
           src={items[selectedIndex].url}
           alt={items[selectedIndex].title}

@@ -8,6 +8,7 @@ import { conflict } from "@/domain/errors";
 import { normalizeHostname } from "@/domain/hostname";
 import { isPreviewHostname } from "@/domain/site-visits";
 import type { TenantRouting } from "@/domain/tenant";
+import { resolveIndexedHostname } from "@/lib/tenant/site-seo";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
 import {
   failPostgrestQuery,
@@ -18,6 +19,7 @@ type DomainRow = {
   tenant_id: string;
   hostname: string;
   status: "active" | "suspended";
+  is_canonical?: boolean;
 };
 
 function toRoute(row: DomainRow): ListedTenantRoute {
@@ -31,18 +33,43 @@ function toRoute(row: DomainRow): ListedTenantRoute {
 
 export class SupabaseTenantRoutingStore implements TenantRoutingStore {
   async get(hostname: string): Promise<TenantRouting | undefined> {
-    const canonicalHostname = normalizeHostname(hostname);
+    const normalized = normalizeHostname(hostname);
     const supabase = createSupabaseAdminClient();
     const row = readPostgrestResult(
       await supabase
         .from("tenant_domains")
-        .select("tenant_id, hostname, status")
-        .eq("hostname", canonicalHostname)
+        .select("tenant_id, hostname, status, is_canonical")
+        .eq("hostname", normalized)
         .maybeSingle(),
       { operation: "tenant_domains.get" },
-    );
+    ) as DomainRow | null;
     if (!row) return undefined;
-    return toRoute(row as DomainRow);
+
+    let preferredHostname: string | null = null;
+    if (!row.is_canonical && !isPreviewHostname(row.hostname)) {
+      const preferred = readPostgrestResult(
+        await supabase
+          .from("tenant_domains")
+          .select("hostname")
+          .eq("tenant_id", row.tenant_id)
+          .eq("is_canonical", true)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle(),
+        { operation: "tenant_domains.canonical" },
+      ) as { hostname: string } | null;
+      preferredHostname = preferred?.hostname ?? null;
+    }
+
+    return {
+      id: row.tenant_id,
+      status: row.status,
+      canonicalHostname: resolveIndexedHostname({
+        requestHostname: row.hostname,
+        isCanonical: Boolean(row.is_canonical),
+        canonicalHostname: preferredHostname,
+      }),
+    };
   }
 
   async list(): Promise<ListedTenantRoute[]> {

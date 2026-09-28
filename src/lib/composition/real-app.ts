@@ -12,6 +12,7 @@ import { createDj } from "@/application/panel/create-dj";
 import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
+import { listWaitlist } from "@/application/waitlist/list-waitlist";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
 import { CloudflareWebAnalytics } from "@/infrastructure/cloudflare/web-analytics";
 import { EdgeConfigRoutingStore } from "@/infrastructure/edge-config/edge-config-routing-store";
@@ -118,5 +119,6 @@ export function createRealApp() {
       );
     },
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
+    listWaitlist: () => listWaitlist(waitlist),
   };
 }

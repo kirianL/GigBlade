@@ -1,14 +1,13 @@
-import type { Metadata } from "next";
 import JsonLd from "@/components/json-ld";
 import PricingSections from "@/components/pricing-sections";
-import { faqPageSchema, organizationSchema, websiteSchema } from "@/lib/seo";
+import { faqPageSchema, organizationSchema, pageSeo, websiteSchema } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageSeo({
 	title: "Precios",
 	description:
 		"US$ 65 al mes cubre hosting, seguridad y tu página. El dominio se cobra aparte, al costo real, sin margen.",
-	alternates: { canonical: "/pricing" },
-};
+	path: "/pricing",
+});
 
 export default function PricingPage() {
 	return (

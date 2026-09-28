@@ -15,11 +15,12 @@ import {
 	useRef,
 	useState,
 	type ChangeEvent,
+	type CSSProperties,
 	type FormEvent,
 	type ReactNode,
 } from "react";
 import { Link } from "react-router";
-import { DJ_TEMPLATES, djPublicUrl } from "@/gigblade/concept";
+import { DJ_TEMPLATES, djEditorPageUrl, djPublicUrl } from "@/gigblade/concept";
 import { BrandColorPicker } from "@/gigblade/BrandColorPicker";
 import { PhotoGridReveal } from "@/gigblade/PhotoGridReveal";
 import { SavePublishControl } from "@/gigblade/SavePublishControl";
@@ -36,7 +37,7 @@ import {
 	type DjSectionId,
 } from "@/gigblade/useDjContent";
 
-type FieldErrors = Partial<Record<"displayName" | "email" | "template" | "save", string>>;
+type FieldErrors = Partial<Record<"displayName" | "email" | "phone" | "template" | "save", string>>;
 
 const LINK_ROWS: { id: keyof DjLinkDraft; label: string; hint: string }[] = [
 	{ id: "instagram", label: "Instagram", hint: "Handle o URL https" },
@@ -55,6 +56,37 @@ const LINK_ROWS: { id: keyof DjLinkDraft; label: string; hint: string }[] = [
 		hint: "Enlace directo al perfil, track o playlist",
 	},
 ];
+
+const PATTERN_INK = "rgba(0, 0, 0, 0.45)";
+
+function patternPreviewStyle(
+	pattern: "none" | "dots" | "grid" | "diagonal" | "grain",
+): CSSProperties {
+	if (pattern === "dots") {
+		return {
+			backgroundImage: `radial-gradient(circle, ${PATTERN_INK} 1.15px, transparent 1.25px)`,
+			backgroundSize: "10px 10px",
+		};
+	}
+	if (pattern === "grid") {
+		return {
+			backgroundImage: `linear-gradient(${PATTERN_INK} 1px, transparent 1px), linear-gradient(90deg, ${PATTERN_INK} 1px, transparent 1px)`,
+			backgroundSize: "12px 12px",
+		};
+	}
+	if (pattern === "diagonal") {
+		return {
+			backgroundImage: `repeating-linear-gradient(-32deg, transparent 0 5px, ${PATTERN_INK} 5px 6px)`,
+		};
+	}
+	if (pattern === "grain") {
+		return {
+			backgroundImage: `radial-gradient(circle, ${PATTERN_INK} 0.6px, transparent 0.7px)`,
+			backgroundSize: "4px 4px",
+		};
+	}
+	return {};
+}
 
 const SECTION_ROWS: { id: DjSectionId; label: string }[] = [
 	{ id: "agenda", label: "Fechas" },
@@ -119,11 +151,74 @@ function Field({
 	);
 }
 
+function ChoiceGroup<T extends string>({
+	legend,
+	name,
+	value,
+	options,
+	onChange,
+}: {
+	legend: string;
+	name: string;
+	value: T;
+	options: ReadonlyArray<{ id: T; label: string }>;
+	onChange: (id: T) => void;
+}) {
+	const legendId = useId();
+	return (
+		<fieldset className="flex flex-col gap-2 border-0 p-0">
+			<legend id={legendId} className="text-sm font-medium text-foreground">
+				{legend}
+			</legend>
+			<div
+				role="radiogroup"
+				aria-labelledby={legendId}
+				className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+			>
+				{options.map((option) => {
+					const checked = value === option.id;
+					return (
+						<label
+							key={option.id}
+							className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ${
+								checked
+									? "border-foreground bg-interactive-secondary text-foreground"
+									: "border-input text-tertiary-foreground"
+							}`}
+						>
+							<input
+								type="radio"
+								name={name}
+								value={option.id}
+								checked={checked}
+								onChange={() => onChange(option.id)}
+								className="accent-foreground"
+							/>
+							{option.label}
+						</label>
+					);
+				})}
+			</div>
+		</fieldset>
+	);
+}
+
 function validate(draft: DjContentDraft): FieldErrors {
 	const errors: FieldErrors = {};
 	if (!draft.displayName.trim()) errors.displayName = "Indicá el nombre.";
 	if (draft.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim())) {
 		errors.email = "Indicá un correo válido.";
+	}
+	const phone = draft.phone.trim();
+	const phoneDigits = phone.replace(/\D/g, "").length;
+	if (
+		phone &&
+		(phone.length > 30 ||
+			phoneDigits < 7 ||
+			phoneDigits > 15 ||
+			!/^\+?[\d\s().-]+$/.test(phone))
+	) {
+		errors.phone = "Indicá un número válido.";
 	}
 	if (!DJ_TEMPLATES.some((template) => template.id === draft.template)) {
 		errors.template = "Elegí una plantilla.";
@@ -135,18 +230,35 @@ export default function DjContentPage() {
 	const { dj, setDj, draft, setDraft, save, live, maxMixes } = useDjProfile({
 		syncLive: true,
 	});
-	const pageUrl = djPublicUrl(dj);
+	const pageUrl = djEditorPageUrl(dj);
 	const [errors, setErrors] = useState<FieldErrors>({});
 	const [saved, setSaved] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [photoUploading, setPhotoUploading] = useState(false);
 	const [photoError, setPhotoError] = useState("");
 	const [pendingPhotoPreviews, setPendingPhotoPreviews] = useState<string[]>([]);
+	const [replacePreview, setReplacePreview] = useState<{
+		id: string;
+		src: string;
+	} | null>(null);
 	const [saveTick, setSaveTick] = useState(0);
 	const photoInputRef = useRef<HTMLInputElement>(null);
+	const replaceInputRef = useRef<HTMLInputElement>(null);
+	const replaceTargetRef = useRef<string | null>(null);
+	const eventPhotoInputRef = useRef<HTMLInputElement>(null);
+	const eventPhotoTargetRef = useRef<string | null>(null);
+	const [eventPhotoPreview, setEventPhotoPreview] = useState<{
+		id: string;
+		src: string;
+	} | null>(null);
+	const [eventPhotoUploadingId, setEventPhotoUploadingId] = useState<
+		string | null
+	>(null);
+	const [eventPhotoError, setEventPhotoError] = useState("");
 	const ids = {
 		displayName: useId(),
 		email: useId(),
+		phone: useId(),
 		tagline: useId(),
 		bio: useId(),
 		city: useId(),
@@ -210,6 +322,7 @@ export default function DjContentPage() {
 					venue: "",
 					location: "",
 					ticketUrl: "",
+					photo: "",
 				},
 			],
 		}));
@@ -235,6 +348,49 @@ export default function DjContentPage() {
 			events: current.events.filter((event) => event.id !== id),
 		}));
 		setSaved(false);
+	};
+
+	const startEventPhoto = (id: string) => {
+		eventPhotoTargetRef.current = id;
+		eventPhotoInputRef.current?.click();
+	};
+
+	const uploadEventPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		const id = eventPhotoTargetRef.current;
+		event.target.value = "";
+		eventPhotoTargetRef.current = null;
+		if (!file || !id) return;
+
+		const session = readPanelAuthSession();
+		if (!session) {
+			setEventPhotoError("Volvé a iniciar sesión para subir la foto.");
+			return;
+		}
+
+		const preview = URL.createObjectURL(file);
+		setEventPhotoPreview({ id, src: preview });
+		setEventPhotoUploadingId(id);
+		setEventPhotoError("");
+		try {
+			const optimized = await optimizePhoto(file);
+			const url = await uploadSitePhoto({
+				slug: dj.slug,
+				file: optimized,
+				token: session.token,
+			});
+			touchEvent(id, { photo: url, clearPhoto: false });
+		} catch (error) {
+			setEventPhotoError(
+				error instanceof Error
+					? error.message
+					: "No se pudo subir la foto del evento.",
+			);
+		} finally {
+			URL.revokeObjectURL(preview);
+			setEventPhotoPreview(null);
+			setEventPhotoUploadingId(null);
+		}
 	};
 
 	const uploadPhotos = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -287,6 +443,53 @@ export default function DjContentPage() {
 			photos: current.photos.filter((photo) => photo.id !== id),
 		}));
 		setSaved(false);
+	};
+
+	const startReplacePhoto = (id: string) => {
+		replaceTargetRef.current = id;
+		replaceInputRef.current?.click();
+	};
+
+	const replacePhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		const id = replaceTargetRef.current;
+		event.target.value = "";
+		replaceTargetRef.current = null;
+		if (!file || !id) return;
+
+		const session = readPanelAuthSession();
+		if (!session) {
+			setPhotoError("Volvé a iniciar sesión para cambiar la foto.");
+			return;
+		}
+
+		const preview = URL.createObjectURL(file);
+		setReplacePreview({ id, src: preview });
+		setPhotoUploading(true);
+		setPhotoError("");
+		try {
+			const optimized = await optimizePhoto(file);
+			const url = await uploadSitePhoto({
+				slug: dj.slug,
+				file: optimized,
+				token: session.token,
+			});
+			setDraft((current) => ({
+				...current,
+				photos: current.photos.map((photo) =>
+					photo.id === id ? { ...photo, url } : photo,
+				),
+			}));
+			setSaved(false);
+		} catch (error) {
+			setPhotoError(
+				error instanceof Error ? error.message : "No se pudo cambiar la foto.",
+			);
+		} finally {
+			URL.revokeObjectURL(preview);
+			setReplacePreview(null);
+			setPhotoUploading(false);
+		}
 	};
 
 	const toggleSection = (section: DjSectionId) => {
@@ -344,7 +547,10 @@ export default function DjContentPage() {
 				</Breadcrumb>
 				<div className="flex items-center gap-2">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
-					<OpenPublicPageButton href={pageUrl} />
+					<OpenPublicPageButton
+						href={pageUrl}
+						label={djPublicUrl(dj) ? "Abrir página" : "Ver plantilla"}
+					/>
 				</div>
 			</div>
 
@@ -424,6 +630,26 @@ export default function DjContentPage() {
 						/>
 					</Field>
 					<Field
+						id={ids.phone}
+						label="Teléfono"
+						hint="Opcional. Se publica en Contacto para llamar."
+						error={errors.phone}
+					>
+						<Input
+							id={ids.phone}
+							type="tel"
+							autoComplete="tel"
+							inputMode="tel"
+							placeholder="ej. +506 8888 0000"
+							value={draft.phone}
+							onChange={(event) => touch({ phone: event.target.value })}
+							aria-invalid={Boolean(errors.phone)}
+							aria-describedby={
+								errors.phone ? `${ids.phone}-error` : `${ids.phone}-hint`
+							}
+						/>
+					</Field>
+					<Field
 						id={ids.tagline}
 						label="Tagline"
 						hint="Una línea para la portada."
@@ -463,6 +689,19 @@ export default function DjContentPage() {
 							Agregar fecha
 						</Button>
 					</div>
+					<input
+						ref={eventPhotoInputRef}
+						type="file"
+						accept="image/jpeg,image/png,image/webp,image/avif"
+						onChange={uploadEventPhoto}
+						aria-label="Foto del evento"
+						className="sr-only"
+					/>
+					{eventPhotoError ? (
+						<p role="alert" className="text-sm text-destructive">
+							{eventPhotoError}
+						</p>
+					) : null}
 					{draft.events.length === 0 ? (
 						<p className="text-sm text-tertiary-foreground">
 							No hay fechas publicadas.
@@ -520,6 +759,80 @@ export default function DjContentPage() {
 											}
 										/>
 									</Field>
+									<div className="flex flex-col gap-2 sm:col-span-2">
+										<span
+											id={`${item.id}-photo-label`}
+											className="text-sm font-medium text-foreground"
+										>
+											Foto del evento
+										</span>
+										<p
+											id={`${item.id}-photo-hint`}
+											className="text-xs text-tertiary-foreground"
+										>
+											Opcional. JPG, PNG, WebP o AVIF, hasta 5 MB.
+											Se comprime igual que las fotos de portada.
+										</p>
+										{eventPhotoPreview?.id === item.id || item.photo ? (
+											<img
+												src={
+													eventPhotoPreview?.id === item.id
+														? eventPhotoPreview.src
+														: publicSiteAssetUrl(dj.slug, item.photo)
+												}
+												alt={
+													item.venue.trim()
+														? `Foto de ${item.venue.trim()}`
+														: `Foto de la fecha ${index + 1}`
+												}
+												className="aspect-video w-full max-w-sm rounded-lg object-cover"
+											/>
+										) : null}
+										<div className="flex flex-col gap-2 sm:flex-row">
+											<Button
+												type="button"
+												variant="secondary"
+												size="sm"
+												onClick={() => startEventPhoto(item.id)}
+												disabled={eventPhotoUploadingId === item.id}
+												aria-describedby={`${item.id}-photo-hint`}
+												aria-label={
+													item.venue.trim()
+														? `${item.photo ? "Cambiar" : "Subir"} la foto de ${item.venue.trim()}`
+														: `${item.photo ? "Cambiar" : "Subir"} la foto de la fecha ${index + 1}`
+												}
+												className="min-h-11 w-full sm:w-auto"
+											>
+												{eventPhotoUploadingId === item.id
+													? "Subiendo…"
+													: item.photo
+														? "Cambiar foto"
+														: "Subir foto"}
+											</Button>
+											{item.photo ? (
+												<Button
+													type="button"
+													variant="secondary"
+													size="sm"
+													onClick={() =>
+														touchEvent(item.id, {
+															photo: "",
+															clearPhoto: true,
+														})
+													}
+													disabled={eventPhotoUploadingId === item.id}
+													aria-label={
+														item.venue.trim()
+															? `Quitar la foto de ${item.venue.trim()}`
+															: `Quitar la foto de la fecha ${index + 1}`
+													}
+													className="min-h-11 w-full sm:w-auto"
+												>
+													Quitar foto
+												</Button>
+											) : null}
+										</div>
+									</div>
 									<div className="sm:col-span-2">
 										<Button
 											type="button"
@@ -527,6 +840,7 @@ export default function DjContentPage() {
 											size="sm"
 											onClick={() => removeEvent(item.id)}
 											aria-label={`Quitar fecha ${index + 1}`}
+											className="min-h-11"
 									>
 										Quitar fecha
 									</Button>
@@ -586,6 +900,171 @@ export default function DjContentPage() {
 					<BrandColorPicker
 						value={draft.brandColor}
 						onChange={(brandColor) => touch({ brandColor })}
+					/>
+					<fieldset className="flex flex-col gap-2 border-0 p-0">
+						<legend
+							id={`${ids.template}-pattern`}
+							className="text-sm font-medium text-foreground"
+						>
+							Patrón de fondo
+						</legend>
+						<div
+							role="radiogroup"
+							aria-labelledby={`${ids.template}-pattern`}
+							className="grid grid-cols-2 gap-2 sm:grid-cols-5"
+						>
+							{(
+								[
+									{ id: "none", label: "Liso" },
+									{ id: "dots", label: "Puntos" },
+									{ id: "grid", label: "Grilla" },
+									{ id: "diagonal", label: "Diagonal" },
+									{ id: "grain", label: "Grano" },
+								] as const
+							).map((pattern) => {
+								const checked = draft.backgroundPattern === pattern.id;
+								return (
+									<label
+										key={pattern.id}
+										className={`flex cursor-pointer flex-col gap-1.5 rounded-lg border px-2 py-2 text-sm ${
+											checked
+												? "border-foreground bg-interactive-secondary text-foreground"
+												: "border-input text-tertiary-foreground"
+										}`}
+									>
+										<span className="flex items-center gap-2">
+											<input
+												type="radio"
+												name="background-pattern"
+												value={pattern.id}
+												checked={checked}
+												onChange={() =>
+													touch({ backgroundPattern: pattern.id })
+												}
+												className="accent-foreground"
+											/>
+											{pattern.label}
+										</span>
+										<span
+											aria-hidden
+											className="h-8 w-full rounded-md border border-input bg-[#f4f4f5]"
+											style={patternPreviewStyle(pattern.id)}
+										/>
+									</label>
+								);
+							})}
+						</div>
+						<p className="text-xs text-tertiary-foreground">
+							Se publica sobre el color de la página. Guardá para verlo.
+						</p>
+					</fieldset>
+					<ChoiceGroup
+						legend="Estilo de portada"
+						name="hero-style"
+						value={draft.heroStyle}
+						onChange={(heroStyle) => touch({ heroStyle })}
+						options={[
+							{ id: "cinematic", label: "Cine" },
+							{ id: "poster", label: "Cartel" },
+							{ id: "band", label: "Franja" },
+							{ id: "type", label: "Tipográfica" },
+							{ id: "duo", label: "Doble foto" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Alineación de la portada"
+						name="hero-align"
+						value={draft.heroAlign}
+						onChange={(heroAlign) => touch({ heroAlign })}
+						options={[
+							{ id: "start", label: "Izquierda" },
+							{ id: "center", label: "Centro" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Fondo de la página"
+						name="surface-style"
+						value={draft.surfaceStyle}
+						onChange={(surfaceStyle) => touch({ surfaceStyle })}
+						options={[
+							{ id: "plain", label: "Color plano" },
+							{ id: "gradient", label: "Degradado" },
+							{ id: "bands", label: "Franjas" },
+							{ id: "frame", label: "Marco" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Fechas"
+						name="agenda-style"
+						value={draft.agendaStyle}
+						onChange={(agendaStyle) => touch({ agendaStyle })}
+						options={[
+							{ id: "list", label: "Lista" },
+							{ id: "cards", label: "Tarjetas" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Biografía"
+						name="bio-style"
+						value={draft.bioStyle}
+						onChange={(bioStyle) => touch({ bioStyle })}
+						options={[
+							{ id: "quote", label: "Cita" },
+							{ id: "columns", label: "Columnas" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Sets"
+						name="mix-style"
+						value={draft.mixStyle}
+						onChange={(mixStyle) => touch({ mixStyle })}
+						options={[
+							{ id: "grid", label: "Grilla" },
+							{ id: "row", label: "Fila" },
+							{ id: "list", label: "Lista" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Redes"
+						name="link-style"
+						value={draft.linkStyle}
+						onChange={(linkStyle) => touch({ linkStyle })}
+						options={[
+							{ id: "cards", label: "Tarjetas" },
+							{ id: "icons", label: "Botones con nombre" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Botones"
+						name="button-style"
+						value={draft.buttonStyle}
+						onChange={(buttonStyle) => touch({ buttonStyle })}
+						options={[
+							{ id: "pill", label: "Pastilla" },
+							{ id: "square", label: "Cuadrado" },
+							{ id: "text", label: "Texto" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Esquinas"
+						name="corner-style"
+						value={draft.cornerStyle}
+						onChange={(cornerStyle) => touch({ cornerStyle })}
+						options={[
+							{ id: "round", label: "Redondas" },
+							{ id: "sharp", label: "Rectas" },
+						]}
+					/>
+					<ChoiceGroup
+						legend="Tipografía del nombre"
+						name="title-style"
+						value={draft.titleStyle}
+						onChange={(titleStyle) => touch({ titleStyle })}
+						options={[
+							{ id: "tight", label: "Compacta" },
+							{ id: "wide", label: "Abierta" },
+							{ id: "spaced", label: "Espaciada" },
+						]}
 					/>
 					<Field
 						id={`${ids.template}-hero-position`}
@@ -752,7 +1231,7 @@ export default function DjContentPage() {
 							className="text-xs text-tertiary-foreground"
 						>
 							JPG, PNG, WebP o AVIF, hasta 5 MB. La primera se usa
-							en portada.
+							en portada. Cambiar una foto mantiene su lugar.
 						</p>
 						<input
 							ref={photoInputRef}
@@ -762,6 +1241,14 @@ export default function DjContentPage() {
 							multiple
 							onChange={uploadPhotos}
 							aria-describedby={`${ids.photos}-help`}
+							className="sr-only"
+						/>
+						<input
+							ref={replaceInputRef}
+							type="file"
+							accept="image/jpeg,image/png,image/webp,image/avif"
+							onChange={replacePhoto}
+							aria-label="Nueva imagen para la foto elegida"
 							className="sr-only"
 						/>
 						<Button
@@ -798,24 +1285,52 @@ export default function DjContentPage() {
 									className="relative overflow-hidden rounded-lg border bg-interactive-secondary"
 								>
 									<img
-										src={publicSiteAssetUrl(dj.slug, photo.url)}
-										alt=""
+										src={
+											replacePreview?.id === photo.id
+												? replacePreview.src
+												: publicSiteAssetUrl(dj.slug, photo.url)
+										}
+										alt={index === 0 ? "Portada" : `Foto ${index + 1}`}
 										className="aspect-4/3 w-full object-cover"
 									/>
-									<div className="flex min-h-12 items-center justify-between gap-2 px-3 py-2">
+									<div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
 										<span className="truncate text-xs font-medium text-foreground">
 											{index === 0 ? "Portada" : `Foto ${index + 1}`}
 										</span>
-									<Button
-										type="button"
-										variant="secondary"
-										size="sm"
-										onClick={() => removePhoto(photo.id)}
-										aria-label={`Quitar foto ${index + 1}`}
-										className="shrink-0"
-									>
-										Quitar
-									</Button>
+										<div className="flex gap-2">
+											<Button
+												type="button"
+												variant="secondary"
+												size="sm"
+												onClick={() => startReplacePhoto(photo.id)}
+												disabled={photoUploading}
+												aria-label={
+													index === 0
+														? "Cambiar la portada"
+														: `Cambiar foto ${index + 1}`
+												}
+												className="min-h-11 w-full flex-1 sm:w-auto"
+											>
+												{replacePreview?.id === photo.id
+													? "Cambiando…"
+													: "Cambiar"}
+											</Button>
+											<Button
+												type="button"
+												variant="secondary"
+												size="sm"
+												onClick={() => removePhoto(photo.id)}
+												disabled={photoUploading}
+												aria-label={
+													index === 0
+														? "Quitar la portada"
+														: `Quitar foto ${index + 1}`
+												}
+												className="min-h-11 w-full flex-1 sm:w-auto"
+											>
+												Quitar
+											</Button>
+										</div>
 									</div>
 								</li>
 							))}
