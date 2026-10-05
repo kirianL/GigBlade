@@ -25,4 +25,14 @@ export class InMemoryWaitlistRepository implements WaitlistRepository {
       b.createdAt.localeCompare(a.createdAt),
     );
   }
+
+  async deleteById(id: string): Promise<boolean> {
+    for (const [email, signup] of this.byEmail) {
+      if (signup.id === id) {
+        this.byEmail.delete(email);
+        return true;
+      }
+    }
+    return false;
+  }
 }

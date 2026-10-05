@@ -80,6 +80,21 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
 
     return ((data ?? []) as WaitlistRow[]).map(mapSignup);
   }
+
+  async deleteById(id: string): Promise<boolean> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("dj_waitlist")
+      .delete()
+      .eq("id", id)
+      .select("id");
+
+    if (error) {
+      failPostgrestQuery(error, { operation: "waitlist.delete" });
+    }
+
+    return ((data ?? []) as Array<{ id: string }>).length > 0;
+  }
 }
 
 function mapSignup(row: WaitlistRow): WaitlistSignup {

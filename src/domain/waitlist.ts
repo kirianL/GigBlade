@@ -122,6 +122,18 @@ export function normalizeWaitlistDraft(input: {
   };
 }
 
+export function whatsappUrl(
+  phone: string,
+  country: WaitlistDraft["country"],
+): string | null {
+  let digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  if (country === "CR" && digits.length === 8) {
+    digits = `506${digits}`;
+  }
+  return `https://wa.me/${digits}`;
+}
+
 export function isWaitlistDraft(
   value: WaitlistDraft | { discarded: true },
 ): value is WaitlistDraft {

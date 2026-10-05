@@ -15,6 +15,7 @@ import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
+import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
 import { InMemoryPanelAuthStore } from "@/infrastructure/memory/in-memory-panel-auth-store";
 import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
@@ -137,5 +138,9 @@ export function createMemoryApp() {
     },
     joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
     listWaitlist: () => listWaitlist(waitlist),
+    removeWaitlist: (
+      actor: Parameters<typeof removeWaitlistSignup>[1],
+      input: { id: unknown },
+    ) => removeWaitlistSignup(waitlist, actor, input),
   };
 }

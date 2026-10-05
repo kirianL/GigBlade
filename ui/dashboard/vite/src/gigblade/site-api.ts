@@ -528,6 +528,24 @@ export async function generateDjPassword(input: {
 	return body;
 }
 
+export async function deleteWaitlistSignup(input: {
+	id: string;
+	token: string;
+}): Promise<{ id: string }> {
+	const body = (await panelFetch(
+		`/api/platform/waitlist?id=${encodeURIComponent(input.id)}`,
+		{
+			method: "DELETE",
+			token: input.token,
+			timeoutMs: 15000,
+		},
+	)) as { id?: string };
+	if (!body?.id) {
+		throw new Error("No se pudo eliminar la solicitud.");
+	}
+	return { id: body.id };
+}
+
 export async function deleteDj(input: {
 	slug: string;
 	token: string;

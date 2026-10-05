@@ -28,3 +28,16 @@ export async function GET(request: Request) {
     return withTenantCors(request, errorResponse(error, requestId));
   }
 }
+
+export async function DELETE(request: Request) {
+  const requestId = createRequestId();
+
+  try {
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const id = new URL(request.url).searchParams.get("id");
+    const removed = await getApp().removeWaitlist(actor, { id });
+    return jsonWithTenantCors(request, removed, { requestId });
+  } catch (error) {
+    return withTenantCors(request, errorResponse(error, requestId));
+  }
+}

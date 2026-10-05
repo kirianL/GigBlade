@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
+import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
+import { whatsappUrl } from "@/domain/waitlist";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
 
 describe("joinWaitlist", () => {
@@ -96,6 +98,26 @@ describe("joinWaitlist", () => {
         status: "pending",
       }),
     ]);
+  });
+
+  it("elimina una solicitud y abre WhatsApp con el número", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+    await joinWaitlist(waitlist, {
+      artistName: "Nox",
+      email: "nox@example.com",
+      phone: "8888-0000",
+    });
+    const [signup] = await listWaitlist(waitlist);
+
+    expect(whatsappUrl(signup.phone ?? "", "CR")).toBe("https://wa.me/50688880000");
+    await expect(
+      removeWaitlistSignup(
+        waitlist,
+        { email: "hola@gigblade.com", name: "Kirian", role: "platform" },
+        { id: signup.id },
+      ),
+    ).resolves.toEqual({ id: signup.id });
+    await expect(listWaitlist(waitlist)).resolves.toEqual([]);
   });
 
   it("mantiene Estados Unidos bloqueado hasta su lanzamiento", async () => {
