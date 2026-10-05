@@ -25,7 +25,7 @@ export function AuthBackground({ children }: AuthBackgroundProps) {
 			</div>
 
 			<div className="flex min-h-dvh min-w-0 flex-1 flex-col">
-				<header className="flex h-14 shrink-0 items-center justify-between px-5 pt-[env(safe-area-inset-top)] lg:hidden">
+				<header className="gigblade-safe-header flex shrink-0 items-center justify-between px-5 lg:hidden">
 					<a
 						href={siteUrl}
 						className="font-sans text-[18px] font-medium tracking-[-0.03em] text-white"

@@ -12,6 +12,22 @@
     <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      (() => {
+        const standalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        if (!standalone) return;
+        const probe = document.createElement("div");
+        probe.style.cssText =
+          "position:fixed;padding-top:env(safe-area-inset-top);visibility:hidden;pointer-events:none";
+        document.documentElement.appendChild(probe);
+        const inset = Number.parseFloat(getComputedStyle(probe).paddingTop) || 0;
+        probe.remove();
+        if (inset > 0) return;
+        document.documentElement.style.setProperty("--gigblade-safe-top", "3.25rem");
+      })();
+    </script>
     <meta name="apple-mobile-web-app-title" content="GigBlade" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

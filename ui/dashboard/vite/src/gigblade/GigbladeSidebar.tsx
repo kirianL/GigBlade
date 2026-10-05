@@ -327,7 +327,7 @@ export function GigbladeMobileSidebar({
 				side="left"
 				hideCloseButton
 				portalContainer={document.body}
-				className="w-[280px] max-w-[80vw] p-0 bg-outer-background"
+				className="gigblade-safe-top gigblade-safe-bottom w-[280px] max-w-[80vw] bg-outer-background"
 				aria-describedby={undefined}
 			>
 				<SheetTitle className="sr-only">Navegación</SheetTitle>

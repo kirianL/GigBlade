@@ -74,7 +74,7 @@ export function GigbladeLayout() {
 	}
 
 	return (
-		<div className="w-screen h-screen flex bg-outer-background">
+		<div className="flex h-dvh w-screen bg-outer-background">
 			<Toaster position="top-center" duration={6000} />
 			<div className="hidden sm:flex">
 				<GigbladeSidebar />
@@ -83,12 +83,12 @@ export function GigbladeLayout() {
 				open={mobileSidebarOpen}
 				onOpenChange={setMobileSidebarOpen}
 			/>
-			<main className="w-full h-screen flex flex-col justify-center overflow-hidden sm:py-3 sm:pr-3 relative font-normal">
-				<div className="w-full h-full flex flex-col overflow-hidden sm:rounded-xl sm:border relative">
+			<main className="relative flex h-full min-h-0 w-full flex-col overflow-hidden font-normal sm:py-3 sm:pr-3">
+				<div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden sm:rounded-xl sm:border">
 					<MobileTopBar onMenuClick={() => setMobileSidebarOpen(true)} />
 					<div
 						data-main-content
-						className="w-full h-full overflow-auto flex justify-center bg-background relative"
+						className="gigblade-safe-bottom relative flex min-h-0 w-full flex-1 justify-center overflow-auto bg-background"
 					>
 						<div className="w-full min-h-full justify-center">
 							<AppErrorBoundary

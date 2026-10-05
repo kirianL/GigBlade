@@ -165,6 +165,29 @@ body,
 	}
 }
 
+:root {
+	--gigblade-safe-top: env(safe-area-inset-top, 0px);
+	--gigblade-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.gigblade-safe-top {
+	padding-top: var(--gigblade-safe-top);
+}
+
+.gigblade-safe-bottom {
+	padding-bottom: var(--gigblade-safe-bottom);
+}
+
+.gigblade-safe-bar {
+	padding-top: var(--gigblade-safe-top);
+	min-height: calc(2.75rem + var(--gigblade-safe-top));
+}
+
+.gigblade-safe-header {
+	padding-top: var(--gigblade-safe-top);
+	min-height: calc(3.5rem + var(--gigblade-safe-top));
+}
+
 @media (hover: hover) and (pointer: fine) {
 	a[data-slot="nav-button"]:hover,
 	[data-slot="nav-button"]:hover {
