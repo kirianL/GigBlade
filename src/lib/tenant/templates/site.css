@@ -15,8 +15,14 @@
 
 /* Base Theme Appearances */
 [data-tenant-site] {
+  --site-pattern: none;
+  --site-pattern-size: auto;
+  --site-wash: none;
   min-height: 100dvh;
   background-color: var(--site-bg);
+  background-image: var(--site-pattern), var(--site-wash);
+  background-size: var(--site-pattern-size), auto;
+  background-repeat: repeat, no-repeat;
   color: var(--site-fg);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
@@ -77,23 +83,23 @@
 }
 
 [data-tenant-site][data-pattern="dots"] {
-  background-image: radial-gradient(
+  --site-pattern: radial-gradient(
     circle,
     color-mix(in srgb, var(--site-fg) 32%, transparent) 1.15px,
     transparent 1.25px
   );
-  background-size: 18px 18px;
+  --site-pattern-size: 18px 18px;
 }
 
 [data-tenant-site][data-pattern="grid"] {
-  background-image:
+  --site-pattern:
     linear-gradient(color-mix(in srgb, var(--site-fg) 18%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--site-fg) 18%, transparent) 1px, transparent 1px);
-  background-size: 28px 28px;
+  --site-pattern-size: 28px 28px, 28px 28px;
 }
 
 [data-tenant-site][data-pattern="diagonal"] {
-  background-image: repeating-linear-gradient(
+  --site-pattern: repeating-linear-gradient(
     -32deg,
     transparent 0 11px,
     color-mix(in srgb, var(--site-fg) 20%, transparent) 11px 12px
@@ -101,38 +107,63 @@
 }
 
 [data-tenant-site][data-pattern="grain"] {
-  background-image: radial-gradient(
+  --site-pattern: radial-gradient(
     circle,
     color-mix(in srgb, var(--site-fg) 42%, transparent) 0.6px,
     transparent 0.7px
   );
-  background-size: 5px 5px;
+  --site-pattern-size: 5px 5px;
 }
 
 [data-tenant-site] {
   overflow-x: clip;
 }
 
-[data-tenant-site][data-surface="gradient"][data-pattern="none"] {
-  background-image:
-    radial-gradient(
-      120% 70% at 50% -8%,
-      color-mix(in srgb, var(--site-fg) 14%, transparent),
-      transparent 58%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--site-fg) 6%, transparent),
-      transparent 42%
-    );
+[data-tenant-site][data-surface="gradient"] {
+  background-color: color-mix(in srgb, var(--site-fg) 18%, var(--site-bg));
+  --site-wash: linear-gradient(
+    180deg,
+    var(--site-bg) 0,
+    var(--site-bg) 100dvh,
+    color-mix(in srgb, var(--site-fg) 18%, var(--site-bg)) 260dvh
+  );
+}
+
+[data-tenant-site][data-surface="gradient"] #inicio[data-hero="cinematic"] {
+  min-height: 100dvh;
 }
 
 [data-tenant-site][data-surface="bands"] #site-main > :nth-child(even) {
-  background-color: color-mix(in srgb, var(--site-fg) 5%, transparent);
+  position: relative;
+  z-index: 0;
+  background-color: transparent;
 }
 
-[data-tenant-site][data-surface="frame"] {
-  box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--site-fg) 18%, transparent);
+[data-tenant-site][data-surface="bands"] #site-main > :nth-child(even)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background-color: color-mix(in srgb, var(--site-fg) 16%, var(--site-bg));
+}
+
+[data-tenant-site][data-surface="frame"]::after {
+  content: "";
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  pointer-events: none;
+  border: 12px solid var(--site-fg);
+}
+
+[data-tenant-site][data-surface="frame"] .site-header {
+  top: 12px;
+  right: 12px;
+  left: 12px;
 }
 
 [data-tenant-site][data-hero-align="center"] #inicio {
@@ -227,12 +258,6 @@
 
   [data-tenant-site][data-titles="spaced"] .font-display {
     letter-spacing: 0.16em;
-  }
-}
-
-@media (min-width: 768px) {
-  [data-tenant-site][data-surface="frame"] {
-    box-shadow: inset 0 0 0 14px color-mix(in srgb, var(--site-fg) 18%, transparent);
   }
 }
 
