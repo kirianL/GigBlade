@@ -9,7 +9,12 @@ import {
 	Input,
 	LongInput,
 } from "@autumn/ui";
-import { IdentificationCardIcon } from "@phosphor-icons/react";
+import {
+	ArrowsClockwiseIcon,
+	CalendarXIcon,
+	IdentificationCardIcon,
+	TrashIcon,
+} from "@phosphor-icons/react";
 import {
 	useId,
 	useRef,
@@ -788,7 +793,7 @@ export default function DjContentPage() {
 												className="aspect-video w-full max-w-sm rounded-lg object-cover"
 											/>
 										) : null}
-										<div className="flex flex-col gap-2 sm:flex-row">
+										<div className="flex flex-wrap items-center gap-1.5">
 											<Button
 												type="button"
 												variant="secondary"
@@ -801,8 +806,8 @@ export default function DjContentPage() {
 														? `${item.photo ? "Cambiar" : "Subir"} la foto de ${item.venue.trim()}`
 														: `${item.photo ? "Cambiar" : "Subir"} la foto de la fecha ${index + 1}`
 												}
-												className="min-h-11 w-full sm:w-auto"
 											>
+												<ArrowsClockwiseIcon className="size-3.5" aria-hidden />
 												{eventPhotoUploadingId === item.id
 													? "Subiendo…"
 													: item.photo
@@ -826,25 +831,24 @@ export default function DjContentPage() {
 															? `Quitar la foto de ${item.venue.trim()}`
 															: `Quitar la foto de la fecha ${index + 1}`
 													}
-													className="min-h-11 w-full sm:w-auto"
 												>
+													<TrashIcon className="size-3.5" aria-hidden />
 													Quitar foto
 												</Button>
 											) : null}
+											<Button
+												type="button"
+												variant="secondary"
+												size="sm"
+												onClick={() => removeEvent(item.id)}
+												aria-label={`Quitar fecha ${index + 1}`}
+												className="text-destructive sm:ml-auto"
+											>
+												<CalendarXIcon className="size-3.5" aria-hidden />
+												Quitar fecha
+											</Button>
 										</div>
 									</div>
-									<div className="sm:col-span-2">
-										<Button
-											type="button"
-											variant="secondary"
-											size="sm"
-											onClick={() => removeEvent(item.id)}
-											aria-label={`Quitar fecha ${index + 1}`}
-											className="min-h-11"
-									>
-										Quitar fecha
-									</Button>
-								</div>
 							</li>
 							))}
 						</ul>
@@ -1293,11 +1297,11 @@ export default function DjContentPage() {
 										alt={index === 0 ? "Portada" : `Foto ${index + 1}`}
 										className="aspect-4/3 w-full object-cover"
 									/>
-									<div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+									<div className="flex items-center justify-between gap-2 px-3 py-2">
 										<span className="truncate text-xs font-medium text-foreground">
 											{index === 0 ? "Portada" : `Foto ${index + 1}`}
 										</span>
-										<div className="flex gap-2">
+										<div className="flex shrink-0 items-center gap-1.5">
 											<Button
 												type="button"
 												variant="secondary"
@@ -1309,8 +1313,8 @@ export default function DjContentPage() {
 														? "Cambiar la portada"
 														: `Cambiar foto ${index + 1}`
 												}
-												className="min-h-11 w-full flex-1 sm:w-auto"
 											>
+												<ArrowsClockwiseIcon className="size-3.5" aria-hidden />
 												{replacePreview?.id === photo.id
 													? "Cambiando…"
 													: "Cambiar"}
@@ -1326,8 +1330,9 @@ export default function DjContentPage() {
 														? "Quitar la portada"
 														: `Quitar foto ${index + 1}`
 												}
-												className="min-h-11 w-full flex-1 sm:w-auto"
+												className="text-destructive"
 											>
+												<TrashIcon className="size-3.5" aria-hidden />
 												Quitar
 											</Button>
 										</div>
