@@ -81,74 +81,25 @@ export const CONCEPT = {
 		"El costo de mantener la plataforma es prácticamente el mismo con 1 DJ o con 50. Cuantos más DJs se sumen, menos cuesta cada uno mantener esa base, y más queda de ganancia por cada suscripción nueva. Con pocos DJs activos ya se cubre el costo fijo.",
 } as const;
 
-const DAY = 86_400_000;
-const NOW = Date.now();
+export const GIGBLADE_DJS: GigbladeDj[] = [];
 
-export const GIGBLADE_DJS: GigbladeDj[] = [
-	{
-		slug: "marco",
-		name: "DJ Marco",
-		email: "marco@djmarco.com",
-		domain: "djmarco.com",
-		city: "San José",
-		template: "pista",
-		status: "active",
-		bio: "Sets de club y after. Página lista para que las productoras te encuentren.",
-		instagram: "@djmarco",
-		createdAt: NOW - DAY * 48,
-	},
-	{
-		slug: "luna",
-		name: "Luna Set",
-		email: "hola@lunaset.cr",
-		domain: "lunaset.cr",
-		city: "San José",
-		template: "festival",
-		status: "active",
-		bio: "Melodic y downtempo. Un canal formal, sin DMs sueltos.",
-		instagram: "@lunaset",
-		createdAt: NOW - DAY * 21,
-	},
-	{
-		slug: "nox",
-		name: "Nox",
-		email: "nox@gigblade.com",
+export function blankDj(slug: string): GigbladeDj {
+	return {
+		slug: slug || "dj",
+		name: slug || "DJ",
+		email: "",
 		domain: "",
-		city: "San José",
+		city: "",
 		template: "after",
 		status: "active",
-		bio: "Sets nocturnos para pistas que no cierran.",
-		instagram: "@nox",
-		createdAt: NOW - DAY * 9,
-	},
-	{
-		slug: "sofia",
-		name: "Sofía Beat",
-		email: "sofia@sofiabeat.com",
-		domain: "sofiabeat.com",
-		city: "Heredia",
-		template: "pista",
-		status: "trialing",
-		bio: "Trial del plan todo incluido. Cargando fotos y bio.",
-		instagram: "@sofiabeat",
-		createdAt: NOW - DAY * 3,
-	},
-	{
-		slug: "vera",
-		name: "Vera Pulse",
-		email: "vera@verapulse.com",
-		domain: "verapulse.com",
-		city: "Cartago",
-		template: "festival",
-		status: "canceled",
-		bio: "Página pausada. El dominio sigue administrado hasta el cierre del ciclo.",
-		instagram: "@verapulse",
-		createdAt: NOW - DAY * 72,
-	},
-];
+		bio: "",
+		instagram: "",
+		createdAt: Date.now(),
+	};
+}
 
 export function djBySlug(slug: string) {
-	return GIGBLADE_DJS.find((dj) => dj.slug === slug) ?? GIGBLADE_DJS[2];
+	return GIGBLADE_DJS.find((dj) => dj.slug === slug) ?? blankDj(slug);
 }
 
 export function djByArtistName(name: string | null) {
@@ -227,18 +178,6 @@ export function djInstagramUrl(dj: Pick<GigbladeDj, "instagram">) {
 
 export function djMailto(dj: Pick<GigbladeDj, "email">) {
 	return `mailto:${dj.email}`;
-}
-
-export function payingDjCount() {
-	return GIGBLADE_DJS.filter((dj) => dj.status === "active").length;
-}
-
-export function domainCount() {
-	return GIGBLADE_DJS.length;
-}
-
-export function estimatedMrr() {
-	return payingDjCount() * PLAN.priceUsd;
 }
 
 export function toCusProductStatus(status: DjStatus) {

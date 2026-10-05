@@ -618,7 +618,7 @@ export default function DjContentPage() {
 					<Field
 						id={ids.email}
 						label="Correo de contacto"
-						hint="El correo público del artista. GigBlade no entrega una casilla."
+						hint="El correo que el DJ usa para entrar al panel. También se publica en Contacto."
 						error={errors.email}
 					>
 						<Input

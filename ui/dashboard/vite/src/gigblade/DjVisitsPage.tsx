@@ -18,17 +18,18 @@ import { DjSelect, MetricCard, OpenPublicPageButton, PageContainer, useSelectedD
 import { AnimatedCounter } from "@/gigblade/AnimatedCounter";
 
 export default function DjVisitsPage() {
-	const { dj, setDj } = useSelectedDj();
+	const { dj, setDj, visitsReady } = useSelectedDj();
 	const pageUrl = djPublicUrl(dj);
 	const domainLabel = djDomainLabel(dj);
 	const [stats, setStats] = useState<SiteVisitStats | null>(null);
 
 	useEffect(() => {
+		if (!visitsReady) return;
 		const controller = new AbortController();
 		setStats(null);
 		void fetchSiteVisits(dj.slug, controller.signal).then(setStats);
 		return () => controller.abort();
-	}, [dj.slug]);
+	}, [dj.slug, visitsReady]);
 
 	const views = stats?.uniqueVisitors ?? 0;
 

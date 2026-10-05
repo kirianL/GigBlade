@@ -15,7 +15,9 @@ import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
+import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
 import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
+import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
 import { InMemoryPanelAuthStore } from "@/infrastructure/memory/in-memory-panel-auth-store";
 import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
@@ -82,7 +84,7 @@ export function createMemoryApp() {
     updateTenantSiteContent: (
       context: Parameters<typeof updateTenantSiteContent>[1],
       input: unknown,
-    ) => updateTenantSiteContent(tenants, context, input),
+    ) => updateTenantSiteContent(tenants, context, input, panelAuth),
     resolveTenantRouting: (hostname: string) =>
       resolveTenantRouting(routing, hostname),
     recordSiteVisit: (
@@ -142,5 +144,20 @@ export function createMemoryApp() {
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
+    onboardWaitlist: (
+      actor: Parameters<typeof onboardWaitlistSignup>[1],
+      input: { id: unknown },
+    ) =>
+      onboardWaitlistSignup(
+        {
+          waitlist,
+          tenants,
+          routing,
+          panelAuth,
+          sendAccessEmail: sendDjAccessEmail,
+        },
+        actor,
+        input,
+      ),
   };
 }

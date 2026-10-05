@@ -1,7 +1,7 @@
 import { unauthorized } from "@/domain/errors";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken } from "@/lib/http/panel-request";
+import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -24,6 +24,19 @@ export async function GET(request: Request) {
 
     const signups = await getApp().listWaitlist();
     return jsonWithTenantCors(request, { signups }, { requestId });
+  } catch (error) {
+    return withTenantCors(request, errorResponse(error, requestId));
+  }
+}
+
+export async function POST(request: Request) {
+  const requestId = createRequestId();
+
+  try {
+    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const body = (await readJsonBody(request)) as { id?: unknown };
+    const created = await getApp().onboardWaitlist(actor, { id: body.id });
+    return jsonWithTenantCors(request, created, { requestId, status: 201 });
   } catch (error) {
     return withTenantCors(request, errorResponse(error, requestId));
   }

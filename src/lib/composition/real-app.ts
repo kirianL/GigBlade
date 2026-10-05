@@ -13,7 +13,9 @@ import { deleteDj } from "@/application/panel/delete-dj";
 import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
+import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
 import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
+import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
 import { CloudflareWebAnalytics } from "@/infrastructure/cloudflare/web-analytics";
 import { EdgeConfigRoutingStore } from "@/infrastructure/edge-config/edge-config-routing-store";
@@ -51,7 +53,7 @@ export function createRealApp() {
     updateTenantSiteContent: (
       context: Parameters<typeof updateTenantSiteContent>[1],
       input: unknown,
-    ) => updateTenantSiteContent(tenants, context, input),
+    ) => updateTenantSiteContent(tenants, context, input, panelAuth),
     resolveTenantRouting: async (hostname: string) => {
       const fromDb = await resolveTenantRouting(domainRouting, hostname);
       if (fromDb) return fromDb;
@@ -125,5 +127,20 @@ export function createRealApp() {
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
+    onboardWaitlist: (
+      actor: Parameters<typeof onboardWaitlistSignup>[1],
+      input: { id: unknown },
+    ) =>
+      onboardWaitlistSignup(
+        {
+          waitlist,
+          tenants,
+          routing: domainRouting,
+          panelAuth,
+          sendAccessEmail: sendDjAccessEmail,
+        },
+        actor,
+        input,
+      ),
   };
 }

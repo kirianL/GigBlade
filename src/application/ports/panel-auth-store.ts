@@ -6,6 +6,7 @@ import type {
 export interface PanelAuthStore {
   findAccount(email: string): Promise<PanelAccount | null>;
   upsertAccount(account: PanelAccount): Promise<void>;
+  renameAccountEmail(fromEmail: string, toEmail: string): Promise<void>;
   listAccounts(): Promise<PanelAccount[]>;
   deleteDjAccountsBySlug(slug: string): Promise<void>;
   saveSession(record: PanelSessionRecord): Promise<void>;

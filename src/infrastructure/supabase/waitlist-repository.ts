@@ -81,6 +81,34 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
     return ((data ?? []) as WaitlistRow[]).map(mapSignup);
   }
 
+  async findById(id: string): Promise<WaitlistSignup | null> {
+    const supabase = createSupabaseAdminClient();
+    const row = readPostgrestResult(
+      await supabase
+        .from("dj_waitlist")
+        .select(WAITLIST_COLUMNS)
+        .eq("id", id)
+        .maybeSingle(),
+      { operation: "waitlist.findById" },
+    );
+    return row ? mapSignup(row as WaitlistRow) : null;
+  }
+
+  async markOnboarded(id: string): Promise<boolean> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("dj_waitlist")
+      .update({ status: "onboarded" })
+      .eq("id", id)
+      .select("id");
+
+    if (error) {
+      failPostgrestQuery(error, { operation: "waitlist.markOnboarded" });
+    }
+
+    return ((data ?? []) as Array<{ id: string }>).length > 0;
+  }
+
   async deleteById(id: string): Promise<boolean> {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

@@ -5,8 +5,8 @@ import {
 	type GigbladeDj,
 	type SiteTemplateId,
 } from "@/gigblade/concept";
-import { readPanelAuthSession } from "@/gigblade/panel-session";
 import { fetchPlatformSites, type PlatformSite } from "@/gigblade/site-api";
+import { useSession } from "@/lib/auth-client";
 
 export const PLATFORM_SITES_QUERY_KEY = ["platform", "sites"] as const;
 
@@ -36,28 +36,33 @@ export function gigbladeDjFromSite(site: PlatformSite): GigbladeDj {
 
 export function usePlatformDjs() {
 	const queryClient = useQueryClient();
+	const { data: session, isPending: sessionPending } = useSession();
+	const isPlatform =
+		(session?.user as { role?: string } | undefined)?.role === "platform";
 	const query = useQuery({
 		queryKey: PLATFORM_SITES_QUERY_KEY,
 		queryFn: ({ signal }) => fetchPlatformSites(signal),
+		enabled: isPlatform,
 		staleTime: 30_000,
 		gcTime: 5 * 60_000,
-		retry: 1,
+		retry: false,
 		refetchOnMount: true,
 		refetchOnWindowFocus: false,
 	});
 
 	const sites = query.data ?? null;
-	const status: "loading" | "ready" | "error" = query.isPending
-		? "loading"
-		: query.isError || !sites
-			? "error"
-			: "ready";
+	const status: "loading" | "ready" | "error" = !isPlatform
+		? sessionPending
+			? "loading"
+			: "ready"
+		: query.isPending
+			? "loading"
+			: query.isError || !sites
+				? "error"
+				: "ready";
 
 	const djs = useMemo(() => {
 		if (status === "ready" && sites) return sites.map(gigbladeDjFromSite);
-		if (status === "error") {
-			return readPanelAuthSession() ? [] : GIGBLADE_DJS;
-		}
 		return [];
 	}, [sites, status]);
 

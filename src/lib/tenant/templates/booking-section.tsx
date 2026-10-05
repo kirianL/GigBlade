@@ -1,3 +1,4 @@
+import { phoneWhatsappUrl } from "@/domain/waitlist";
 import type { SiteTemplateProps } from "@/lib/tenant/templates/types";
 import { SiteReveal } from "@/lib/tenant/templates/reveal";
 
@@ -16,6 +17,7 @@ export function ContactoSection({ site }: SiteTemplateProps) {
   const instagram = profile.links.instagram;
   const email = profile.email;
   const phone = profile.phone;
+  const whatsapp = phone ? phoneWhatsappUrl(phone) : null;
   const handle = instagram ? instagramHandle(instagram) : undefined;
   const hasActions = Boolean(email || phone || instagram);
 
@@ -59,23 +61,25 @@ export function ContactoSection({ site }: SiteTemplateProps) {
                   </a>
                 </li>
               ) : null}
-              {phone ? (
+              {phone && whatsapp ? (
                 <li>
                   <a
-                    href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                    aria-label={`Llamar al ${phone}`}
+                    href={whatsapp}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Abrir WhatsApp al ${phone}`}
                     className="pressable site-card flex min-h-[4.75rem] items-center justify-between gap-4 rounded-2xl border border-[var(--site-card-border)] bg-[var(--site-card-bg)] px-5 py-4 text-[var(--site-fg)] lg:min-h-[6.5rem]"
                   >
                     <span className="min-w-0">
                       <span className="block text-[10px] font-mono uppercase tracking-widest text-[var(--site-muted)]">
-                        Teléfono
+                        WhatsApp
                       </span>
                       <span className="mt-1 block truncate text-sm font-medium sm:text-base">
                         {phone}
                       </span>
                     </span>
                     <span className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-[var(--site-muted)]">
-                      Llamar
+                      Escribir <span aria-hidden="true">↗</span>
                     </span>
                   </a>
                 </li>

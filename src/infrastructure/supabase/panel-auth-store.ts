@@ -70,6 +70,57 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
     }
   }
 
+  async renameAccountEmail(fromEmail: string, toEmail: string): Promise<void> {
+    if (fromEmail === toEmail) return;
+    const supabase = createSupabaseAdminClient();
+    const existing = readPostgrestResult(
+      await supabase
+        .from("panel_accounts")
+        .select(ACCOUNT_COLUMNS)
+        .eq("email", fromEmail)
+        .maybeSingle(),
+      { operation: "panel_accounts.renameAccountEmail.read" },
+    ) as AccountRow | null;
+    if (!existing) return;
+
+    // panel_sessions.email apunta a panel_accounts.email sin ON UPDATE CASCADE.
+    // Copiamos la cuenta, movemos las sesiones y recién ahí borramos la anterior.
+    const { error: insertError } = await supabase.from("panel_accounts").insert({
+      email: toEmail,
+      name: existing.name,
+      role: existing.role,
+      slug: existing.slug,
+      password_hash: existing.password_hash,
+      password_set_at: existing.password_set_at,
+    });
+    if (insertError) {
+      failPostgrestQuery(insertError, {
+        operation: "panel_accounts.renameAccountEmail.insert",
+      });
+    }
+
+    const { error: sessionError } = await supabase
+      .from("panel_sessions")
+      .update({ email: toEmail })
+      .eq("email", fromEmail);
+    if (sessionError) {
+      await supabase.from("panel_accounts").delete().eq("email", toEmail);
+      failPostgrestQuery(sessionError, {
+        operation: "panel_sessions.renameAccountEmail",
+      });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("panel_accounts")
+      .delete()
+      .eq("email", fromEmail);
+    if (deleteError) {
+      failPostgrestQuery(deleteError, {
+        operation: "panel_accounts.renameAccountEmail.delete",
+      });
+    }
+  }
+
   async listAccounts(): Promise<PanelAccount[]> {
     await this.ensurePlatformAccount();
     const supabase = createSupabaseAdminClient();

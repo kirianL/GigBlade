@@ -26,6 +26,23 @@ export class InMemoryWaitlistRepository implements WaitlistRepository {
     );
   }
 
+  async findById(id: string): Promise<WaitlistSignup | null> {
+    for (const signup of this.byEmail.values()) {
+      if (signup.id === id) return signup;
+    }
+    return null;
+  }
+
+  async markOnboarded(id: string): Promise<boolean> {
+    for (const signup of this.byEmail.values()) {
+      if (signup.id === id) {
+        signup.status = "onboarded";
+        return true;
+      }
+    }
+    return false;
+  }
+
   async deleteById(id: string): Promise<boolean> {
     for (const [email, signup] of this.byEmail) {
       if (signup.id === id) {

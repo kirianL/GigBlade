@@ -281,13 +281,14 @@ function instagramHandle(value: string) {
 
 export function useDjProfile(options?: { syncLive?: boolean }) {
 	const syncLive = options?.syncLive ?? false;
-	const { dj, setDj, sitesReady } = useSelectedDj();
+	const { dj, setDj, sitesReady, visitsReady } = useSelectedDj();
 	const [draft, setDraft] = useState<DjContentDraft>(() =>
 		syncLive ? defaultsFrom(dj) : readDjContent(dj.slug),
 	);
 	const [live, setLive] = useState(false);
 
 	useEffect(() => {
+		if (!visitsReady) return;
 		if (!syncLive) {
 			setDraft(readDjContent(dj.slug));
 			setLive(false);
@@ -313,7 +314,7 @@ export function useDjProfile(options?: { syncLive?: boolean }) {
 		return () => {
 			controller.abort();
 		};
-	}, [dj.slug, dj.name, dj.city, dj.template, sitesReady, syncLive]);
+	}, [dj.slug, dj.name, dj.city, dj.template, sitesReady, syncLive, visitsReady]);
 
 	const profile: GigbladeDj = {
 		...dj,
@@ -384,5 +385,14 @@ export function useDjProfile(options?: { syncLive?: boolean }) {
 		return { live: true };
 	};
 
-	return { dj: profile, setDj, draft, setDraft, save, live, maxMixes: MAX_MIXES };
+	return {
+		dj: profile,
+		setDj,
+		draft,
+		setDraft,
+		save,
+		live,
+		maxMixes: MAX_MIXES,
+		visitsReady,
+	};
 }

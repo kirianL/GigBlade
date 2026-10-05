@@ -1,4 +1,5 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
 import type { SiteVisitStore } from "@/application/ports/site-visit-store";
 import type { TenantRepository } from "@/application/ports/tenant-repository";
 import type { TenantRoutingStore } from "@/application/ports/tenant-routing-store";
@@ -34,7 +35,7 @@ export async function listPlatformSites(
       .map((account) => [account.slug as string, account.email]),
   );
 
-  return allTenants.map((tenant) => {
+  return Promise.all(allTenants.map(async (tenant) => {
     const tenantRoutes = routesByTenant.get(tenant.id) ?? [];
     const domain =
       tenantRoutes.find(
@@ -47,7 +48,11 @@ export async function listPlatformSites(
       tenantRoutes[0];
     const stats = visitsByTenant.get(tenant.id) ?? emptySiteVisitStats(tenant.id);
     const profile = readSiteProfile(tenant.slug, tenant.themeConfig);
-    const email = emailBySlug.get(tenant.slug);
+    const accountEmail = emailBySlug.get(tenant.slug);
+    if (panelAuth && profile.email && accountEmail && profile.email !== accountEmail) {
+      await adoptDjLoginEmail(panelAuth, tenant.slug, profile.email);
+    }
+    const email = profile.email || accountEmail;
 
     return {
       slug: tenant.slug,
@@ -59,5 +64,5 @@ export async function listPlatformSites(
       lastVisitedAt: stats.lastVisitedAt,
       ...(email ? { email } : {}),
     } satisfies PlatformSiteSummary;
-  });
+  }));
 }

@@ -1,3 +1,4 @@
+import { phoneWhatsappUrl } from "@/domain/waitlist";
 import type { SiteTemplateProps } from "@/lib/tenant/templates/types";
 import { SiteReveal } from "@/lib/tenant/templates/reveal";
 
@@ -27,7 +28,7 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
     : profile.email
       ? `mailto:${profile.email}`
       : profile.phone
-        ? `tel:${profile.phone.replace(/[^\d+]/g, "")}`
+        ? phoneWhatsappUrl(profile.phone)
         : profile.links.instagram;
   const hasDetails = Boolean(featuredMix || nextEvent);
 
@@ -135,8 +136,16 @@ export function ArtistSignal({ site }: SiteTemplateProps) {
                     {eventAction ? (
                       <a
                         href={eventAction}
-                        target={nextEvent.ticketUrl ? "_blank" : undefined}
-                        rel={nextEvent.ticketUrl ? "noreferrer" : undefined}
+                        target={
+                          nextEvent.ticketUrl || eventAction?.startsWith("https://")
+                            ? "_blank"
+                            : undefined
+                        }
+                        rel={
+                          nextEvent.ticketUrl || eventAction?.startsWith("https://")
+                            ? "noreferrer"
+                            : undefined
+                        }
                         className="pressable site-chip inline-flex min-h-11 shrink-0 items-center rounded-full border border-(--site-card-border) px-3 font-mono text-[10px] uppercase tracking-widest text-(--site-fg)"
                       >
                         {nextEvent.ticketUrl ? "Entradas" : "Consultar"}

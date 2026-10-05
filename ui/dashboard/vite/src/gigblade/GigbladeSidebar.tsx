@@ -31,6 +31,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { NavLink, useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
+import { InstallDesktopMenuItem } from "@/gigblade/InstallDesktop";
 import { prefetchPanelRoute } from "@/gigblade/prefetch";
 import { DashboardSwitcher } from "@/gigblade/DashboardSwitcher";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
@@ -293,6 +294,7 @@ function GigbladeAccountMenu() {
 						)}
 					</DropdownMenuGroup>
 					<DropdownMenuSeparator />
+					<InstallDesktopMenuItem />
 					<DropdownMenuItem
 						onClick={async () => {
 							try {

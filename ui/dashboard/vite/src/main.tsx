@@ -13,6 +13,12 @@ import { PostHogBoot } from "./app/PostHogBoot";
 
 installFetchMock();
 
+if ("serviceWorker" in navigator) {
+	window.addEventListener("load", () => {
+		void navigator.serviceWorker.register("/sw.js");
+	});
+}
+
 if (import.meta.env.VITE_SENTRY_DSN) {
 	void import("@sentry/react").then((Sentry) => {
 		Sentry.init({

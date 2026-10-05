@@ -6,10 +6,11 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
+	MiniCopyButton,
 	PageContainer,
 	PageHeader,
 } from "@autumn/ui";
-import { EnvelopeSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import { EnvelopeSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import { readPanelAuthSession } from "@/gigblade/panel-session";
 import {
 	deleteWaitlistSignup,
 	fetchPlatformWaitlist,
+	onboardWaitlistSignup,
 	type WaitlistSignup,
 } from "@/gigblade/site-api";
 
@@ -144,12 +146,170 @@ function DeleteSignupButton({
 	);
 }
 
+function CreatePageButton({
+	signup,
+	onCreated,
+}: {
+	signup: WaitlistSignup;
+	onCreated: () => void;
+}) {
+	const titleId = useId();
+	const descId = useId();
+	const errorId = useId();
+	const [open, setOpen] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [created, setCreated] = useState<{
+		email: string;
+		password: string;
+		name: string;
+		emailed: boolean;
+	} | null>(null);
+
+	const create = async () => {
+		const session = readPanelAuthSession();
+		if (!session?.token) {
+			setError("Entrá de nuevo para crear la página.");
+			return;
+		}
+		setLoading(true);
+		setError(null);
+		try {
+			const next = await onboardWaitlistSignup({
+				id: signup.id,
+				token: session.token,
+			});
+			setCreated({
+				email: next.email,
+				password: next.password,
+				name: next.name,
+				emailed: next.emailed,
+			});
+			toast.success(
+				next.emailed
+					? `Se envió la contraseña a ${next.email}.`
+					: `Se creó la página de ${next.name}.`,
+			);
+			onCreated();
+		} catch (caught) {
+			setError(
+				caught instanceof Error
+					? caught.message
+					: "No se pudo crear la página.",
+			);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	return (
+		<>
+			<Button
+				variant="secondary"
+				size="sm"
+				type="button"
+				onClick={() => {
+					setError(null);
+					setCreated(null);
+					setOpen(true);
+				}}
+			>
+				<PlusIcon size={16} aria-hidden />
+				Crear página
+			</Button>
+			<Dialog
+				open={open}
+				onOpenChange={(next) => {
+					if (loading) return;
+					setOpen(next);
+					if (!next) {
+						setError(null);
+						setCreated(null);
+					}
+				}}
+			>
+				<DialogContent aria-labelledby={titleId} aria-describedby={descId}>
+					{created ? (
+						<>
+							<DialogHeader>
+								<DialogTitle id={titleId}>Acceso para {created.name}</DialogTitle>
+								<DialogDescription id={descId}>
+									{created.emailed
+										? `La contraseña se envió a ${created.email}. También queda acá por si el correo no llega.`
+										: "Pasale estos datos. La contraseña no se vuelve a mostrar."}
+								</DialogDescription>
+							</DialogHeader>
+							<div className="flex flex-col gap-3">
+								<div>
+									<p className="text-xs text-tertiary-foreground">Correo</p>
+									<div className="mt-1 flex items-center justify-between gap-2">
+										<p className="font-mono text-sm break-all">{created.email}</p>
+										<MiniCopyButton text={created.email} />
+									</div>
+								</div>
+								<div>
+									<p className="text-xs text-tertiary-foreground">Contraseña</p>
+									<div className="mt-1 flex items-center justify-between gap-2">
+										<p className="font-mono text-sm break-all">{created.password}</p>
+										<MiniCopyButton text={created.password} />
+									</div>
+								</div>
+							</div>
+							<DialogFooter>
+								<Button type="button" onClick={() => setOpen(false)}>
+									Listo
+								</Button>
+							</DialogFooter>
+						</>
+					) : (
+						<>
+							<DialogHeader>
+								<DialogTitle id={titleId}>Crear la página de {signup.artistName}</DialogTitle>
+								<DialogDescription id={descId}>
+									El acceso queda con {signup.email}. La ciudad, el Instagram y el
+									teléfono de la solicitud pasan a la página.
+								</DialogDescription>
+							</DialogHeader>
+							{error ? (
+								<p id={errorId} role="alert" className="text-sm text-destructive">
+									{error}
+								</p>
+							) : null}
+							<DialogFooter>
+								<Button
+									variant="secondary"
+									type="button"
+									onClick={() => setOpen(false)}
+									disabled={loading}
+								>
+									Cancelar
+								</Button>
+								<Button
+									type="button"
+									onClick={() => void create()}
+									disabled={loading}
+									aria-busy={loading}
+									aria-describedby={error ? errorId : undefined}
+								>
+									{loading ? "Creando…" : "Crear página"}
+								</Button>
+							</DialogFooter>
+						</>
+					)}
+				</DialogContent>
+			</Dialog>
+		</>
+	);
+}
+
 function SignupRow({
 	signup,
 	onDeleted,
+	onCreated,
 }: {
 	signup: WaitlistSignup;
 	onDeleted: (id: string) => void;
+	onCreated: () => void;
 }) {
 	const instagram = signup.instagram
 		? `https://instagram.com/${signup.instagram}`
@@ -187,6 +347,9 @@ function SignupRow({
 					<p className="text-xs font-medium text-tertiary-foreground">
 						{STATUS_LABEL[signup.status]}
 					</p>
+					{signup.status === "pending" || signup.status === "contacted" ? (
+						<CreatePageButton signup={signup} onCreated={onCreated} />
+					) : null}
 					<DeleteSignupButton signup={signup} onDeleted={onDeleted} />
 				</div>
 			</div>
@@ -260,6 +423,14 @@ export default function PlatformWaitlist() {
 									PLATFORM_WAITLIST_QUERY_KEY,
 									(current) => current?.filter((item) => item.id !== id) ?? [],
 								);
+							}}
+							onCreated={() => {
+								void queryClient.invalidateQueries({
+									queryKey: PLATFORM_WAITLIST_QUERY_KEY,
+								});
+								void queryClient.invalidateQueries({
+									queryKey: ["platform", "sites"],
+								});
 							}}
 						/>
 					))}

@@ -134,6 +134,13 @@ export function whatsappUrl(
   return `https://wa.me/${digits}`;
 }
 
+export function phoneWhatsappUrl(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 8) return whatsappUrl(phone, "CR");
+  if (!digits) return null;
+  return `https://wa.me/${digits}`;
+}
+
 export function isWaitlistDraft(
   value: WaitlistDraft | { discarded: true },
 ): value is WaitlistDraft {

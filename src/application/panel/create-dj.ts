@@ -8,6 +8,7 @@ import {
   requirePlatform,
   type PanelPublicUser,
 } from "@/domain/panel-auth";
+import { readPublicPhone } from "@/domain/site-profile";
 import { DEFAULT_SITE_TEMPLATE_ID } from "@/domain/site-template";
 import {
   assertValidSlug,
@@ -47,7 +48,14 @@ export async function createDj(
     panelAuth: PanelAuthStore;
   },
   actor: PanelPublicUser,
-  input: { name: unknown; email: unknown; slug: unknown },
+  input: {
+    name: unknown;
+    email: unknown;
+    slug: unknown;
+    city?: unknown;
+    phone?: unknown;
+    instagram?: unknown;
+  },
 ) {
   requirePlatform(actor, "Solo la plataforma puede agregar un DJ.");
 
@@ -79,11 +87,21 @@ export async function createDj(
     throw conflict("Ese correo ya tiene una página.");
   }
 
+  const phone = readPublicPhone(input.phone);
+  const instagram =
+    typeof input.instagram === "string" ? input.instagram.replace(/^@/, "").trim() : "";
+  const city = typeof input.city === "string" ? input.city.trim() : "";
   const tenant = await deps.tenants.create({
     slug,
     plan: "all_inclusive",
     templateId: DEFAULT_SITE_TEMPLATE_ID,
-    themeConfig: { displayName: name },
+    themeConfig: {
+      displayName: name,
+      email,
+      ...(city ? { city } : {}),
+      ...(phone ? { phone } : {}),
+      ...(instagram ? { links: { instagram: `https://instagram.com/${instagram}` } } : {}),
+    },
     status: "active",
   });
   const hostname = previewHostname(slug);

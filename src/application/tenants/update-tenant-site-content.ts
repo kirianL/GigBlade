@@ -1,3 +1,5 @@
+import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
 import { notFound, validationError } from "@/domain/errors";
 import {
   buildSiteThemeConfig,
@@ -15,6 +17,7 @@ export async function updateTenantSiteContent(
   tenants: TenantRepository,
   context: TenantContext,
   rawInput: unknown,
+  panelAuth?: PanelAuthStore,
 ): Promise<PublicTenant> {
   const parsed = siteContentInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -47,6 +50,11 @@ export async function updateTenantSiteContent(
       parsed.data,
     ),
   });
+
+  const loginEmail = readSiteProfile(updated.slug, updated.themeConfig).email;
+  if (panelAuth && loginEmail) {
+    await adoptDjLoginEmail(panelAuth, updated.slug, loginEmail);
+  }
 
   return toPublicTenant(updated, context.canonicalHostname);
 }

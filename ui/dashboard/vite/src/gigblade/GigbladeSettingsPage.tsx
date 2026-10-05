@@ -3,6 +3,7 @@ import { GearIcon } from "@phosphor-icons/react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useTheme, type ThemeMode } from "@/contexts/ThemeProvider";
+import { InstallDesktopCard } from "@/gigblade/InstallDesktop";
 import { authClient, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +140,8 @@ export default function GigbladeSettingsPage() {
 					<Link to="/plan">Ver plan</Link>
 				</Button>
 			</section>
+
+			<InstallDesktopCard />
 
 			<section className="rounded-lg border bg-interactive-secondary p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>

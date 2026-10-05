@@ -375,6 +375,10 @@ export async function fetchPlatformWaitlist(
 	}
 }
 
+function sessionRejected(message: string | undefined) {
+	return !message?.includes("Solo la plataforma");
+}
+
 export async function fetchPlatformSites(
 	signal?: AbortSignal,
 ): Promise<PlatformSite[]> {
@@ -395,8 +399,10 @@ export async function fetchPlatformSites(
 			| { sites?: PlatformSite[]; message?: string }
 			| null;
 		if (response.status === 401) {
-			clearPanelAuthSession();
-			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+			if (sessionRejected(body?.message)) clearPanelAuthSession();
+			throw new Error(
+				body?.message || "Volvé a entrar con la cuenta de plataforma.",
+			);
 		}
 		if (!response.ok) {
 			throw new Error(body?.message || "No se pudieron cargar los DJs.");
@@ -592,6 +598,22 @@ export async function createDj(input: {
 		throw new Error("No se pudo crear el DJ.");
 	}
 	return body as CreatedDj;
+}
+
+export async function onboardWaitlistSignup(input: {
+	id: string;
+	token: string;
+}): Promise<CreatedDj & { emailed: boolean }> {
+	const body = (await panelFetch("/api/platform/waitlist", {
+		method: "POST",
+		token: input.token,
+		body: JSON.stringify({ id: input.id }),
+		timeoutMs: 15000,
+	})) as Partial<CreatedDj & { emailed?: boolean }>;
+	if (!body?.slug || !body.password || !body.email || !body.site) {
+		throw new Error("No se pudo crear la página.");
+	}
+	return { ...(body as CreatedDj), emailed: body.emailed === true };
 }
 
 export async function uploadSitePhoto(input: {

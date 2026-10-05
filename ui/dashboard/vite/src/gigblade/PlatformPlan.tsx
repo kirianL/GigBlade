@@ -2,11 +2,8 @@ import { MiniCopyButton, PageContainer, PageHeader, SectionTag } from "@autumn/u
 import { CubeIcon } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Table } from "@/components/general/table";
-import {
-	GIGBLADE_DJS,
-	PLAN,
-	payingDjCount,
-} from "@/gigblade/concept";
+import { PLAN } from "@/gigblade/concept";
+import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
 import { useCustomerTable } from "@/views/customers2/hooks/useCustomerTable";
 
@@ -69,12 +66,13 @@ const includeColumns: ColumnDef<IncludeRow>[] = [
 ];
 
 export default function PlatformPlan() {
+	const { djs } = usePlatformDjs();
 	const planRows: PlanRow[] = [
 		{
 			id: "todo-incluido",
 			name: PLAN.name,
-			active_count: payingDjCount(),
-			created_at: GIGBLADE_DJS[0]?.createdAt ?? Date.now(),
+			active_count: djs.filter((dj) => dj.status === "active").length,
+			created_at: Date.now(),
 		},
 	];
 	const includeRows: IncludeRow[] = PLAN.includes.map((item) => ({

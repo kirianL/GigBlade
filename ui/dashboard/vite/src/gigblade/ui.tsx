@@ -13,6 +13,7 @@ import {
 	djBySlug,
 	toCusProductStatus,
 	type DjStatus,
+	type GigbladeDj,
 } from "@/gigblade/concept";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { useSession } from "@/lib/auth-client";
@@ -111,29 +112,54 @@ export function MetricCard({
 	);
 }
 
+function djFromAccount(user: {
+	slug?: string;
+	name?: string;
+	email?: string;
+}): GigbladeDj | null {
+	if (!user.slug) return null;
+	const seed = GIGBLADE_DJS.find((dj) => dj.slug === user.slug);
+	return {
+		slug: user.slug,
+		name: user.name || seed?.name || user.slug,
+		email: user.email || seed?.email || "",
+		domain: seed?.domain ?? "",
+		city: seed?.city ?? "",
+		template: seed?.template ?? "after",
+		status: "active",
+		bio: seed?.bio ?? "",
+		instagram: seed?.instagram ?? "",
+		createdAt: seed?.createdAt ?? Date.now(),
+	};
+}
+
 export function useSelectedDj() {
 	const [params, setParams] = useSearchParams();
-	const [lastSlug, setLastSlug] = useLocalStorage(LAST_DJ_STORAGE_KEY, "nox");
+	const [lastSlug, setLastSlug] = useLocalStorage(LAST_DJ_STORAGE_KEY, "");
 	const { data: session } = useSession();
+	const user = session?.user as
+		| { role?: string; slug?: string; name?: string; email?: string }
+		| undefined;
 	const { djs, status: sitesStatus } = usePlatformDjs();
-	const lockedSlug = (session?.user as { role?: string; slug?: string } | undefined)
-		?.role === "dj"
-		? (session?.user as { slug?: string }).slug
-		: undefined;
+	const lockedSlug = user?.role === "dj" ? user.slug : undefined;
 	const paramDj = params.get("dj");
-	const requested = lockedSlug || paramDj || lastSlug || "nox";
-	const catalog = djs.length > 0 ? djs : GIGBLADE_DJS;
-	const dj = catalog.find((item) => item.slug === requested) ?? djBySlug(requested);
-	const sitesReady = sitesStatus === "ready" || sitesStatus === "error";
+	const requested = lockedSlug || paramDj || lastSlug || "";
+	const liveDj =
+		user?.role === "platform" && sitesStatus === "ready"
+			? (djs.find((item) => item.slug === requested) ?? djs[0])
+			: undefined;
+	const accountDj = lockedSlug ? djFromAccount(user ?? {}) : null;
+	const dj = liveDj ?? accountDj ?? djBySlug(requested || "marco");
+	const visitsReady = Boolean(liveDj || accountDj);
+	const sitesReady = visitsReady || sitesStatus === "error";
 
 	useEffect(() => {
-		if (lastSlug !== dj.slug) {
-			setLastSlug(dj.slug);
-		}
-	}, [dj.slug, lastSlug, setLastSlug]);
+		if (!visitsReady || lastSlug === dj.slug) return;
+		setLastSlug(dj.slug);
+	}, [visitsReady, dj.slug, lastSlug, setLastSlug]);
 
 	useEffect(() => {
-		if (paramDj === dj.slug) return;
+		if (!visitsReady || paramDj === dj.slug) return;
 		setParams(
 			(current) => {
 				if (current.get("dj") === dj.slug) return current;
@@ -143,7 +169,7 @@ export function useSelectedDj() {
 			},
 			{ replace: true },
 		);
-	}, [dj.slug, paramDj, setParams]);
+	}, [visitsReady, dj.slug, paramDj, setParams]);
 
 	const setDj = (slug: string) => {
 		if (slug === dj.slug && paramDj === slug) return;
@@ -159,7 +185,7 @@ export function useSelectedDj() {
 		);
 	};
 
-	return { dj, setDj, sitesReady };
+	return { dj, setDj, sitesReady, visitsReady };
 }
 
 export function DjSelect({
@@ -175,7 +201,7 @@ export function DjSelect({
 		return null;
 	}
 
-	const options = djs.length > 0 ? djs : GIGBLADE_DJS;
+	const options = djs;
 
 	return (
 		<select

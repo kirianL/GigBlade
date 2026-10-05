@@ -1,5 +1,6 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
 import type { TenantRepository } from "@/application/ports/tenant-repository";
+import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
 import { forbidden, notFound } from "@/domain/errors";
 import {
   assertPanelEmail,
@@ -9,6 +10,7 @@ import {
   requirePlatform,
   type PanelPublicUser,
 } from "@/domain/panel-auth";
+import { readSiteProfile } from "@/domain/site-profile";
 import { normalizeSlug } from "@/domain/tenant";
 
 export async function generateDjPassword(
@@ -23,7 +25,10 @@ export async function generateDjPassword(
   const tenant = (await tenants.list()).find((item) => item.slug === slug);
   if (!tenant) throw notFound("No encontramos esa página.");
 
-  const email = assertPanelEmail(String(input.email ?? ""));
+  const profileEmail = readSiteProfile(tenant.slug, tenant.themeConfig).email;
+  const email = profileEmail
+    ? await adoptDjLoginEmail(store, slug, profileEmail)
+    : assertPanelEmail(String(input.email ?? ""));
   const existing = await store.findAccount(email);
   if (existing?.role === "platform") {
     throw forbidden("Ese correo pertenece a la plataforma.");

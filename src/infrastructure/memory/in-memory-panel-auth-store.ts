@@ -79,6 +79,19 @@ export class InMemoryPanelAuthStore implements PanelAuthStore {
     this.flush();
   }
 
+  async renameAccountEmail(fromEmail: string, toEmail: string): Promise<void> {
+    this.hydrate();
+    if (fromEmail === toEmail) return;
+    const account = this.accounts.get(fromEmail);
+    if (!account) return;
+    this.accounts.delete(fromEmail);
+    this.accounts.set(toEmail, { ...account, email: toEmail });
+    for (const session of this.sessions.values()) {
+      if (session.email === fromEmail) session.email = toEmail;
+    }
+    this.flush();
+  }
+
   async listAccounts(): Promise<PanelAccount[]> {
     this.hydrate();
     return [...this.accounts.values()];

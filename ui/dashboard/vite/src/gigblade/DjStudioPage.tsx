@@ -28,6 +28,7 @@ import {
 } from "@/gigblade/concept";
 import { fetchSiteVisits, type SiteVisitStats } from "@/gigblade/site-api";
 import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
+import { InstallDesktopCard } from "@/gigblade/InstallDesktop";
 import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
 import {
 	DjSelect,
@@ -39,7 +40,7 @@ import { useDjProfile } from "@/gigblade/useDjContent";
 import { useSession } from "@/lib/auth-client";
 
 export default function DjStudioPage() {
-	const { dj, setDj, draft } = useDjProfile();
+	const { dj, setDj, draft, visitsReady } = useDjProfile();
 	const { data: session } = useSession();
 	const navigate = useNavigate();
 	const isPlatform =
@@ -54,10 +55,11 @@ export default function DjStudioPage() {
 	const [visits, setVisits] = useState<SiteVisitStats | null>(null);
 
 	useEffect(() => {
+		if (!visitsReady) return;
 		const controller = new AbortController();
 		void fetchSiteVisits(dj.slug, controller.signal).then(setVisits);
 		return () => controller.abort();
-	}, [dj.slug]);
+	}, [dj.slug, visitsReady]);
 
 	return (
 		<PageContainer>
@@ -117,33 +119,61 @@ export default function DjStudioPage() {
 				</div>
 			</div>
 
+			{isPlatform ? null : <InstallDesktopCard />}
+
 			<section className="grid gap-3 sm:grid-cols-2">
-				<section className="border rounded-lg p-5 flex flex-col gap-3">
-					<div className="flex items-start justify-between gap-3">
+				{isPlatform ? (
+					<section className="border rounded-lg p-5 flex flex-col gap-3">
+						<div className="flex items-start justify-between gap-3">
+							<div className="min-w-0">
+								<p className="text-xs text-tertiary-foreground">Dominio</p>
+								<p className="text-sm font-medium text-foreground break-all">
+									{domainLabel}
+								</p>
+							</div>
+							<GlobeIcon
+								size={16}
+								className="text-subtle shrink-0 mt-0.5"
+								aria-hidden
+							/>
+						</div>
+						<p className="text-sm text-tertiary-foreground leading-6">
+							{intendedDomain
+								? `GigBlade registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlade. La renovación se cobra al costo.`
+								: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
+						</p>
+						<div className="flex flex-wrap gap-2">
+							<OpenPublicPageButton
+								href={pageUrl}
+								label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir"}
+							/>
+						</div>
+					</section>
+				) : (
+					<section className="border rounded-lg p-5 flex flex-col gap-3">
 						<div className="min-w-0">
-							<p className="text-xs text-tertiary-foreground">Dominio</p>
+							<p className="text-xs text-tertiary-foreground">Link para Instagram</p>
 							<p className="text-sm font-medium text-foreground break-all">
-								{domainLabel}
+								{pageUrl ?? "Todavía no hay un link público"}
 							</p>
 						</div>
-						<GlobeIcon
-							size={16}
-							className="text-subtle shrink-0 mt-0.5"
-							aria-hidden
-						/>
-					</div>
-					<p className="text-sm text-tertiary-foreground leading-6">
-						{intendedDomain
-							? `GigBlade registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlade. La renovación se cobra al costo.`
-							: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
-					</p>
-					<div className="flex flex-wrap gap-2">
-						<OpenPublicPageButton
-							href={pageUrl}
-							label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir"}
-						/>
-					</div>
-				</section>
+						<p className="text-sm text-tertiary-foreground leading-6">
+							Pegalo en el bio. Es el link que abre tu página.
+						</p>
+						<div className="flex flex-wrap gap-2">
+							{pageUrl ? (
+								<CopyButton text={pageUrl} title="Copiar link" size="mini" />
+							) : null}
+							{instagramUrl && dj.instagram ? (
+								<Button variant="secondary" size="sm" asChild>
+									<a href={instagramUrl} target="_blank" rel="noreferrer">
+										Abrir Instagram
+									</a>
+								</Button>
+							) : null}
+						</div>
+					</section>
+				)}
 				<section className="border rounded-lg p-5 flex flex-col gap-3">
 					<div className="flex items-start justify-between gap-3">
 						<div>
@@ -246,19 +276,21 @@ export default function DjStudioPage() {
 				</section>
 			) : null}
 
-			<section className="border rounded-lg p-5 flex flex-col gap-2">
-				<p className="text-xs text-tertiary-foreground">Plan</p>
-				<div className="flex flex-wrap items-center justify-between gap-2">
-					<p className="text-sm font-medium text-foreground">
-						{PLAN.name} · US$ {PLAN.priceUsd} /mes
+			{isPlatform ? (
+				<section className="border rounded-lg p-5 flex flex-col gap-2">
+					<p className="text-xs text-tertiary-foreground">Plan</p>
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<p className="text-sm font-medium text-foreground">
+							{PLAN.name} · US$ {PLAN.priceUsd} /mes
+						</p>
+						<DjStatusCell status={dj.status} />
+					</div>
+					<p className="text-sm text-tertiary-foreground leading-6">
+						Incluye la página, el dominio administrado por GigBlade, hosting y este
+						panel para el contenido.
 					</p>
-					<DjStatusCell status={dj.status} />
-				</div>
-				<p className="text-sm text-tertiary-foreground leading-6">
-					Incluye la página, el dominio administrado por GigBlade, hosting y este
-					panel para el contenido.
-				</p>
-			</section>
+				</section>
+			) : null}
 		</PageContainer>
 	);
 }
