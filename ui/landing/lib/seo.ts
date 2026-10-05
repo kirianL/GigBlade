@@ -6,7 +6,7 @@ import { getSiteUrl } from "@/lib/site-url";
 
 export const SITE_URL = getSiteUrl();
 const ORG_NAME = "GigBlade";
-const LOGO_URL = `${SITE_URL}/icon-192.png`;
+const LOGO_URL = `${SITE_URL}/favicon/favicon-192x192.png`;
 const SAME_AS: string[] = [];
 
 export function absoluteUrl(path: string) {
