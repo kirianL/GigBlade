@@ -10,7 +10,7 @@ import { AuthBackground } from "./components/AuthBackground";
 export const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 
 const fieldClass =
-	"h-10 w-full rounded-md border bg-transparent px-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus-visible:border-[#5ba8ff]";
+	"h-10 w-full rounded-md border bg-transparent px-3 text-[16px] text-white outline-none transition-colors placeholder:text-white/40 focus-visible:border-[#5ba8ff]";
 
 export const SignIn = () => {
 	const [searchParams] = useSearchParams();
