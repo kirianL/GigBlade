@@ -24,7 +24,6 @@ import {
 	InfoIcon,
 	PercentIcon,
 	ShareNetworkIcon,
-	SparkleIcon,
 	TrendUpIcon,
 	UsersIcon,
 	WrenchIcon,
@@ -362,8 +361,8 @@ export default function PlatformFinance() {
 					</button>
 				</div>
 
-				<div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-					{/* 1. Gasto Fijo Actual */}
+				<div className="mt-3">
+					{/* Gasto Fijo Actual */}
 					<div className="flex items-center justify-between rounded-lg border bg-background/50 p-3">
 						<div className="space-y-0.5">
 							<div className="flex items-center gap-1.5">
@@ -380,27 +379,6 @@ export default function PlatformFinance() {
 							</span>
 							<div className="text-[11px] font-medium text-muted-foreground">
 								≈ {formatCrc(maintenanceMonthlyCostUsd * exchangeRate)}
-							</div>
-						</div>
-					</div>
-
-					{/* 2. Regla de Reparto Neto */}
-					<div className="flex items-center justify-between rounded-lg border bg-background/50 p-3">
-						<div className="space-y-0.5">
-							<div className="flex items-center gap-1.5">
-								<SparkleIcon size={16} className="text-primary" />
-								<span className="text-xs font-bold">{t("finance.infraSplitTitle", "Regla de reparto neto")}</span>
-							</div>
-							<div className="text-xs text-muted-foreground">
-								{t("finance.infraSplitDesc", "100% del margen directo a los socios sin deducciones")}
-							</div>
-						</div>
-						<div className="text-right">
-							<span className="text-base font-extrabold text-primary">
-								{founderPercent}% / {devPercent}%
-							</span>
-							<div className="text-[11px] font-medium text-muted-foreground">
-								{t("finance.founderShare", "Socio")} / {t("finance.developerShare", "Desarrollador")}
 							</div>
 						</div>
 					</div>

@@ -46,11 +46,13 @@ export class InMemoryReferralRepository implements ReferralRepository {
     updatedAt: new Date().toISOString(),
   };
 
-  constructor() {
-    this.seedDefaults();
+  constructor(options: { seed?: boolean } = {}) {
+    if (options.seed) {
+      this.seedDefaults();
+    }
   }
 
-  private seedDefaults() {
+  seedDefaults() {
     const maxx: Affiliate = {
       id: "aff_maxx_01",
       code: "MAXX",

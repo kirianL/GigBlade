@@ -6,7 +6,7 @@ import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-wa
 describe("referral attribution in waitlist", () => {
 	it("atribuye la conversión automáticamente al afiliado cuando viene el código", async () => {
 		const waitlist = new InMemoryWaitlistRepository();
-		const referrals = new InMemoryReferralRepository();
+		const referrals = new InMemoryReferralRepository({ seed: true });
 
 		// Afiliado 'MAXX' existe en el seed
 		const result = await joinWaitlist(
@@ -44,7 +44,7 @@ describe("referral attribution in waitlist", () => {
 	});
 
 	it("liquida comisiones registrando comprobante SINPE y descuenta el saldo pendiente", async () => {
-		const referrals = new InMemoryReferralRepository();
+		const referrals = new InMemoryReferralRepository({ seed: true });
 		const affiliates = await referrals.listAffiliates();
 		const maxx = affiliates.find((a) => a.code === "MAXX")!;
 		const initialPendingCrc = maxx.pendingBalanceCrc;

@@ -234,8 +234,8 @@ const translations: Record<Language, Record<string, string>> = {
 		"referrals.recurring": "recurrente",
 
 		// Referrals Badges & Statuses
-		"referrals.badge.setup": "Cobro inicial (Página)",
-		"referrals.badge.monthly": "Mensualidad ($30)",
+		"referrals.badge.setup": "Cobro Inicial",
+		"referrals.badge.monthly": "Mensualidad",
 		"referrals.status.pending": "Pendiente",
 		"referrals.status.paid": "Pagado",
 		"referrals.action.paySinpe": "Pagar SINPE",
@@ -249,11 +249,11 @@ const translations: Record<Language, Record<string, string>> = {
 		// Referrals Table Headers
 		"referrals.th.date": "Fecha",
 		"referrals.th.referredDj": "DJ Referido",
-		"referrals.th.concept": "Concepto / Cobro",
-		"referrals.th.chargedAmount": "Monto Cobrado",
+		"referrals.th.concept": "Concepto",
+		"referrals.th.chargedAmount": "Cobro",
 		"referrals.th.promoter": "Promotor",
-		"referrals.th.percent": "% Comisión",
-		"referrals.th.earned": "Comisión Ganada",
+		"referrals.th.percent": "%",
+		"referrals.th.earned": "Comisión",
 		"referrals.th.status": "Estado",
 		"referrals.th.action": "Acción",
 		"referrals.th.code": "Código",
@@ -623,8 +623,8 @@ const translations: Record<Language, Record<string, string>> = {
 		"referrals.recurring": "recurring",
 
 		// Referrals Badges & Statuses
-		"referrals.badge.setup": "Initial setup (Page)",
-		"referrals.badge.monthly": "Monthly ($30)",
+		"referrals.badge.setup": "Setup",
+		"referrals.badge.monthly": "Monthly",
 		"referrals.status.pending": "Pending",
 		"referrals.status.paid": "Paid",
 		"referrals.action.paySinpe": "Pay SINPE",
@@ -638,11 +638,11 @@ const translations: Record<Language, Record<string, string>> = {
 		// Referrals Table Headers
 		"referrals.th.date": "Date",
 		"referrals.th.referredDj": "Referred DJ",
-		"referrals.th.concept": "Concept / Charge",
-		"referrals.th.chargedAmount": "Charged amount",
+		"referrals.th.concept": "Concept",
+		"referrals.th.chargedAmount": "Charged",
 		"referrals.th.promoter": "Promoter",
-		"referrals.th.percent": "% Commission",
-		"referrals.th.earned": "Earned commission",
+		"referrals.th.percent": "%",
+		"referrals.th.earned": "Earned",
 		"referrals.th.status": "Status",
 		"referrals.th.action": "Action",
 		"referrals.th.code": "Code",

@@ -97,8 +97,8 @@ function chargeTypeBadge(
   if (type === "monthly" || type === "mensualidad") {
     return {
       label: t
-        ? t("referrals.badge.monthly", "Mensualidad ($30)")
-        : "Mensualidad ($30)",
+        ? t("referrals.badge.monthly", "Mensualidad")
+        : "Mensualidad",
       icon: CalendarCheckIcon,
       className:
         "bg-sky-500/10 text-sky-600 dark:text-sky-300 border-sky-500/25",
@@ -106,8 +106,8 @@ function chargeTypeBadge(
   }
   return {
     label: t
-      ? t("referrals.badge.setup", "Cobro Inicial (Página)")
-      : "Cobro Inicial (Página)",
+      ? t("referrals.badge.setup", "Cobro Inicial")
+      : "Cobro Inicial",
     icon: DesktopIcon,
     className:
       "bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/25",
@@ -620,32 +620,32 @@ function TableroComisiones({
 
   return (
     <div className="w-full rounded-xl border bg-card shadow-xs overflow-x-auto">
-      <table className="w-full border-collapse text-left text-sm">
+      <table className="w-full border-collapse text-left text-xs">
         <thead>
           <tr className="border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <th className="px-2.5 py-2">{t("referrals.th.date", "Fecha")}</th>
-            <th className="px-2.5 py-2">
+            <th className="px-2 py-2 whitespace-nowrap">{t("referrals.th.date", "Fecha")}</th>
+            <th className="px-2 py-2">
               {t("referrals.th.referredDj", "DJ Referido")}
             </th>
-            <th className="px-2.5 py-2">
+            <th className="px-2 py-2">
               {t("referrals.th.concept", "Concepto")}
             </th>
             <th className="px-2 py-2">
-              {t("referrals.th.chargedAmount", "Cobrado")}
+              {t("referrals.th.chargedAmount", "Cobro")}
             </th>
-            <th className="px-2.5 py-2">
+            <th className="px-2 py-2">
               {t("referrals.th.promoter", "Promotor")}
             </th>
             <th className="px-1.5 py-2 text-center">
               {t("referrals.th.percent", "%")}
             </th>
-            <th className="px-2.5 py-2">
+            <th className="px-2 py-2">
               {t("referrals.th.earned", "Comisión")}
             </th>
             <th className="px-2 py-2">
               {t("referrals.th.status", "Estado")}
             </th>
-            <th className="px-2.5 py-2 text-right">
+            <th className="px-2 py-2 text-right">
               {t("referrals.th.action", "Acción")}
             </th>
           </tr>
@@ -670,22 +670,28 @@ function TableroComisiones({
 
             return (
               <tr key={conv.id} className="transition-colors hover:bg-muted/30">
-                <td className="whitespace-nowrap px-2.5 py-2 text-xs text-muted-foreground font-mono">
+                <td className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground font-mono">
                   {formatDate(conv.createdAt, language)}
                 </td>
-                <td className="px-2.5 py-2">
-                  <div className="font-semibold text-foreground text-xs truncate max-w-[130px]">
+                <td className="px-2 py-2">
+                  <div
+                    className="font-semibold text-foreground text-xs truncate max-w-[95px] lg:max-w-[120px]"
+                    title={conv.djName}
+                  >
                     {conv.djName}
                   </div>
-                  <div className="text-[11px] text-muted-foreground truncate max-w-[130px]">
+                  <div
+                    className="text-[11px] text-muted-foreground truncate max-w-[95px] lg:max-w-[120px]"
+                    title={conv.djEmail}
+                  >
                     {conv.djEmail}
                   </div>
                 </td>
-                <td className="px-2.5 py-2 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold ${badge.className}`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${badge.className}`}
                   >
-                    <BadgeIcon size={13} weight="duotone" />
+                    <BadgeIcon size={12} weight="duotone" />
                     <span>{badge.label}</span>
                   </span>
                 </td>
@@ -697,12 +703,15 @@ function TableroComisiones({
                     ({formatCrc(crcAmount)})
                   </div>
                 </td>
-                <td className="px-2.5 py-2 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-md border border-primary/20">
+                <td className="px-2 py-2 whitespace-nowrap">
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono font-bold text-[11px] text-primary bg-primary/10 px-1 py-0.5 rounded border border-primary/20 shrink-0">
                       {conv.affiliateCode}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[110px]">
+                    <span
+                      className="text-xs text-muted-foreground truncate max-w-[75px] lg:max-w-[105px]"
+                      title={conv.affiliateName}
+                    >
                       {conv.affiliateName}
                     </span>
                   </div>
@@ -710,7 +719,7 @@ function TableroComisiones({
                 <td className="whitespace-nowrap px-1.5 py-2 text-center text-xs font-bold text-foreground">
                   {conv.commissionPercentage}%
                 </td>
-                <td className="whitespace-nowrap px-2.5 py-2">
+                <td className="whitespace-nowrap px-2 py-2">
                   <div className="font-extrabold text-xs text-emerald-500 dark:text-emerald-400">
                     {formatUsd(commissionUsd)}
                   </div>
@@ -720,23 +729,23 @@ function TableroComisiones({
                 </td>
                 <td className="whitespace-nowrap px-2 py-2">
                   {isPaid ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      <CheckCircleIcon size={12} weight="bold" />
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <CheckCircleIcon size={11} weight="bold" />
                       <span>{t("referrals.status.paid", "Pagado")}</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-500 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500 dark:text-amber-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                       <span>{t("referrals.status.pending", "Pendiente")}</span>
                     </span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-2.5 py-2 text-right">
+                <td className="whitespace-nowrap px-2 py-2 text-right">
                   {!isPaid ? (
                     <button
                       type="button"
                       onClick={() => onPay(conv)}
-                      className="group inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm"
+                      className="group inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm shrink-0 whitespace-nowrap"
                     >
                       <BankIcon
                         size={12}
@@ -748,7 +757,7 @@ function TableroComisiones({
                       </span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium px-2 py-1">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium px-1.5 py-0.5">
                       <CheckCircleIcon
                         size={12}
                         weight="fill"
