@@ -215,16 +215,17 @@ export default function AccesoForm() {
 			const ref = params.get("ref") || params.get("referral") || params.get("r");
 			if (ref) {
 				const clean = ref.trim().toUpperCase();
-				localStorage.setItem("gb_ref", clean);
 				setFields((current) => ({ ...current, referralCode: clean }));
 			} else {
-				const stored = localStorage.getItem("gb_ref");
-				if (stored) {
-					setFields((current) => ({ ...current, referralCode: stored.trim().toUpperCase() }));
-				}
+				// Solo sale en el form si tiene el link de referido; si entra normal desde la página no debe salir
+				try {
+					localStorage.removeItem("gb_ref");
+					document.cookie = "gb_ref=; path=/; max-age=0;";
+				} catch {}
+				setFields((current) => ({ ...current, referralCode: "" }));
 			}
 		} catch {
-			// Ignorar si localStorage está bloqueado
+			// Ignorar si hay error leyendo search params
 		}
 	}, []);
 
@@ -340,6 +341,11 @@ export default function AccesoForm() {
 				setError(payload?.message ?? "No pudimos anotarte. Intentá de nuevo.");
 				return;
 			}
+			try {
+				localStorage.removeItem("gb_ref");
+				document.cookie = "gb_ref=; path=/; max-age=0;";
+			} catch {}
+			setFields((current) => ({ ...current, referralCode: "" }));
 			setAlreadyJoined(Boolean(payload?.alreadyJoined));
 			setStatus("done");
 		} catch (error) {
@@ -872,6 +878,12 @@ function Success({
 			<div>
 				<AppLink
 					href="/"
+					onClick={() => {
+						try {
+							localStorage.removeItem("gb_ref");
+							document.cookie = "gb_ref=; path=/; max-age=0;";
+						} catch {}
+					}}
 					className="mt-8 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
 				>
 					Volver a GigBlade
