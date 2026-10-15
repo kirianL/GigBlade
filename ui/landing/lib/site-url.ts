@@ -13,5 +13,5 @@ export function getSiteUrl() {
 	const preview = process.env.VERCEL_URL;
 	if (preview) return `https://${preview}`;
 
-	return "https://gigblade.com";
+	return "https://gigblades.vercel.app";
 }

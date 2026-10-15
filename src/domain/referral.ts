@@ -189,8 +189,33 @@ export function optionalAffiliateCode(value: unknown): string | null {
   return clean;
 }
 
-export function buildReferralLink(code: string, origin = "https://gigblade.com"): string {
-  return `${origin.replace(/\/+$/, "")}/acceso?ref=${encodeURIComponent(code)}`;
+export function defaultReferralOrigin(): string {
+  if (typeof process !== "undefined" && process.env) {
+    const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    if (explicit) return explicit.replace(/\/+$/, "");
+
+    if (process.env.NODE_ENV === "development") {
+      return "http://localhost:3000";
+    }
+
+    const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.replace(
+      /^https?:\/\//,
+      "",
+    );
+    if (process.env.VERCEL_ENV === "production" && production) {
+      return `https://${production.replace(/\/+$/, "")}`;
+    }
+
+    const preview = process.env.VERCEL_URL?.replace(/^https?:\/\//, "");
+    if (preview) return `https://${preview.replace(/\/+$/, "")}`;
+  }
+
+  return "https://gigblades.vercel.app";
+}
+
+export function buildReferralLink(code: string, origin?: string): string {
+  const base = origin || defaultReferralOrigin();
+  return `${base.replace(/\/+$/, "")}/acceso?ref=${encodeURIComponent(code)}`;
 }
 
 export function assertAffiliateDraft(input: {
