@@ -234,7 +234,7 @@ export default function PlatformReferrals() {
           </button>
         </div>
       </PageHeader>
-      <p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
+      <p className="text-sm text-tertiary-foreground leading-relaxed mt-1 sm:mt-2 max-w-3xl">
         {t(
           "referrals.subtitle",
           "Gestión de promotores que recomiendan GigBlade a otros DJs. Ganancias por cobro inicial de página y mensualidad de $30. Todo en dólares con liquidación en colones (SINPE).",

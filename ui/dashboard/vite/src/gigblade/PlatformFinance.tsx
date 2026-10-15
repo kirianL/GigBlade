@@ -270,7 +270,7 @@ export default function PlatformFinance() {
 					</button>
 				</div>
 			</PageHeader>
-			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
+			<p className="text-sm text-tertiary-foreground leading-relaxed mt-1 sm:mt-2 max-w-3xl">
 				{t("finance.subtitle", "Gestión del reparto financiero de GigBlade conectado en tiempo real con las comisiones de referidos, gastos de mantenimiento y división entre socios.")}
 			</p>
 
