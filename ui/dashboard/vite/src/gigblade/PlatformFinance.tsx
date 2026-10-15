@@ -24,6 +24,7 @@ import {
 	InfoIcon,
 	PercentIcon,
 	ShareNetworkIcon,
+	SparkleIcon,
 	TrendUpIcon,
 	UsersIcon,
 	WrenchIcon,

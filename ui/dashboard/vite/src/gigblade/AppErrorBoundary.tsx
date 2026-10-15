@@ -10,6 +10,10 @@ export class AppErrorBoundary extends Component<
 		return { failed: true };
 	}
 
+	componentDidCatch(error: Error, errorInfo: unknown) {
+		console.error("AppErrorBoundary caught error:", error, errorInfo);
+	}
+
 	componentDidUpdate(prevProps: { pathname?: string }) {
 		if (
 			this.state.failed &&
