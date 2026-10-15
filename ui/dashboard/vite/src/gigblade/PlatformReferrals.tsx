@@ -623,29 +623,29 @@ function TableroComisiones({
       <table className="w-full border-collapse text-left text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <th className="px-3 py-2.5">{t("referrals.th.date", "Fecha")}</th>
-            <th className="px-3 py-2.5">
+            <th className="px-2.5 py-2">{t("referrals.th.date", "Fecha")}</th>
+            <th className="px-2.5 py-2">
               {t("referrals.th.referredDj", "DJ Referido")}
             </th>
-            <th className="px-3 py-2.5">
-              {t("referrals.th.concept", "Concepto / Cobro")}
+            <th className="px-2.5 py-2">
+              {t("referrals.th.concept", "Concepto")}
             </th>
-            <th className="px-3 py-2.5">
-              {t("referrals.th.chargedAmount", "Monto Cobrado")}
+            <th className="px-2 py-2">
+              {t("referrals.th.chargedAmount", "Cobrado")}
             </th>
-            <th className="px-3 py-2.5">
+            <th className="px-2.5 py-2">
               {t("referrals.th.promoter", "Promotor")}
             </th>
-            <th className="px-2 py-2.5 text-center">
-              {t("referrals.th.percent", "% Comisión")}
+            <th className="px-1.5 py-2 text-center">
+              {t("referrals.th.percent", "%")}
             </th>
-            <th className="px-3 py-2.5">
-              {t("referrals.th.earned", "Comisión Ganada")}
+            <th className="px-2.5 py-2">
+              {t("referrals.th.earned", "Comisión")}
             </th>
-            <th className="px-3 py-2.5">
+            <th className="px-2 py-2">
               {t("referrals.th.status", "Estado")}
             </th>
-            <th className="px-3 py-2.5 text-right">
+            <th className="px-2.5 py-2 text-right">
               {t("referrals.th.action", "Acción")}
             </th>
           </tr>
@@ -670,18 +670,18 @@ function TableroComisiones({
 
             return (
               <tr key={conv.id} className="transition-colors hover:bg-muted/30">
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs text-muted-foreground font-mono">
+                <td className="whitespace-nowrap px-2.5 py-2 text-xs text-muted-foreground font-mono">
                   {formatDate(conv.createdAt, language)}
                 </td>
-                <td className="px-3 py-2.5">
-                  <div className="font-semibold text-foreground text-xs">
+                <td className="px-2.5 py-2">
+                  <div className="font-semibold text-foreground text-xs truncate max-w-[130px]">
                     {conv.djName}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground truncate max-w-[130px]">
                     {conv.djEmail}
                   </div>
                 </td>
-                <td className="px-3 py-2.5 whitespace-nowrap">
+                <td className="px-2.5 py-2 whitespace-nowrap">
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold ${badge.className}`}
                   >
@@ -689,36 +689,36 @@ function TableroComisiones({
                     <span>{badge.label}</span>
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs">
+                <td className="whitespace-nowrap px-2 py-2 text-xs">
                   <div className="font-semibold text-foreground">
                     {formatUsd(usdAmount)}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[10px] text-muted-foreground">
                     ({formatCrc(crcAmount)})
                   </div>
                 </td>
-                <td className="px-3 py-2.5 whitespace-nowrap">
+                <td className="px-2.5 py-2 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono font-bold text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-md border border-primary/20">
                       {conv.affiliateCode}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                    <span className="text-xs text-muted-foreground truncate max-w-[110px]">
                       {conv.affiliateName}
                     </span>
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-2 py-2.5 text-center text-xs font-bold text-foreground">
+                <td className="whitespace-nowrap px-1.5 py-2 text-center text-xs font-bold text-foreground">
                   {conv.commissionPercentage}%
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
+                <td className="whitespace-nowrap px-2.5 py-2">
                   <div className="font-extrabold text-xs text-emerald-500 dark:text-emerald-400">
                     {formatUsd(commissionUsd)}
                   </div>
-                  <div className="text-[11px] font-medium text-muted-foreground">
+                  <div className="text-[10px] font-medium text-muted-foreground">
                     ≈ {formatCrc(commissionCrc)}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
+                <td className="whitespace-nowrap px-2 py-2">
                   {isPaid ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                       <CheckCircleIcon size={12} weight="bold" />
@@ -731,30 +731,30 @@ function TableroComisiones({
                     </span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                <td className="whitespace-nowrap px-2.5 py-2 text-right">
                   {!isPaid ? (
                     <button
                       type="button"
                       onClick={() => onPay(conv)}
-                      className="group inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm"
+                      className="group inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm"
                     >
                       <BankIcon
-                        size={13}
+                        size={12}
                         weight="bold"
                         className="transition-transform group-hover:scale-110"
                       />
                       <span>
-                        {t("referrals.action.paySinpe", "Pagar SINPE")}
+                        {t("referrals.action.liquidateSinpe", "Liquidar SINPE")}
                       </span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium px-2 py-1">
                       <CheckCircleIcon
-                        size={13}
+                        size={12}
                         weight="fill"
                         className="text-emerald-500"
                       />
-                      <span>{t("referrals.action.settled", "Liquidado")}</span>
+                      <span>{t("referrals.action.liquidated", "Liquidado")}</span>
                     </span>
                   )}
                 </td>
@@ -828,29 +828,26 @@ function ListaAfiliados({
       <table className="w-full border-collapse text-left text-sm">
         <thead>
           <tr className="border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <th className="px-3 py-2.5">
+            <th className="px-2.5 py-2.5">
               {t("referrals.th.promoter", "Promotor")}
             </th>
-            <th className="px-3 py-2.5">{t("referrals.th.code", "Código")}</th>
-            <th className="px-3 py-2.5">
-              {t("referrals.th.directLink", "Enlace Directo de Referido")}
+            <th className="px-2 py-2.5">{t("referrals.th.code", "Código")}</th>
+            <th className="px-2 py-2.5">
+              {t("referrals.th.directLink", "Enlace Directo")}
             </th>
-            <th className="px-3 py-2.5">
-              {t(
-                "referrals.th.paymentAccount",
-                "Cuenta de Pago (SINPE / IBAN)",
-              )}
+            <th className="px-2 py-2.5">
+              {t("referrals.th.paymentAccount", "Cuenta de Pago")}
             </th>
-            <th className="px-3 py-2.5 text-center">
-              {t("referrals.th.djsBrought", "DJs Traídos")}
+            <th className="px-2 py-2.5 text-center">
+              {t("referrals.th.djsBrought", "DJs")}
             </th>
-            <th className="px-3 py-2.5">
+            <th className="px-2 py-2.5">
               {t("referrals.th.totalGenerated", "Total Generado")}
             </th>
-            <th className="px-3 py-2.5">
-              {t("referrals.th.pendingBalance", "Saldo Pendiente (SINPE)")}
+            <th className="px-2 py-2.5">
+              {t("referrals.th.pendingBalance", "Saldo Pendiente")}
             </th>
-            <th className="px-3 py-2.5 text-right">
+            <th className="px-2.5 py-2.5 text-right">
               {t("referrals.th.action", "Acción")}
             </th>
           </tr>
@@ -867,23 +864,23 @@ function ListaAfiliados({
 
             return (
               <tr key={aff.id} className="transition-colors hover:bg-muted/30">
-                <td className="whitespace-nowrap px-3 py-2.5">
-                  <div className="font-semibold text-foreground text-xs">
+                <td className="whitespace-nowrap px-2.5 py-2">
+                  <div className="font-semibold text-foreground text-xs truncate max-w-[140px]" title={aff.name}>
                     {aff.name}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground truncate max-w-[140px]" title={aff.email}>
                     {aff.email}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
-                  <span className="font-mono font-bold text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                <td className="whitespace-nowrap px-2 py-2">
+                  <span className="font-mono font-bold text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-md border border-primary/20">
                     {aff.code}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
-                  <div className="flex items-center gap-1.5">
+                <td className="whitespace-nowrap px-2 py-2">
+                  <div className="flex items-center gap-1">
                     <span
-                      className="max-w-[220px] truncate font-mono text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded select-all"
+                      className="max-w-[130px] lg:max-w-[160px] truncate font-mono text-[11px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded select-all"
                       title={referralLink}
                     >
                       {referralLink}
@@ -891,29 +888,29 @@ function ListaAfiliados({
                     <button
                       type="button"
                       onClick={() => copyLink(referralLink, aff.code)}
-                      className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors border border-transparent hover:border-border cursor-pointer active:scale-95"
+                      className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors border border-transparent hover:border-border cursor-pointer active:scale-95"
                       title={t("referrals.copyLink", "Copiar enlace")}
                     >
-                      <CopyIcon size={14} weight="bold" />
+                      <CopyIcon size={13} weight="bold" />
                     </button>
                     <a
                       href={referralLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-md p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/80 transition-colors border border-transparent hover:border-border cursor-pointer active:scale-95 inline-flex items-center justify-center"
+                      className="rounded p-1 text-muted-foreground hover:text-primary hover:bg-muted/80 transition-colors border border-transparent hover:border-border cursor-pointer active:scale-95 inline-flex items-center justify-center"
                       title={t("referrals.openLink", "Abrir enlace de referido en nueva pestaña")}
                     >
-                      <ArrowSquareOutIcon size={14} weight="bold" />
+                      <ArrowSquareOutIcon size={13} weight="bold" />
                     </a>
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs">
+                <td className="whitespace-nowrap px-2 py-2 text-xs">
                   {aff.paymentMethod === "sinpe" ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500 border border-emerald-500/20">
+                      <span className="rounded bg-emerald-500/10 px-1 py-0.5 text-[10px] font-bold text-emerald-500 border border-emerald-500/20 shrink-0">
                         SINPE
                       </span>
-                      <span className="font-mono font-medium">
+                      <span className="font-mono text-xs font-medium">
                         {aff.paymentDetails.sinpePhone ||
                           aff.phone ||
                           t("referrals.notSpecified", "No indicado")}
@@ -921,7 +918,7 @@ function ListaAfiliados({
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-500 border border-sky-500/20">
+                      <span className="rounded bg-sky-500/10 px-1 py-0.5 text-[10px] font-bold text-sky-500 border border-sky-500/20 shrink-0">
                         IBAN
                       </span>
                       <span className="font-mono text-[11px]">
@@ -931,20 +928,20 @@ function ListaAfiliados({
                     </div>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-center font-bold text-foreground">
+                <td className="whitespace-nowrap px-2 py-2 text-center font-bold text-foreground text-xs">
                   {aff.totalConversions}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs">
+                <td className="whitespace-nowrap px-2 py-2 text-xs">
                   <div className="font-semibold text-foreground">
                     {formatUsd(earnedUsd)}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[10px] text-muted-foreground">
                     ({formatCrc(earnedCrc)})
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
+                <td className="whitespace-nowrap px-2 py-2">
                   <span
-                    className={`font-extrabold text-sm ${
+                    className={`font-extrabold text-xs ${
                       hasPending
                         ? "text-amber-500 dark:text-amber-400"
                         : "text-muted-foreground"
@@ -953,20 +950,20 @@ function ListaAfiliados({
                     {formatCrc(pendingCrc)}
                   </span>
                   {hasPending && (
-                    <div className="text-[11px] text-muted-foreground font-medium">
+                    <div className="text-[10px] text-muted-foreground font-medium">
                       ≈ {formatUsd(pendingUsd)}
                     </div>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                <td className="whitespace-nowrap px-2.5 py-2 text-right">
                   {hasPending ? (
                     <button
                       type="button"
                       onClick={() => onPay(aff)}
-                      className="group inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm"
+                      className="group inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white transition-all duration-150 shadow-2xs active:scale-[0.97] cursor-pointer hover:shadow-sm"
                     >
                       <BankIcon
-                        size={13}
+                        size={12}
                         weight="bold"
                         className="transition-transform group-hover:scale-110"
                       />
@@ -975,7 +972,7 @@ function ListaAfiliados({
                       </span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium px-2 py-1">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium px-1.5 py-0.5">
                       <CheckCircleIcon
                         size={13}
                         weight="fill"
