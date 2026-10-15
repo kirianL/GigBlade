@@ -330,12 +330,73 @@ html.lenis body {
   outline-offset: 4px;
 }
 
-.site-booking-panel .pressable:focus-visible,
-.site-booking-panel input:focus-visible,
-.site-booking-panel select:focus-visible,
-.site-booking-panel textarea:focus-visible {
+.site-booking-panel .pressable:focus-visible {
   outline: 2px solid var(--site-bg);
   outline-offset: 3px;
+}
+
+.site-booking-panel input,
+.site-booking-panel select,
+.site-booking-panel textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  font-size: 16px; /* Prevents iOS Safari from auto-zooming on focus */
+}
+
+/* Fix iOS Safari date input intrinsic min-width & overflow */
+.site-booking-panel input[type="date"] {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: relative;
+}
+
+.site-booking-panel input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.5em;
+  width: 100%;
+}
+
+.site-booking-panel input[type="date"]::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.site-booking-panel textarea {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  word-break: break-word;
+}
+
+@media (min-width: 640px) {
+  .site-booking-panel input,
+  .site-booking-panel select,
+  .site-booking-panel textarea {
+    font-size: 0.875rem; /* 14px on desktop */
+  }
+}
+
+.site-booking-panel input:focus,
+.site-booking-panel input:focus-visible,
+.site-booking-panel select:focus,
+.site-booking-panel select:focus-visible,
+.site-booking-panel textarea:focus,
+.site-booking-panel textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .site-wordmark {

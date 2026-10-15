@@ -12,13 +12,13 @@ import {
 } from "@/lib/tenant/templates/turnstile-widget";
 
 const panelClass =
-  "site-booking-panel rounded-3xl border border-[var(--site-fg)] bg-[var(--site-fg)] text-[var(--site-bg)] shadow-[0_20px_50px_rgba(0,0,0,0.28)]";
+  "site-booking-panel rounded-3xl border border-[var(--site-fg)] bg-[var(--site-fg)] text-[var(--site-bg)] shadow-[0_20px_50px_rgba(0,0,0,0.28)] overflow-hidden w-full max-w-full";
 
 const labelClass =
   "text-[11px] font-mono uppercase tracking-wider text-[color-mix(in_srgb,var(--site-bg)_70%,var(--site-fg))]";
 
 const fieldClass =
-  "w-full rounded-xl border border-[color-mix(in_srgb,var(--site-bg)_22%,var(--site-fg))] bg-[color-mix(in_srgb,var(--site-bg)_8%,var(--site-fg))] px-3.5 py-2.5 text-sm text-[var(--site-bg)] placeholder:text-[color-mix(in_srgb,var(--site-bg)_45%,var(--site-fg))] focus:border-[var(--site-bg)] focus:outline-none transition-colors";
+  "w-full max-w-full min-w-0 block rounded-xl border border-[color-mix(in_srgb,var(--site-bg)_22%,var(--site-fg))] bg-[color-mix(in_srgb,var(--site-bg)_8%,var(--site-fg))] px-3.5 py-2.5 text-base sm:text-sm text-[var(--site-bg)] placeholder:text-[color-mix(in_srgb,var(--site-bg)_45%,var(--site-fg))] outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--site-bg)] transition-colors box-border";
 
 export type BookingFormProps = {
   slug: string;
@@ -146,7 +146,7 @@ export function BookingForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`${panelClass} flex flex-col gap-5 p-6 text-left sm:p-8 md:p-10`}
+      className={`${panelClass} flex flex-col gap-5 p-5 text-left sm:p-8 md:p-10 w-full max-w-full box-border`}
     >
       <div className="border-b border-[color-mix(in_srgb,var(--site-bg)_18%,var(--site-fg))] pb-4">
         <span className="text-[10px] font-mono uppercase tracking-widest text-[color-mix(in_srgb,var(--site-bg)_70%,var(--site-fg))]">
@@ -164,8 +164,8 @@ export function BookingForm({
       )}
 
       {/* Nombre y Correo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-name"
             className={labelClass}
@@ -183,7 +183,7 @@ export function BookingForm({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-email"
             className={labelClass}
@@ -203,8 +203,8 @@ export function BookingForm({
       </div>
 
       {/* Teléfono y Ciudad */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-phone"
             className={labelClass}
@@ -221,7 +221,7 @@ export function BookingForm({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-city"
             className={labelClass}
@@ -240,8 +240,8 @@ export function BookingForm({
       </div>
 
       {/* Tipo de evento y Fecha */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-event-type"
             className={labelClass}
@@ -262,7 +262,7 @@ export function BookingForm({
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 min-w-0 w-full">
           <label
             htmlFor="booking-date"
             className={labelClass}
@@ -280,7 +280,7 @@ export function BookingForm({
       </div>
 
       {/* Mensaje / Rider / Notas */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 min-w-0 w-full">
         <label
           htmlFor="booking-note"
           className={labelClass}
@@ -299,7 +299,7 @@ export function BookingForm({
       </div>
 
       {configuredTurnstileSiteKey() ? (
-        <div className="mt-1">
+        <div className="mt-1 w-full min-w-0 overflow-hidden">
           <TurnstileWidget
             theme={theme}
             onSuccess={(token) => setTurnstileToken(token)}
@@ -315,7 +315,7 @@ export function BookingForm({
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="pressable mt-1 flex min-h-[3.25rem] w-full items-center justify-center rounded-2xl bg-[var(--site-bg)] px-6 py-3.5 text-sm font-medium tracking-wide text-[var(--site-fg)] transition-opacity disabled:opacity-50 sm:text-base"
+        className="pressable mt-1 flex min-h-[3.25rem] w-full items-center justify-center rounded-2xl bg-[var(--site-bg)] px-5 py-3.5 text-sm font-medium tracking-wide text-[var(--site-fg)] transition-opacity disabled:opacity-50 sm:text-base sm:px-6"
       >
         {status === "submitting" ? (
           <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest">
@@ -323,11 +323,11 @@ export function BookingForm({
             Enviando propuesta...
           </span>
         ) : (
-          <span className="flex items-center justify-between w-full">
-            <span className="font-display uppercase tracking-wider text-base sm:text-lg">
+          <span className="flex items-center justify-center sm:justify-between w-full gap-2 min-w-0">
+            <span className="font-display uppercase tracking-wider text-sm sm:text-lg truncate">
               Enviar solicitud de booking
             </span>
-            <span className="text-xs font-mono uppercase tracking-widest">
+            <span className="hidden sm:inline-flex text-xs font-mono uppercase tracking-widest shrink-0 items-center gap-1">
               Enviar <span aria-hidden="true">→</span>
             </span>
           </span>
