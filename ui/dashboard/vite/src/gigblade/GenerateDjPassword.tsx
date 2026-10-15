@@ -13,15 +13,18 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 import { readPanelAuthSession } from "@/gigblade/panel-session";
 import { generateDjPassword } from "@/gigblade/site-api";
+import { cn } from "@/lib/utils";
 
 export function GenerateDjPasswordButton({
 	slug,
 	email,
 	name,
+	className,
 }: {
 	slug: string;
 	email: string;
 	name: string;
+	className?: string;
 }) {
 	const titleId = useId();
 	const descId = useId();
@@ -65,11 +68,12 @@ export function GenerateDjPasswordButton({
 				variant="secondary"
 				size="sm"
 				type="button"
+				className={cn("h-8 px-2.5 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all", className)}
 				onClick={generate}
 				disabled={loading}
 				aria-busy={loading}
 			>
-				<KeyIcon size={16} aria-hidden />
+				<KeyIcon size={13} aria-hidden />
 				{loading ? "Generando…" : "Generar contraseña"}
 			</Button>
 			<Dialog

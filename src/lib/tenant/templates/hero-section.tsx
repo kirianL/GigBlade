@@ -180,7 +180,7 @@ function CinematicHero({ site }: SiteTemplateProps) {
     <section
       id="inicio"
       data-hero="cinematic"
-      className="relative min-h-[92dvh] w-full flex flex-col justify-end px-5 sm:px-8 md:px-12 pb-12 pt-28 overflow-hidden"
+      className="relative min-h-[85vh] min-h-[90svh] w-full flex flex-col justify-end px-5 sm:px-8 md:px-12 pb-12 pt-28 overflow-hidden"
     >
       {/* Background Image with Cinematic Overlays */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none">
@@ -188,6 +188,7 @@ function CinematicHero({ site }: SiteTemplateProps) {
           src={bgImage}
           alt={`Foto de ${profile.displayName}`}
           fetchPriority="high"
+          loading="eager"
           decoding="async"
           className="w-full h-full object-cover brightness-75 contrast-110 scale-105"
           style={{ objectPosition: profile.heroPosition ?? "center" }}
@@ -263,6 +264,7 @@ function PosterHero({ site }: SiteTemplateProps) {
               src={bgImage}
               alt={`Foto de ${profile.displayName}`}
               fetchPriority="high"
+              loading="eager"
               decoding="async"
               className="h-full w-full object-cover"
               style={{ objectPosition: profile.heroPosition ?? "center" }}
@@ -312,6 +314,7 @@ function BandHero({ site }: SiteTemplateProps) {
           src={heroImage(site)}
           alt={`Foto de ${profile.displayName}`}
           fetchPriority="high"
+          loading="eager"
           decoding="async"
           className="h-full w-full object-cover"
           style={{ objectPosition: profile.heroPosition ?? "center" }}
@@ -340,6 +343,7 @@ function TypeHero({ site }: SiteTemplateProps) {
             alt=""
             aria-hidden="true"
             fetchPriority="high"
+            loading="eager"
             decoding="async"
             className="h-28 w-24 shrink-0 rounded-2xl object-cover"
             style={{ objectPosition: profile.heroPosition ?? "center" }}

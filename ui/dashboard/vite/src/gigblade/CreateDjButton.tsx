@@ -94,15 +94,16 @@ export function CreateDjButton({
 	return (
 		<>
 			<Button
-				variant="secondary"
+				variant="primary"
 				size="sm"
 				type="button"
+				className="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all"
 				onClick={() => {
 					resetForm();
 					setOpen(true);
 				}}
 			>
-				<PlusIcon size={16} aria-hidden />
+				<PlusIcon size={14} weight="bold" aria-hidden />
 				Agregar DJ
 			</Button>
 			<Dialog

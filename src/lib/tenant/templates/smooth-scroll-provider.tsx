@@ -38,16 +38,22 @@ export function SmoothScrollProvider({
       navigator.maxTouchPoints > 0 ||
       window.matchMedia("(pointer: coarse)").matches;
 
+    // Do NOT run virtual scroll interpolation on touch / mobile devices:
+    // Native mobile browsers (iOS Safari, Android Chrome) have 120Hz hardware momentum scrolling.
+    // Intercepting scroll on touch causes scroll fighting, rubber-band jumps,
+    // and layout shifts when the browser navigation bar expands/collapses.
+    if (isTouchDevice) {
+      return;
+    }
+
     const instance = new Lenis({
-      duration: isTouchDevice ? 1.0 : 1.2,
+      duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
-      // CRITICAL FOR INSTAGRAM IN-APP BROWSER:
-      // syncTouch: false prevents scroll fighting with native iOS/Android momentum scroll
       syncTouch: false,
-      touchMultiplier: 1.5,
+      touchMultiplier: 1.0,
       wheelMultiplier: 1.0,
       autoRaf: false,
     });

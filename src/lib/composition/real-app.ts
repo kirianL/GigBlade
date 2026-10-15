@@ -19,7 +19,12 @@ import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
 import { CloudflareWebAnalytics } from "@/infrastructure/cloudflare/web-analytics";
 import { EdgeConfigRoutingStore } from "@/infrastructure/edge-config/edge-config-routing-store";
+import { createBooking } from "@/application/bookings/create-booking";
+import { listTenantBookings } from "@/application/bookings/list-tenant-bookings";
+import { updateBookingStatus } from "@/application/bookings/update-booking-status";
+import { SupabaseBookingRepository } from "@/infrastructure/supabase/booking-repository";
 import { SupabasePanelAuthStore } from "@/infrastructure/supabase/panel-auth-store";
+import { SupabaseReferralRepository } from "@/infrastructure/supabase/supabase-referral-repository";
 import { SupabaseSiteVisitStore } from "@/infrastructure/supabase/site-visit-store";
 import { SupabaseTenantRepository } from "@/infrastructure/supabase/tenant-repository";
 import { SupabaseTenantRoutingStore } from "@/infrastructure/supabase/tenant-routing-store";
@@ -27,6 +32,10 @@ import { SupabaseWaitlistRepository } from "@/infrastructure/supabase/waitlist-r
 import { VercelEdgeConfigWriter } from "@/infrastructure/vercel/edge-config-writer";
 import { VercelProjectDomains } from "@/infrastructure/vercel/project-domains";
 import { deleteSiteMedia } from "@/infrastructure/site-media";
+import { assignPlatformDomain } from "@/application/domains/assign-platform-domain";
+import { listPlatformDomains } from "@/application/domains/list-platform-domains";
+import { removePlatformDomain } from "@/application/domains/remove-platform-domain";
+import { verifyPlatformDomain } from "@/application/domains/verify-platform-domain";
 
 export function createRealApp() {
   const tenants = new SupabaseTenantRepository();
@@ -38,6 +47,9 @@ export function createRealApp() {
     process.env.GIGBLADE_PANEL_PASSWORD?.trim() || "gigblade",
   );
   const edgeConfigWriter = new VercelEdgeConfigWriter();
+  const bookings = new SupabaseBookingRepository();
+  const projectDomains = new VercelProjectDomains();
+  const referrals = new SupabaseReferralRepository();
 
   return {
     tenants,
@@ -45,9 +57,43 @@ export function createRealApp() {
     edgeConfigWriter,
     registrar: new CloudflareRegistrar(),
     siteAnalytics: new CloudflareWebAnalytics(),
-    projectDomains: new VercelProjectDomains(),
+    projectDomains,
     visits,
     panelAuth,
+    bookings,
+    referrals,
+    listAffiliates: () => referrals.listAffiliates(),
+    createAffiliate: (input: Parameters<typeof referrals.createAffiliate>[0]) =>
+      referrals.createAffiliate(input),
+    updateAffiliate: (
+      id: string,
+      input: Parameters<typeof referrals.updateAffiliate>[1],
+    ) => referrals.updateAffiliate(id, input),
+    getReferralSettings: () => referrals.getSettings(),
+    updateReferralSettings: (
+      input: Parameters<typeof referrals.updateSettings>[0],
+    ) => referrals.updateSettings(input),
+    listReferralConversions: (affiliateId?: string) =>
+      referrals.listConversions(affiliateId),
+    recordReferralConversion: (
+      input: Parameters<typeof referrals.recordConversion>[0],
+    ) => referrals.recordConversion(input),
+    recordReferralPayout: (input: Parameters<typeof referrals.recordPayout>[0]) =>
+      referrals.recordPayout(input),
+    listReferralPayouts: (affiliateId?: string) =>
+      referrals.listPayouts(affiliateId),
+    createBooking: (
+      context: Parameters<typeof createBooking>[1],
+      input: unknown,
+      remoteIp?: string | null,
+    ) => createBooking(bookings, context, input, remoteIp),
+    listTenantBookings: (context: Parameters<typeof listTenantBookings>[1]) =>
+      listTenantBookings(bookings, context),
+    updateBookingStatus: (
+      context: Parameters<typeof updateBookingStatus>[1],
+      bookingId: string,
+      status: unknown,
+    ) => updateBookingStatus(bookings, context, bookingId, status),
     getPublicTenant: (context: Parameters<typeof getPublicTenant>[1]) =>
       getPublicTenant(tenants, context),
     updateTenantSiteContent: (
@@ -121,12 +167,38 @@ export function createRealApp() {
         body,
       );
     },
-    joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
+    joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input, referrals),
     listWaitlist: () => listWaitlist(waitlist),
     removeWaitlist: (
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
+    listPlatformDomains: () =>
+      listPlatformDomains(tenants, domainRouting, projectDomains),
+    assignPlatformDomain: (input: unknown) =>
+      assignPlatformDomain(
+        tenants,
+        domainRouting,
+        projectDomains,
+        input,
+        edgeConfigWriter,
+      ),
+    verifyPlatformDomain: (domain: string) =>
+      verifyPlatformDomain(
+        tenants,
+        domainRouting,
+        projectDomains,
+        domain,
+        edgeConfigWriter,
+      ),
+    removePlatformDomain: (domain: string, slug?: string) =>
+      removePlatformDomain(
+        tenants,
+        domainRouting,
+        domain,
+        slug,
+        edgeConfigWriter,
+      ),
     onboardWaitlist: (
       actor: Parameters<typeof onboardWaitlistSignup>[1],
       input: { id: unknown },

@@ -20,4 +20,8 @@ export class EdgeConfigRoutingStore implements TenantRoutingStore {
   async deleteByTenantId() {
     return [];
   }
+
+  async delete(): Promise<void> {
+    // Edge Config read-only routing store
+  }
 }

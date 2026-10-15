@@ -71,7 +71,8 @@ describe("site template registry", () => {
       expect(html).toContain("https://open.spotify.com/artist/nox");
       expect(html).toContain("https://soundcloud.com/nox");
       expect(html).toContain('data-section="sets"');
-      expect(html).not.toContain("<form");
+      expect(html).toContain("<form");
+      expect(html).toContain("booking-name");
     },
   );
 

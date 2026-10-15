@@ -171,6 +171,7 @@ export function GallerySection({ site }: SiteTemplateProps) {
                 src={item.url}
                 alt={item.title}
                 loading="lazy"
+                decoding="async"
                 draggable={false}
                 className="site-gallery-photo w-full h-full object-cover object-center"
               />

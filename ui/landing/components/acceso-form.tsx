@@ -21,6 +21,7 @@ type Fields = {
 	city: string;
 	instagram: string;
 	website: string;
+	referralCode: string;
 };
 
 const QUESTIONS = [
@@ -69,6 +70,7 @@ const EMPTY: Fields = {
 	city: "",
 	instagram: "",
 	website: "",
+	referralCode: "",
 };
 
 const EASE = [0.23, 1, 0.32, 1] as const;
@@ -206,6 +208,26 @@ export default function AccesoForm() {
 		return () => window.clearTimeout(timer);
 	}, []);
 
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		try {
+			const params = new URLSearchParams(window.location.search);
+			const ref = params.get("ref") || params.get("referral") || params.get("r");
+			if (ref) {
+				const clean = ref.trim().toUpperCase();
+				localStorage.setItem("gb_ref", clean);
+				setFields((current) => ({ ...current, referralCode: clean }));
+			} else {
+				const stored = localStorage.getItem("gb_ref");
+				if (stored) {
+					setFields((current) => ({ ...current, referralCode: stored.trim().toUpperCase() }));
+				}
+			}
+		} catch {
+			// Ignorar si localStorage está bloqueado
+		}
+	}, []);
+
 	const moveTo = (next: Step) => {
 		setDirection(next > step ? 1 : -1);
 		setStep(next);
@@ -304,6 +326,8 @@ export default function AccesoForm() {
 					city: fields.city.trim(),
 					instagram: instagram.trim() || undefined,
 					website: fields.website,
+					referralCode: fields.referralCode.trim() || undefined,
+					packageId: "all_inclusive",
 				}),
 				signal: controller.signal,
 			});
@@ -619,6 +643,32 @@ export default function AccesoForm() {
 											>
 												Saltar
 											</button>
+										)}
+										{step === 5 && (
+											<div className="mt-4 pt-3 border-t border-white/10">
+												{fields.referralCode ? (
+													<div className="inline-flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
+														<span>Recomendado por código:</span>
+														<strong className="font-mono tracking-wider">{fields.referralCode}</strong>
+													</div>
+												) : (
+													<div className="flex items-center gap-2">
+														<span className="text-xs text-white/40">¿Código de referido?</span>
+														<input
+															type="text"
+															value={fields.referralCode}
+															placeholder="Ej: MAXX"
+															onChange={(e) =>
+																setFields((current) => ({
+																	...current,
+																	referralCode: e.target.value.toUpperCase().trim(),
+																}))
+															}
+															className="h-7 w-28 rounded border border-white/20 bg-white/5 px-2 text-xs font-mono tracking-wider text-white outline-none focus:border-white/40 placeholder:text-white/25"
+														/>
+													</div>
+												)}
+											</div>
 										)}
 									</motion.div>
 								</AnimatePresence>

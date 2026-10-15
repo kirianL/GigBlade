@@ -78,9 +78,16 @@ export async function proxy(request: NextRequest) {
     if (rewritePath) {
       const url = request.nextUrl.clone();
       url.pathname = rewritePath;
-      return NextResponse.rewrite(url, {
+      const response = NextResponse.rewrite(url, {
         request: { headers: requestHeaders },
       });
+      if (request.method === "GET") {
+        response.headers.set(
+          "Cache-Control",
+          "public, s-maxage=60, stale-while-revalidate=300",
+        );
+      }
+      return response;
     }
   }
 

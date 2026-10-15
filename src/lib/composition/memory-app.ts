@@ -19,11 +19,21 @@ import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
 import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
 import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
+import { createBooking } from "@/application/bookings/create-booking";
+import { listTenantBookings } from "@/application/bookings/list-tenant-bookings";
+import { updateBookingStatus } from "@/application/bookings/update-booking-status";
+import { InMemoryBookingRepository } from "@/infrastructure/memory/in-memory-booking-repository";
 import { InMemoryPanelAuthStore } from "@/infrastructure/memory/in-memory-panel-auth-store";
+import { InMemoryProjectDomains } from "@/infrastructure/memory/in-memory-project-domains";
+import { InMemoryReferralRepository } from "@/infrastructure/memory/in-memory-referral-repository";
 import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
 import { InMemoryTenantRepository } from "@/infrastructure/memory/in-memory-tenant-repository";
 import { InMemoryTenantRoutingStore } from "@/infrastructure/memory/in-memory-tenant-routing-store";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
+import { assignPlatformDomain } from "@/application/domains/assign-platform-domain";
+import { listPlatformDomains } from "@/application/domains/list-platform-domains";
+import { removePlatformDomain } from "@/application/domains/remove-platform-domain";
+import { verifyPlatformDomain } from "@/application/domains/verify-platform-domain";
 import {
   MEMORY_DEMO_ROUTING,
   MEMORY_DEMO_SEEDS,
@@ -73,12 +83,51 @@ export function createMemoryApp() {
     join(process.cwd(), ".next", "memory-panel-auth.json"),
     process.env.GIGBLADE_PANEL_PASSWORD?.trim() || "gigblade",
   );
+  const bookings = new InMemoryBookingRepository(
+    join(process.cwd(), ".next", "memory-bookings.json"),
+  );
+  const projectDomains = new InMemoryProjectDomains();
+  const referrals = new InMemoryReferralRepository();
 
   return {
     tenants,
     routing,
     visits,
     panelAuth,
+    bookings,
+    referrals,
+    listAffiliates: () => referrals.listAffiliates(),
+    createAffiliate: (input: Parameters<typeof referrals.createAffiliate>[0]) =>
+      referrals.createAffiliate(input),
+    updateAffiliate: (
+      id: string,
+      input: Parameters<typeof referrals.updateAffiliate>[1],
+    ) => referrals.updateAffiliate(id, input),
+    getReferralSettings: () => referrals.getSettings(),
+    updateReferralSettings: (
+      input: Parameters<typeof referrals.updateSettings>[0],
+    ) => referrals.updateSettings(input),
+    listReferralConversions: (affiliateId?: string) =>
+      referrals.listConversions(affiliateId),
+    recordReferralConversion: (
+      input: Parameters<typeof referrals.recordConversion>[0],
+    ) => referrals.recordConversion(input),
+    recordReferralPayout: (input: Parameters<typeof referrals.recordPayout>[0]) =>
+      referrals.recordPayout(input),
+    listReferralPayouts: (affiliateId?: string) =>
+      referrals.listPayouts(affiliateId),
+    createBooking: (
+      context: Parameters<typeof createBooking>[1],
+      input: unknown,
+      remoteIp?: string | null,
+    ) => createBooking(bookings, context, input, remoteIp),
+    listTenantBookings: (context: Parameters<typeof listTenantBookings>[1]) =>
+      listTenantBookings(bookings, context),
+    updateBookingStatus: (
+      context: Parameters<typeof updateBookingStatus>[1],
+      bookingId: string,
+      status: unknown,
+    ) => updateBookingStatus(bookings, context, bookingId, status),
     getPublicTenant: (context: Parameters<typeof getPublicTenant>[1]) =>
       getPublicTenant(tenants, context),
     updateTenantSiteContent: (
@@ -138,12 +187,20 @@ export function createMemoryApp() {
         body,
       );
     },
-    joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input),
+    joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input, referrals),
     listWaitlist: () => listWaitlist(waitlist),
     removeWaitlist: (
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
+    projectDomains,
+    listPlatformDomains: () => listPlatformDomains(tenants, routing, projectDomains),
+    assignPlatformDomain: (input: unknown) =>
+      assignPlatformDomain(tenants, routing, projectDomains, input),
+    verifyPlatformDomain: (domain: string) =>
+      verifyPlatformDomain(tenants, routing, projectDomains, domain),
+    removePlatformDomain: (domain: string, slug?: string) =>
+      removePlatformDomain(tenants, routing, domain, slug),
     onboardWaitlist: (
       actor: Parameters<typeof onboardWaitlistSignup>[1],
       input: { id: unknown },

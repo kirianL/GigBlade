@@ -9,6 +9,7 @@ import {
 	type DjStatus,
 	type GigbladeDj,
 } from "@/gigblade/concept";
+import { useLanguage } from "@/contexts/LanguageProvider";
 import { formatUnixToDateTime } from "@/utils/formatUtils/formatDateUtils";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
 import { useCustomerTable } from "@/views/customers2/hooks/useCustomerTable";
@@ -36,113 +37,9 @@ function PlanStatusCell({
 	);
 }
 
-const rosterColumns: ColumnDef<DjRow>[] = [
-	{
-		id: "name",
-		header: "Name",
-		accessorKey: "name",
-		size: 130,
-		cell: ({ row }) => (
-			<div className="font-medium text-foreground">{row.original.name}</div>
-		),
-	},
-	{
-		id: "customer_id",
-		header: "ID",
-		accessorKey: "slug",
-		size: 130,
-		cell: ({ row }) => (
-			<div className="font-mono justify-start flex w-full group">
-				<MiniCopyButton text={row.original.slug} />
-			</div>
-		),
-	},
-	{
-		id: "email",
-		header: "Email",
-		accessorKey: "email",
-		size: 120,
-		cell: ({ row }) => (
-			<div className="truncate">
-				<MiniCopyButton text={row.original.email} />
-			</div>
-		),
-	},
-	{
-		id: "customer_products",
-		header: "Products",
-		size: 110,
-		cell: ({ row }) => (
-			<div className="flex min-w-0">
-				<div className="flex items-center gap-2 w-full min-w-0">
-					<span className="text-tertiary-foreground truncate min-w-0">
-						{PLAN.name}
-					</span>
-					<PlanStatusCell status={row.original.status} tooltip />
-				</div>
-			</div>
-		),
-	},
-	{
-		id: "created_at",
-		header: "Created At",
-		accessorKey: "createdAt",
-		size: 100,
-		cell: ({ row }) => {
-			const { date, time } = formatUnixToDateTime(row.original.createdAt);
-			return (
-				<div className="text-xs text-subtle pr-4 w-full">
-					{date} <span className="truncate">{time}</span>
-				</div>
-			);
-		},
-	},
-];
-
-const domainColumns: ColumnDef<DjRow>[] = [
-	{
-		id: "name",
-		header: "Name",
-		accessorKey: "name",
-		size: 130,
-		cell: ({ row }) => (
-			<div className="font-medium text-foreground">{row.original.name}</div>
-		),
-	},
-	{
-		id: "domain",
-		header: "ID",
-		accessorKey: "domain",
-		size: 160,
-		cell: ({ row }) => (
-			<div className="font-mono justify-start flex w-full group overflow-hidden">
-				<MiniCopyButton text={row.original.domain} />
-			</div>
-		),
-	},
-	{
-		id: "status",
-		header: "Products",
-		size: 140,
-		cell: ({ row }) => <PlanStatusCell status={row.original.status} />,
-	},
-	{
-		id: "created_at",
-		header: "Created At",
-		accessorKey: "createdAt",
-		size: 100,
-		cell: ({ row }) => {
-			const { date } = formatUnixToDateTime(row.original.createdAt, {
-				withYear: true,
-			});
-			return <div className="text-subtle text-xs">{date}</div>;
-		},
-	},
-];
-
 export function DjsTable({
 	djs,
-	heading = "DJs",
+	heading,
 	headingIcon,
 	actions,
 	getRowHref,
@@ -151,7 +48,7 @@ export function DjsTable({
 	virtualize = false,
 	rowActions,
 	isLoading = false,
-	emptyStateText = "Ningún DJ coincide.",
+	emptyStateText,
 }: {
 	djs: GigbladeDj[];
 	heading?: string;
@@ -165,19 +62,129 @@ export function DjsTable({
 	isLoading?: boolean;
 	emptyStateText?: string;
 }) {
+	const { t } = useLanguage();
 	const [query, setQuery] = useState("");
-	const columns = useMemo(() => {
-		const base = variant === "domains" ? domainColumns : rosterColumns;
+
+	const resolvedHeading = heading ?? t("djs.title", "Directorio de DJs");
+	const resolvedEmptyState = emptyStateText ?? t("djs.empty", "Todavía no hay DJs.");
+
+	const columns = useMemo<ColumnDef<DjRow>[]>(() => {
+		const base: ColumnDef<DjRow>[] =
+			variant === "domains"
+				? [
+						{
+							id: "name",
+							header: t("djs.name", "Nombre"),
+							accessorKey: "name",
+							size: 130,
+							cell: ({ row }) => (
+								<div className="font-medium text-foreground">{row.original.name}</div>
+							),
+						},
+						{
+							id: "domain",
+							header: "ID",
+							accessorKey: "domain",
+							size: 160,
+							cell: ({ row }) => (
+								<div className="font-mono justify-start flex w-full group overflow-hidden">
+									<MiniCopyButton text={row.original.domain} />
+								</div>
+							),
+						},
+						{
+							id: "status",
+							header: t("djs.products", "Productos"),
+							size: 140,
+							cell: ({ row }) => <PlanStatusCell status={row.original.status} />,
+						},
+						{
+							id: "created_at",
+							header: t("djs.createdAt", "Fecha de alta"),
+							accessorKey: "createdAt",
+							size: 100,
+							cell: ({ row }) => {
+								const { date } = formatUnixToDateTime(row.original.createdAt, {
+									withYear: true,
+								});
+								return <div className="text-subtle text-xs">{date}</div>;
+							},
+						},
+					]
+				: [
+						{
+							id: "name",
+							header: t("djs.name", "Nombre"),
+							accessorKey: "name",
+							size: 130,
+							cell: ({ row }) => (
+								<div className="font-medium text-foreground">{row.original.name}</div>
+							),
+						},
+						{
+							id: "customer_id",
+							header: "ID",
+							accessorKey: "slug",
+							size: 130,
+							cell: ({ row }) => (
+								<div className="font-mono justify-start flex w-full group">
+									<MiniCopyButton text={row.original.slug} />
+								</div>
+							),
+						},
+						{
+							id: "email",
+							header: "Email",
+							accessorKey: "email",
+							size: 120,
+							cell: ({ row }) => (
+								<div className="truncate">
+									<MiniCopyButton text={row.original.email} />
+								</div>
+							),
+						},
+						{
+							id: "customer_products",
+							header: t("djs.products", "Productos"),
+							size: 110,
+							cell: ({ row }) => (
+								<div className="flex min-w-0">
+									<div className="flex items-center gap-2 w-full min-w-0">
+										<span className="text-tertiary-foreground truncate min-w-0">
+											{PLAN.name}
+										</span>
+										<PlanStatusCell status={row.original.status} tooltip />
+									</div>
+								</div>
+							),
+						},
+						{
+							id: "created_at",
+							header: t("djs.createdAt", "Fecha de alta"),
+							accessorKey: "createdAt",
+							size: 100,
+							cell: ({ row }) => {
+								const { date, time } = formatUnixToDateTime(row.original.createdAt);
+								return (
+									<div className="text-xs text-subtle pr-4 w-full">
+										{date} <span className="truncate">{time}</span>
+									</div>
+								);
+							},
+						},
+					];
+
 		if (!rowActions) return base;
+
 		return [
 			...base,
 			{
 				id: "actions",
-				header: "Acciones",
-				size: 220,
+				header: t("action.view", "Acciones"),
+				size: 260,
 				cell: ({ row }) => (
 					<div
-						className="flex justify-end gap-2 pr-2"
+						className="flex justify-end gap-1.5 pr-2"
 						onClick={(event) => event.stopPropagation()}
 						onKeyDown={(event) => event.stopPropagation()}
 					>
@@ -186,7 +193,8 @@ export function DjsTable({
 				),
 			} satisfies ColumnDef<DjRow>,
 		];
-	}, [rowActions, variant]);
+	}, [rowActions, variant, t]);
+
 	const icon =
 		headingIcon ??
 		(variant === "domains" ? (
@@ -194,6 +202,7 @@ export function DjsTable({
 		) : (
 			<UsersIcon size={16} weight="fill" className="text-subtle" aria-hidden />
 		));
+
 	const rows = useMemo(() => {
 		const all = toRows(djs);
 		const needle = query.trim().toLowerCase();
@@ -218,7 +227,7 @@ export function DjsTable({
 				numberOfColumns: columns.length,
 				enableSorting: false,
 				isLoading,
-				emptyStateText,
+				emptyStateText: resolvedEmptyState,
 				rowClassName: "h-10",
 				flexibleTableColumns: true,
 				getRowHref: getRowHref
@@ -236,7 +245,7 @@ export function DjsTable({
 				<Table.Toolbar>
 					<Table.Heading>
 						{icon}
-						{heading}
+						{resolvedHeading}
 					</Table.Heading>
 					{actions ? <Table.Actions>{actions}</Table.Actions> : null}
 				</Table.Toolbar>
@@ -252,8 +261,8 @@ export function DjsTable({
 								value={query}
 								onChange={(event) => setQuery(event.target.value)}
 								className="pl-8! text-sm w-full"
-								placeholder="Buscar DJs"
-								aria-label="Buscar DJs"
+								placeholder={t("djs.searchPlaceholder", "Buscar DJs")}
+								aria-label={t("djs.searchPlaceholder", "Buscar DJs")}
 							/>
 						</div>
 					</div>

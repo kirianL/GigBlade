@@ -12,15 +12,18 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 import { readPanelAuthSession } from "@/gigblade/panel-session";
 import { deleteDj } from "@/gigblade/site-api";
+import { cn } from "@/lib/utils";
 
 export function DeleteDjButton({
 	slug,
 	name,
 	onDeleted,
+	className,
 }: {
 	slug: string;
 	name: string;
 	onDeleted?: (slug: string) => void;
+	className?: string;
 }) {
 	const titleId = useId();
 	const descId = useId();
@@ -59,6 +62,7 @@ export function DeleteDjButton({
 				variant="secondary"
 				size="sm"
 				type="button"
+				className={cn("h-8 px-2.5 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all", className)}
 				onClick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -66,7 +70,7 @@ export function DeleteDjButton({
 					setOpen(true);
 				}}
 			>
-				<TrashIcon size={16} aria-hidden />
+				<TrashIcon size={13} aria-hidden />
 				Eliminar
 			</Button>
 			<Dialog

@@ -18,7 +18,8 @@
   --site-pattern: none;
   --site-pattern-size: auto;
   --site-wash: none;
-  min-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100svh;
   background-color: var(--site-bg);
   background-image: var(--site-pattern), var(--site-wash);
   background-size: var(--site-pattern-size), auto;
@@ -329,6 +330,14 @@ html.lenis body {
   outline-offset: 4px;
 }
 
+.site-booking-panel .pressable:focus-visible,
+.site-booking-panel input:focus-visible,
+.site-booking-panel select:focus-visible,
+.site-booking-panel textarea:focus-visible {
+  outline: 2px solid var(--site-bg);
+  outline-offset: 3px;
+}
+
 .site-wordmark {
   transition: opacity 220ms var(--ease-out);
 }
@@ -580,5 +589,14 @@ html.lenis body {
   .site-hero-letter {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Native smooth scrolling on mobile without jumps or layout shifts */
+@media (pointer: coarse), (max-width: 768px) {
+  html, body {
+    scroll-behavior: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
   }
 }

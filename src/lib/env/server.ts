@@ -46,12 +46,14 @@ function envInput() {
     NEXT_PUBLIC_SUPABASE_URL: optional(supabaseUrl()),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: optional(supabaseAnonKey()),
     SUPABASE_SERVICE_ROLE_KEY: optional(supabaseServiceRoleKey()),
-    PLATFORM_VERCEL_TOKEN: optional(process.env.PLATFORM_VERCEL_TOKEN),
+    PLATFORM_VERCEL_TOKEN: optional(
+      process.env.PLATFORM_VERCEL_TOKEN || process.env.VERCEL_API_TOKEN,
+    ),
     PLATFORM_VERCEL_PROJECT_ID: optional(
       process.env.PLATFORM_VERCEL_PROJECT_ID || process.env.VERCEL_PROJECT_ID,
     ),
     PLATFORM_VERCEL_TEAM_ID: optional(
-      process.env.PLATFORM_VERCEL_TEAM_ID || process.env.VERCEL_ORG_ID,
+      process.env.PLATFORM_VERCEL_TEAM_ID || process.env.VERCEL_TEAM_ID || process.env.VERCEL_ORG_ID,
     ),
     EDGE_CONFIG: optional(process.env.EDGE_CONFIG),
     EDGE_CONFIG_ID: optional(process.env.EDGE_CONFIG_ID),

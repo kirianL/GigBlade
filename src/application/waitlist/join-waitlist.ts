@@ -1,3 +1,4 @@
+import type { ReferralRepository } from "@/application/ports/referral-repository";
 import type { WaitlistRepository } from "@/application/ports/waitlist-repository";
 import { serviceUnavailable, validationError } from "@/domain/errors";
 import {
@@ -5,11 +6,13 @@ import {
   normalizeWaitlistDraft,
   waitlistRequestSchema,
   type WaitlistJoinResult,
+  type WaitlistSignup,
 } from "@/domain/waitlist";
 
 export async function joinWaitlist(
   waitlist: WaitlistRepository,
   rawInput: unknown,
+  referrals?: ReferralRepository,
 ): Promise<WaitlistJoinResult> {
   const parsed = waitlistRequestSchema.safeParse(
     rawInput && typeof rawInput === "object" ? rawInput : {},
@@ -28,14 +31,32 @@ export async function joinWaitlist(
     return { alreadyJoined: true };
   }
 
+  let inserted: WaitlistSignup | null = null;
   try {
-    await waitlist.insert(draft);
+    inserted = await waitlist.insert(draft);
   } catch {
     const raced = await waitlist.findByEmail(draft.email);
     if (raced) {
       return { alreadyJoined: true };
     }
     throw serviceUnavailable("No se pudo guardar la inscripción");
+  }
+
+  if (referrals && draft.referralCode) {
+    try {
+      const affiliate = await referrals.findAffiliateByCode(draft.referralCode);
+      if (affiliate && affiliate.status === "active") {
+        await referrals.recordConversion({
+          affiliateId: affiliate.id,
+          djName: draft.artistName,
+          djEmail: draft.email,
+          djWaitlistId: inserted?.id ?? null,
+          packageId: draft.packageId || "all_inclusive",
+        });
+      }
+    } catch {
+      // No frenar la inscripción del DJ si ocurre un error secundario en la atribución
+    }
   }
 
   return { alreadyJoined: false };

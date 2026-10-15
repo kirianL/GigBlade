@@ -455,8 +455,9 @@ async function panelFetch(
 		) {
 			headers.set("content-type", "application/json");
 		}
-		if (init.token) {
-			headers.set("authorization", `Bearer ${init.token}`);
+		const token = init.token || readPanelAuthSession()?.token;
+		if (token) {
+			headers.set("authorization", `Bearer ${token}`);
 		}
 		const response = await fetch(`${platformApiOrigin()}${path}`, {
 			...init,
@@ -633,3 +634,383 @@ export async function uploadSitePhoto(input: {
 	if (!body.url) throw new Error("No se pudo subir la foto.");
 	return body.url;
 }
+
+export type PublicBooking = {
+	id: string;
+	tenantId: string;
+	name: string;
+	email: string;
+	phone: string | null;
+	eventType: "club" | "festival" | "private" | "wedding" | "corporate" | "other";
+	city: string | null;
+	eventDate: string | null;
+	note: string | null;
+	status: "pending" | "confirmed" | "declined";
+	createdAt: string;
+};
+
+export async function fetchDjBookings(input: {
+	slug: string;
+	token: string;
+	signal?: AbortSignal;
+}): Promise<PublicBooking[]> {
+	const body = (await panelFetch(
+		`/api/panel/bookings?slug=${encodeURIComponent(input.slug)}`,
+		{
+			method: "GET",
+			token: input.token,
+			timeoutMs: 15000,
+		},
+	)) as { bookings?: PublicBooking[] };
+	return body?.bookings ?? [];
+}
+
+export async function updateBookingStatus(input: {
+	id: string;
+	status: "pending" | "confirmed" | "declined";
+	slug: string;
+	token: string;
+}): Promise<PublicBooking> {
+	const body = (await panelFetch("/api/panel/bookings", {
+		method: "PATCH",
+		token: input.token,
+		body: JSON.stringify({
+			id: input.id,
+			status: input.status,
+			slug: input.slug,
+		}),
+		timeoutMs: 15000,
+	})) as { booking?: PublicBooking };
+	if (!body?.booking?.id) {
+		throw new Error("No se pudo actualizar el estado de la contratación.");
+	}
+	return body.booking;
+}
+
+export type DomainProvider =
+	| "godaddy"
+	| "cloudflare"
+	| "namecom"
+	| "namecheap"
+	| "google"
+	| "vercel"
+	| "other";
+
+export type DomainProvisionStatus =
+	| "active"
+	| "pending_dns"
+	| "verifying"
+	| "failed";
+
+export type DomainDnsRecord = {
+	type: "A" | "CNAME" | "TXT";
+	name: string;
+	value: string;
+};
+
+export type DomainAutomationDetail = {
+	hostname: string;
+	tenantSlug: string;
+	tenantName: string;
+	provider: DomainProvider;
+	providerLabel: string;
+	isApex: boolean;
+	currentIps: string[];
+	currentCnames: string[];
+	nameservers: string[];
+	targetIp: string;
+	targetCname: string;
+	pointsToGigBlade: boolean;
+	vercelVerified: boolean;
+	edgeConfigSynced: boolean;
+	sslActive: boolean;
+	oneClickUrl: string | null;
+	status: DomainProvisionStatus;
+	lastCheckedAt: string;
+	recommendedRecords: DomainDnsRecord[];
+};
+
+export type DomainDnsScanResult = {
+	hostname: string;
+	provider: DomainProvider;
+	providerLabel: string;
+	isApex: boolean;
+	currentIps: string[];
+	currentCnames: string[];
+	nameservers: string[];
+	targetIp: string;
+	targetCname: string;
+	pointsToGigBlade: boolean;
+	oneClickUrl: string | null;
+	recommendedRecords: DomainDnsRecord[];
+};
+
+export async function fetchPlatformDomains(
+	token?: string,
+): Promise<DomainAutomationDetail[]> {
+	const body = (await panelFetch("/api/platform/domains", {
+		method: "GET",
+		token,
+		timeoutMs: 15000,
+	})) as { domains?: DomainAutomationDetail[] };
+	return body?.domains ?? [];
+}
+
+export async function checkDomainDns(input: {
+	domain: string;
+	token?: string;
+}): Promise<DomainDnsScanResult> {
+	const body = (await panelFetch("/api/platform/domains/check", {
+		method: "POST",
+		token: input.token,
+		body: JSON.stringify({ domain: input.domain }),
+		timeoutMs: 15000,
+	})) as { scan?: DomainDnsScanResult };
+	if (!body?.scan) {
+		throw new Error("No se pudo escanear el dominio.");
+	}
+	return body.scan;
+}
+
+export async function assignPlatformDomain(input: {
+	slug: string;
+	domain: string;
+	token?: string;
+}): Promise<DomainAutomationDetail> {
+	const body = (await panelFetch("/api/platform/domains", {
+		method: "POST",
+		token: input.token,
+		body: JSON.stringify({ slug: input.slug, domain: input.domain }),
+		timeoutMs: 15000,
+	})) as { domain?: DomainAutomationDetail };
+	if (!body?.domain) {
+		throw new Error("No se pudo conectar el dominio.");
+	}
+	return body.domain;
+}
+
+export async function verifyPlatformDomain(input: {
+	domain: string;
+	token?: string;
+}): Promise<DomainAutomationDetail> {
+	const body = (await panelFetch("/api/platform/domains/verify", {
+		method: "POST",
+		token: input.token,
+		body: JSON.stringify({ domain: input.domain }),
+		timeoutMs: 15000,
+	})) as { domain?: DomainAutomationDetail };
+	if (!body?.domain) {
+		throw new Error("No se pudo verificar el dominio.");
+	}
+	return body.domain;
+}
+
+export async function deletePlatformDomain(input: {
+	domain: string;
+	slug?: string;
+	token?: string;
+}): Promise<{ success: boolean; hostname: string }> {
+	const body = (await panelFetch("/api/platform/domains", {
+		method: "DELETE",
+		token: input.token,
+		body: JSON.stringify({ domain: input.domain, slug: input.slug }),
+		timeoutMs: 15000,
+	})) as { success?: boolean; hostname?: string };
+	return {
+		success: Boolean(body?.success),
+		hostname: body?.hostname ?? input.domain,
+	};
+}
+
+export type PlatformAffiliate = {
+	id: string;
+	code: string;
+	name: string;
+	email: string;
+	phone: string | null;
+	paymentMethod: "sinpe" | "iban";
+	paymentDetails: {
+		sinpePhone?: string;
+		iban?: string;
+		bankName?: string;
+		accountHolder?: string;
+	};
+	customPercentageEnabled: boolean;
+	customPercentages: Record<string, number> | null;
+	status: "active" | "paused" | "archived";
+	referralLink: string;
+	totalConversions: number;
+	totalEarned: number;
+	totalPaid: number;
+	pendingBalance: number;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type PlatformReferralConversion = {
+	id: string;
+	affiliateId: string;
+	affiliateCode: string;
+	affiliateName: string;
+	djName: string;
+	djEmail: string;
+	djWaitlistId: string | null;
+	tenantId: string | null;
+	chargeType?: "initial_setup" | "monthly" | string;
+	amountUsd?: number;
+	amountCrc?: number;
+	commissionPercentage: number;
+	commissionAmountUsd?: number;
+	commissionAmountCrc?: number;
+	packageId?: string;
+	packagePrice?: number;
+	commissionAmount: number;
+	currency: string;
+	status: "pending" | "approved" | "rejected";
+	payoutId: string | null;
+	payoutStatus: "unpaid" | "paid";
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type PlatformReferralSettings = {
+	id?: string;
+	currency: string;
+	exchangeRateCrc: number;
+	initialSetupPriceUsd: number;
+	initialSetupPercent: number;
+	monthlyPriceUsd: number;
+	monthlyPercent: number;
+	developerPercent?: number;
+	founderPercent?: number;
+	maintenanceMonthlyCostUsd?: number;
+	maintenancePercent?: number;
+	model?: "percentage" | "fixed";
+	percentages: Record<string, number>;
+	packagePrices: Record<string, number>;
+	isActive: boolean;
+	updatedAt: string;
+};
+
+export type PlatformReferralPayout = {
+	id: string;
+	affiliateId: string;
+	affiliateCode: string;
+	affiliateName: string;
+	amount: number;
+	amountUsd?: number;
+	currency: string;
+	method: "sinpe" | "iban";
+	referenceNumber: string;
+	note: string | null;
+	paidAt: string;
+};
+
+export type PlatformReferralsData = {
+	affiliates: PlatformAffiliate[];
+	conversions: PlatformReferralConversion[];
+	settings: PlatformReferralSettings;
+	payouts: PlatformReferralPayout[];
+};
+
+export async function fetchPlatformReferrals(
+	signal?: AbortSignal,
+): Promise<PlatformReferralsData> {
+	const body = (await panelFetch("/api/platform/referrals", {
+		method: "GET",
+		signal,
+		timeoutMs: 15000,
+	})) as PlatformReferralsData;
+	return {
+		affiliates: body?.affiliates ?? [],
+		conversions: body?.conversions ?? [],
+		settings: body?.settings ?? {
+			currency: "USD",
+			exchangeRateCrc: 515,
+			initialSetupPriceUsd: 100,
+			initialSetupPercent: 20,
+			monthlyPriceUsd: 30,
+			monthlyPercent: 15,
+			developerPercent: 50,
+			founderPercent: 50,
+			maintenanceMonthlyCostUsd: 0,
+			maintenancePercent: 0,
+			model: "percentage",
+			percentages: { initial_setup: 20, monthly: 15 },
+			packagePrices: { initial_setup: 100, monthly: 30 },
+			isActive: true,
+			updatedAt: new Date().toISOString(),
+		},
+		payouts: body?.payouts ?? [],
+	};
+}
+
+export async function createPlatformAffiliate(input: {
+	code: string;
+	name: string;
+	email: string;
+	phone?: string;
+	paymentMethod: "sinpe" | "iban";
+	sinpePhone?: string;
+	iban?: string;
+	bankName?: string;
+	customPercentageEnabled?: boolean;
+	customPercentages?: Record<string, number>;
+}): Promise<PlatformAffiliate> {
+	const body = (await panelFetch("/api/platform/referrals", {
+		method: "POST",
+		body: JSON.stringify(input),
+		timeoutMs: 15000,
+	})) as { affiliate?: PlatformAffiliate };
+	if (!body?.affiliate) {
+		throw new Error("No se pudo crear el afiliado.");
+	}
+	return body.affiliate;
+}
+
+export async function updatePlatformReferralSettings(input: {
+	currency?: string;
+	exchangeRateCrc?: number;
+	initialSetupPriceUsd?: number;
+	initialSetupPercent?: number;
+	monthlyPriceUsd?: number;
+	monthlyPercent?: number;
+	developerPercent?: number;
+	founderPercent?: number;
+	maintenanceMonthlyCostUsd?: number;
+	maintenancePercent?: number;
+	percentages?: Record<string, number>;
+	packagePrices?: Record<string, number>;
+}): Promise<PlatformReferralSettings> {
+	const body = (await panelFetch("/api/platform/referrals/settings", {
+		method: "PUT",
+		body: JSON.stringify(input),
+		timeoutMs: 15000,
+	})) as { settings?: PlatformReferralSettings };
+	if (!body?.settings) {
+		throw new Error("No se pudieron guardar los ajustes de comisión.");
+	}
+	return body.settings;
+}
+
+export async function recordPlatformReferralPayout(input: {
+	affiliateId: string;
+	amount: number;
+	currency?: string;
+	method: "sinpe" | "iban";
+	referenceNumber: string;
+	note?: string;
+}): Promise<PlatformReferralPayout> {
+	const body = (await panelFetch("/api/platform/referrals/payouts", {
+		method: "POST",
+		body: JSON.stringify(input),
+		timeoutMs: 15000,
+	})) as { payout?: PlatformReferralPayout };
+	if (!body?.payout) {
+		throw new Error("No se pudo registrar la liquidación.");
+	}
+	return body.payout;
+}
+
+
+

@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { readPanelAuthSession } from "@/gigblade/panel-session";
+import { useLanguage } from "@/contexts/LanguageProvider";
 import {
 	deleteWaitlistSignup,
 	fetchPlatformWaitlist,
@@ -24,17 +25,10 @@ import {
 
 export const PLATFORM_WAITLIST_QUERY_KEY = ["platform", "waitlist"] as const;
 
-const STATUS_LABEL: Record<WaitlistSignup["status"], string> = {
-	pending: "Pendiente",
-	contacted: "Contactado",
-	onboarded: "En la plataforma",
-	declined: "Descartado",
-};
-
-function formatSignupDate(value: string) {
+function formatSignupDate(value: string, lang = "es") {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return value;
-	return new Intl.DateTimeFormat("es-CR", {
+	return new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-CR", {
 		day: "2-digit",
 		month: "short",
 		year: "numeric",
@@ -311,12 +305,22 @@ function SignupRow({
 	onDeleted: (id: string) => void;
 	onCreated: () => void;
 }) {
+	const { t, language } = useLanguage();
 	const instagram = signup.instagram
 		? `https://instagram.com/${signup.instagram}`
 		: null;
 	const whatsapp = signup.phone
 		? whatsappHref(signup.phone, signup.country)
 		: null;
+
+	const statusLabel =
+		signup.status === "pending"
+			? t("waitlist.pending", "Pendiente")
+			: signup.status === "contacted"
+				? t("waitlist.contacted", "Contactado")
+				: signup.status === "onboarded"
+					? t("waitlist.onboarded", "En la plataforma")
+					: t("waitlist.declined", "Descartado");
 
 	return (
 		<li className="border rounded-lg bg-interactive-secondary p-4 sm:p-5 flex flex-col gap-2">
@@ -336,7 +340,7 @@ function SignupRow({
 							href={whatsapp}
 							target="_blank"
 							rel="noreferrer"
-							aria-label={`Abrir WhatsApp de ${signup.artistName}: ${signup.phone}`}
+							aria-label={`WhatsApp: ${signup.phone}`}
 							className="mt-1 block text-sm text-foreground underline-offset-2 hover:underline"
 						>
 							{signup.phone}
@@ -345,7 +349,7 @@ function SignupRow({
 				</div>
 				<div className="flex items-center gap-3">
 					<p className="text-xs font-medium text-tertiary-foreground">
-						{STATUS_LABEL[signup.status]}
+						{statusLabel}
 					</p>
 					{signup.status === "pending" || signup.status === "contacted" ? (
 						<CreatePageButton signup={signup} onCreated={onCreated} />
@@ -355,7 +359,7 @@ function SignupRow({
 			</div>
 			<p className="text-xs text-tertiary-foreground">
 				{signup.city ? `${signup.city} · ` : ""}
-				{formatSignupDate(signup.createdAt)}
+				{formatSignupDate(signup.createdAt, language)}
 				{instagram ? (
 					<>
 						{" · "}
@@ -378,6 +382,7 @@ function SignupRow({
 }
 
 export default function PlatformWaitlist() {
+	const { t } = useLanguage();
 	const queryClient = useQueryClient();
 	const query = useQuery({
 		queryKey: PLATFORM_WAITLIST_QUERY_KEY,
@@ -399,21 +404,21 @@ export default function PlatformWaitlist() {
 						aria-hidden
 					/>
 				}
-				title="Lista de espera"
+				title={t("waitlist.title", "Lista de espera")}
 			/>
 			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
 				{query.isPending
-					? "Cargando solicitudes…"
+					? t("waitlist.loading", "Cargando solicitudes…")
 					: query.isError
-						? "No se pudieron cargar las solicitudes. Recargá la página."
+						? t("waitlist.error", "No se pudieron cargar las solicitudes. Recargá la página.")
 						: pending === 1
-							? "1 solicitud pendiente de cupo."
-							: `${pending} solicitudes pendientes de cupo.`}
+							? `1 ${t("waitlist.pendingSingular", "solicitud pendiente de cupo.")}`
+							: `${pending} ${t("waitlist.pendingPlural", "solicitudes pendientes de cupo.")}`}
 			</p>
 			{query.isError ? null : signups.length === 0 && !query.isPending ? (
-				<p className="text-sm text-tertiary-foreground">Todavía no hay solicitudes.</p>
+				<p className="text-sm text-tertiary-foreground">{t("waitlist.empty", "Todavía no hay solicitudes.")}</p>
 			) : (
-				<ul className="flex flex-col gap-3" aria-label="Solicitudes de la lista de espera">
+				<ul className="flex flex-col gap-3" aria-label={t("waitlist.title", "Lista de espera")}>
 					{signups.map((signup) => (
 						<SignupRow
 							key={signup.id}
@@ -427,6 +432,9 @@ export default function PlatformWaitlist() {
 							onCreated={() => {
 								void queryClient.invalidateQueries({
 									queryKey: PLATFORM_WAITLIST_QUERY_KEY,
+								});
+								void queryClient.invalidateQueries({
+									queryKey: ["platform", "djs"],
 								});
 								void queryClient.invalidateQueries({
 									queryKey: ["platform", "sites"],

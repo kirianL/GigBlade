@@ -19,35 +19,51 @@ import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { useSession } from "@/lib/auth-client";
 import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
+import { cn } from "@/lib/utils";
+
+import { useLanguage } from "@/contexts/LanguageProvider";
 
 export { PageContainer, PageHeader };
 
 export function OpenPublicPageButton({
 	href,
-	label = "Abrir página",
+	label,
+	className,
 }: {
 	href: string | null;
 	label?: string;
+	className?: string;
 }) {
+	const { t } = useLanguage();
+	const displayLabel = label ?? t("action.openPage", "Abrir página");
+	const baseClassName =
+		"h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all inline-flex items-center justify-center";
+
 	if (!href) {
 		return (
 			<Button
 				variant="secondary"
 				size="sm"
 				disabled
-				aria-label={`${label}. El dominio propio todavía no está asignado.`}
+				className={cn(baseClassName, className)}
+				aria-label={`${displayLabel}. ${t("djDomain.noDomain", "El dominio propio todavía no está asignado.")}`}
 			>
-				<ArrowSquareOutIcon size={16} aria-hidden />
-				{label}
+				<ArrowSquareOutIcon size={14} aria-hidden />
+				{displayLabel}
 			</Button>
 		);
 	}
 
 	return (
-		<Button variant="secondary" size="sm" asChild>
+		<Button
+			variant="secondary"
+			size="sm"
+			className={cn(baseClassName, className)}
+			asChild
+		>
 			<a href={href} target="_blank" rel="noreferrer">
-				<ArrowSquareOutIcon size={16} aria-hidden />
-				{label}
+				<ArrowSquareOutIcon size={14} aria-hidden />
+				{displayLabel}
 			</a>
 		</Button>
 	);

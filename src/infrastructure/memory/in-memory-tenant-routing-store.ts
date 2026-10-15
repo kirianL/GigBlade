@@ -39,4 +39,8 @@ export class InMemoryTenantRoutingStore implements TenantRoutingStore {
     }
     return removed;
   }
+
+  async delete(hostname: string): Promise<void> {
+    this.routes.delete(normalizeHostname(hostname));
+  }
 }

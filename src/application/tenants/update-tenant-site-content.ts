@@ -3,6 +3,7 @@ import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
 import { notFound, validationError } from "@/domain/errors";
 import {
   buildSiteThemeConfig,
+  readSiteProfile,
   siteContentInputSchema,
 } from "@/domain/site-profile";
 import { assertRegisteredTemplate } from "@/domain/site-template";

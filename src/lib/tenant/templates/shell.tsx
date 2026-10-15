@@ -79,7 +79,7 @@ export function SiteShell({ site, children }: SiteShellProps) {
         data-corners={site.profile.cornerStyle ?? "round"}
         data-titles={site.profile.titleStyle ?? "tight"}
         style={brandStyle}
-        className="relative min-h-[100dvh] flex flex-col bg-[var(--site-bg)] text-[var(--site-fg)]"
+        className="relative min-h-screen min-h-[100svh] flex flex-col bg-[var(--site-bg)] text-[var(--site-fg)]"
       >
         {/* Accessible Skip Link */}
         <a

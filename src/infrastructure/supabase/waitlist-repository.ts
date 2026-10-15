@@ -19,6 +19,7 @@ type WaitlistRow = {
   phone: string | null;
   note: string | null;
   status: WaitlistStatus;
+  referral_code?: string | null;
   created_at: string;
 };
 
@@ -42,18 +43,22 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
 
   async insert(draft: WaitlistDraft): Promise<WaitlistSignup> {
     const supabase = createSupabaseAdminClient();
+    const insertPayload: Record<string, unknown> = {
+      artist_name: draft.artistName,
+      email: draft.email,
+      country: draft.country,
+      city: draft.city,
+      instagram: draft.instagram,
+      phone: draft.phone,
+      note: draft.note,
+    };
+    if (draft.referralCode) {
+      insertPayload.referral_code = draft.referralCode;
+    }
     const row = readPostgrestResult(
       await supabase
         .from("dj_waitlist")
-        .insert({
-          artist_name: draft.artistName,
-          email: draft.email,
-          country: draft.country,
-          city: draft.city,
-          instagram: draft.instagram,
-          phone: draft.phone,
-          note: draft.note,
-        })
+        .insert(insertPayload)
         .select(WAITLIST_COLUMNS)
         .single(),
       { operation: "waitlist.insert" },
@@ -135,6 +140,7 @@ function mapSignup(row: WaitlistRow): WaitlistSignup {
     instagram: row.instagram,
     phone: row.phone,
     note: row.note,
+    referralCode: row.referral_code ?? null,
     status: row.status,
     createdAt: row.created_at,
   };

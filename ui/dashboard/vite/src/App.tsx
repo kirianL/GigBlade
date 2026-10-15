@@ -29,13 +29,21 @@ const PlatformWaitlist = React.lazy(
 	() => import("./gigblade/PlatformWaitlist"),
 );
 const PlatformDomains = React.lazy(() => import("./gigblade/PlatformDomains"));
+const PlatformReferrals = React.lazy(
+	() => import("./gigblade/PlatformReferrals"),
+);
+const PlatformFinance = React.lazy(
+	() => import("./gigblade/PlatformFinance"),
+);
 const PlatformPlan = React.lazy(() => import("./gigblade/PlatformPlan"));
 const PlatformSiteHealth = React.lazy(
 	() => import("./gigblade/PlatformSiteHealth"),
 );
 const DjStudioPage = React.lazy(() => import("./gigblade/DjStudioPage"));
+const DjBookingsPage = React.lazy(() => import("./gigblade/DjBookingsPage"));
 const DjContentPage = React.lazy(() => import("./gigblade/DjContentPage"));
 const DjVisitsPage = React.lazy(() => import("./gigblade/DjVisitsPage"));
+const DjDomainPage = React.lazy(() => import("./gigblade/DjDomainPage"));
 const SettingsView = React.lazy(() => import("./gigblade/GigbladeSettingsPage"));
 
 export default function App() {
@@ -97,19 +105,17 @@ export default function App() {
 					<Route path="/" element={<Navigate to="/overview" replace />} />
 					<Route path="/overview" element={<PlatformOverview />} />
 					<Route path="/djs" element={<PlatformDjs />} />
+					<Route path="/referidos" element={<PlatformReferrals />} />
+					<Route path="/distribucion" element={<PlatformFinance />} />
+					<Route path="/distribution" element={<Navigate to="/distribucion" replace />} />
 					<Route path="/lista" element={<PlatformWaitlist />} />
 					<Route path="/domains" element={<PlatformDomains />} />
 					<Route path="/health" element={<PlatformSiteHealth />} />
 					<Route path="/plan" element={<PlatformPlan />} />
-					<Route
-						path="/bookings"
-						element={<Navigate to="/overview" replace />}
-					/>
+					<Route path="/bookings" element={<DjBookingsPage />} />
 					<Route path="/studio" element={<DjStudioPage />} />
-					<Route
-						path="/studio/bookings"
-						element={<Navigate to="/studio" replace />}
-					/>
+					<Route path="/studio/domains" element={<DjDomainPage />} />
+					<Route path="/studio/bookings" element={<DjBookingsPage />} />
 					<Route path="/studio/content" element={<DjContentPage />} />
 					<Route path="/studio/visitas" element={<DjVisitsPage />} />
 					<Route path="/settings" element={<SettingsView />} />

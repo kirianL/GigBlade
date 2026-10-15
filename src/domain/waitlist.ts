@@ -12,6 +12,8 @@ export const waitlistRequestSchema = z
     phone: z.string().optional(),
     note: z.string().optional(),
     website: z.string().optional(),
+    referralCode: z.string().optional(),
+    packageId: z.string().optional(),
   })
   .strict();
 
@@ -25,6 +27,8 @@ export type WaitlistDraft = {
   instagram: string | null;
   phone: string | null;
   note: string | null;
+  referralCode?: string | null;
+  packageId?: string | null;
 };
 
 export type WaitlistSignup = WaitlistDraft & {
@@ -90,6 +94,8 @@ export function normalizeWaitlistDraft(input: {
   phone?: unknown;
   note?: unknown;
   website?: unknown;
+  referralCode?: unknown;
+  packageId?: unknown;
 }): WaitlistDraft | { discarded: true } {
   if (asTrimmedString(input.website)) {
     return { discarded: true };
@@ -111,6 +117,9 @@ export function normalizeWaitlistDraft(input: {
     throw validationError("Este país estará disponible pronto");
   }
 
+  const referralCode = optionalText(input.referralCode, 30, "El código de referido");
+  const packageId = optionalText(input.packageId, 40, "El paquete") || "all_inclusive";
+
   return {
     artistName,
     email,
@@ -119,6 +128,8 @@ export function normalizeWaitlistDraft(input: {
     instagram: normalizeInstagram(input.instagram),
     phone: normalizePhone(input.phone),
     note: optionalText(input.note, 280, "La nota"),
+    referralCode: referralCode ? referralCode.toUpperCase() : null,
+    packageId,
   };
 }
 

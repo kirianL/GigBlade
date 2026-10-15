@@ -118,4 +118,18 @@ export class SupabaseTenantRoutingStore implements TenantRoutingStore {
     }
     return ((data ?? []) as Array<{ hostname: string }>).map((row) => row.hostname);
   }
+
+  async delete(hostname: string): Promise<void> {
+    const canonicalHostname = normalizeHostname(hostname);
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase
+      .from("tenant_domains")
+      .delete()
+      .eq("hostname", canonicalHostname);
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "tenant_domains.delete",
+      });
+    }
+  }
 }

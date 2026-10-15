@@ -8,6 +8,9 @@ export const useTab = () => {
 	if (path.startsWith("/studio/visitas")) {
 		return "studio/visitas";
 	}
+	if (path.startsWith("/studio/domains")) {
+		return "studio/domains";
+	}
 	if (path.startsWith("/studio/content")) {
 		return "studio/content";
 	}

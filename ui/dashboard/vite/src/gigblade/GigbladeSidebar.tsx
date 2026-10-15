@@ -16,17 +16,21 @@ import {
 } from "@autumn/ui";
 import {
 	BooksIcon,
+	CalendarCheckIcon,
 	ChartBarIcon,
 	CubeIcon,
+	CurrencyDollarIcon,
 	EnvelopeSimpleIcon,
 	GearIcon,
 	GlobeIcon,
 	HouseIcon,
 	IdentificationCardIcon,
+	ShareNetworkIcon,
 	ShieldCheckIcon,
 	UserCircleIcon,
 } from "@phosphor-icons/react";
-import { ChevronDown, Monitor, Moon, PanelLeft, Sun } from "lucide-react";
+import { useMemo } from "react";
+import { Check, ChevronDown, Monitor, Moon, PanelLeft, Sun } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { NavLink, useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,27 +42,14 @@ import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { authClient, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeProvider";
+import { useLanguage } from "@/contexts/LanguageProvider";
 import {
 	SidebarContext,
 	useSidebarContext,
 } from "@/views/main-sidebar/SidebarContext";
 import { SidebarRail } from "@/views/main-sidebar/SidebarRail";
 
-const platformLinks = [
-	{ to: "/overview", title: "Resumen", icon: HouseIcon },
-	{ to: "/djs", title: "DJs", icon: UserCircleIcon },
-	{ to: "/lista", title: "Lista", icon: EnvelopeSimpleIcon },
-	{ to: "/domains", title: "Dominios", icon: GlobeIcon },
-	{ to: "/health", title: "Estado", icon: ShieldCheckIcon },
-	{ to: "/plan", title: "Plan", icon: CubeIcon },
-	{ to: "/settings", title: "Ajustes", icon: GearIcon },
-] as const;
 
-const studioLinks = [
-	{ to: "/studio", title: "Mi página", icon: HouseIcon, end: true },
-	{ to: "/studio/content", title: "Contenido", icon: IdentificationCardIcon },
-	{ to: "/studio/visitas", title: "Visitas", icon: ChartBarIcon },
-] as const;
 
 export function GigbladeSidebar({
 	onNavigate,
@@ -70,6 +61,34 @@ export function GigbladeSidebar({
 	const [storedExpanded, setExpanded] = useLocalStorage<boolean>(
 		"sidebar.expanded",
 		true,
+	);
+	const { t } = useLanguage();
+
+	const platformLinks = useMemo(
+		() => [
+			{ to: "/overview", title: t("nav.overview", "Resumen"), icon: HouseIcon },
+			{ to: "/djs", title: t("nav.djs", "DJs"), icon: UserCircleIcon },
+			{ to: "/referidos", title: t("nav.referrals", "Referidos & Comisiones"), icon: ShareNetworkIcon },
+			{ to: "/distribucion", title: t("nav.finance", "Finanzas & Reparto"), icon: CurrencyDollarIcon },
+			{ to: "/bookings", title: t("nav.bookings", "Contrataciones"), icon: CalendarCheckIcon },
+			{ to: "/lista", title: t("nav.waitlist", "Lista de espera"), icon: EnvelopeSimpleIcon },
+			{ to: "/domains", title: t("nav.domains", "Dominios"), icon: GlobeIcon },
+			{ to: "/health", title: t("nav.health", "Estado de páginas"), icon: ShieldCheckIcon },
+			{ to: "/plan", title: t("plan.title", "Plan"), icon: CubeIcon },
+			{ to: "/settings", title: t("nav.settings", "Ajustes"), icon: GearIcon },
+		],
+		[t],
+	);
+
+	const studioLinks = useMemo(
+		() => [
+			{ to: "/studio", title: t("nav.myPage", "Mi página"), icon: HouseIcon, end: true },
+			{ to: "/studio/domains", title: t("nav.domain", "Dominio propio"), icon: GlobeIcon },
+			{ to: "/studio/bookings", title: t("nav.bookings", "Contrataciones"), icon: CalendarCheckIcon },
+			{ to: "/studio/content", title: t("nav.content", "Contenido"), icon: IdentificationCardIcon },
+			{ to: "/studio/visitas", title: t("nav.visits", "Visitas"), icon: ChartBarIcon },
+		],
+		[t],
 	);
 
 	const isMobileSheet = !!onNavigate;
@@ -105,7 +124,7 @@ export function GigbladeSidebar({
 								setExpanded((prev) => !prev);
 							}}
 							className={cn(
-								"absolute top-1 right-4 text-tertiary-foreground hover:bg-stone-200 w-5 h-5 p-0 border-none border-0 shadow-none !bg-transparent",
+								"absolute top-1 right-4 text-tertiary-foreground hover:bg-stone-200 dark:hover:bg-stone-800 w-5 h-5 p-0 border-none border-0 shadow-none !bg-transparent",
 								expanded
 									? "opacity-100 transition-opacity duration-100"
 									: "opacity-0 transition-opacity duration-100",
@@ -130,22 +149,25 @@ export function GigbladeSidebar({
 									onTouchStart={() => prefetch(link.to)}
 									className={({ isActive }) =>
 										cn(
-											"cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground border border-transparent",
+											"group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full border border-transparent transition-colors hover:text-foreground hover:bg-interactive-secondary/60",
 											isActive &&
-												"border border-border !text-foreground bg-interactive-secondary",
+												"border border-border/80 !text-foreground bg-interactive-secondary shadow-2xs font-semibold",
 										)
 									}
 								>
 									<div className="flex items-center gap-2">
 										<div
-											className="flex justify-center !w-4 !h-4 items-center rounded-sm"
+											className="flex justify-center !w-4 !h-4 items-center rounded-sm shrink-0 text-muted-foreground group-hover:text-foreground"
 											aria-hidden
 										>
-											<Icon size={16} weight="fill" />
+											<Icon
+												size={16}
+												weight="fill"
+											/>
 										</div>
 										<span
 											className={cn(
-												"whitespace-nowrap",
+												"whitespace-nowrap transition-colors duration-150 group-hover:text-foreground",
 												expanded
 													? "opacity-100 translate-x-0"
 													: "opacity-0 -translate-x-2 pointer-events-none w-0 m-0 p-0",
@@ -165,24 +187,27 @@ export function GigbladeSidebar({
 						href={gigbladeMarketingSiteUrl()}
 						target="_blank"
 						rel="noreferrer"
-						className="cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground border border-transparent"
+						className="group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground hover:bg-interactive-secondary/60 border border-transparent transition-colors"
 					>
 						<div className="flex items-center gap-2">
 							<div
-								className="flex justify-center !w-4 !h-4 items-center rounded-sm"
+								className="flex justify-center !w-4 !h-4 items-center rounded-sm shrink-0 text-muted-foreground group-hover:text-foreground"
 								aria-hidden
 							>
-								<BooksIcon size={16} weight="duotone" />
+								<BooksIcon
+									size={16}
+									weight="duotone"
+								/>
 							</div>
 							<span
 								className={cn(
-									"whitespace-nowrap",
+									"whitespace-nowrap transition-colors duration-150 group-hover:text-foreground",
 									expanded
 										? "opacity-100 translate-x-0"
 										: "opacity-0 -translate-x-2 pointer-events-none w-0 m-0 p-0",
 								)}
 							>
-								Sitio
+								{t("nav.site", "Sitio")}
 							</span>
 						</div>
 					</a>
@@ -196,6 +221,7 @@ export function GigbladeSidebar({
 function GigbladeAccountMenu() {
 	const { expanded, setExpanded } = useSidebarContext();
 	const { mode, setMode } = useTheme();
+	const { language, setLanguage, t } = useLanguage();
 	const { data: session } = useSession();
 	const name = session?.user?.name || "GigBlade";
 	const email = session?.user?.email || "";
@@ -206,7 +232,7 @@ function GigbladeAccountMenu() {
 				<DropdownMenuTrigger asChild>
 					<Button
 						variant="skeleton"
-						aria-label="Cuenta"
+						aria-label={t("nav.account", "Cuenta")}
 						className={cn(
 							"bg-transparent! gap-2 rounded-md items-center transition-all duration-200 cursor-pointer",
 							expanded
@@ -248,10 +274,11 @@ function GigbladeAccountMenu() {
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuGroup>
+						{/* Sub-menu Tema */}
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger className="text-muted-foreground">
 								<div className="flex justify-between w-full items-center gap-2">
-									<span>Tema</span>
+									<span>{t("theme.title", "Tema")}</span>
 									{mode === "light" && <Sun size={14} />}
 									{mode === "dark" && <Moon size={14} />}
 									{mode === "system" && <Monitor size={14} />}
@@ -263,33 +290,74 @@ function GigbladeAccountMenu() {
 										onClick={() => setMode("light")}
 										className="flex justify-between items-center"
 									>
-										<span className="text-muted-foreground">Claro</span>
+										<span className={cn(mode === "light" ? "text-foreground font-medium" : "text-muted-foreground")}>
+											{t("theme.light", "Claro")}
+										</span>
 										<Sun size={14} />
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => setMode("dark")}
 										className="flex justify-between items-center"
 									>
-										<span className="text-muted-foreground">Oscuro</span>
+										<span className={cn(mode === "dark" ? "text-foreground font-medium" : "text-muted-foreground")}>
+											{t("theme.dark", "Oscuro")}
+										</span>
 										<Moon size={14} />
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => setMode("system")}
 										className="flex justify-between items-center"
 									>
-										<span className="text-muted-foreground">Sistema</span>
+										<span className={cn(mode === "system" ? "text-foreground font-medium" : "text-muted-foreground")}>
+											{t("theme.system", "Sistema")}
+										</span>
 										<Monitor size={14} />
 									</DropdownMenuItem>
 								</DropdownMenuSubContent>
 							</DropdownMenuPortal>
 						</DropdownMenuSub>
+
+						{/* Sub-menu Idioma / Language */}
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger className="text-muted-foreground">
+								<div className="flex justify-between w-full items-center gap-2">
+									<span>{t("language.title", "Idioma")}</span>
+									<span className="text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-interactive-secondary text-foreground">
+										{language}
+									</span>
+								</div>
+							</DropdownMenuSubTrigger>
+							<DropdownMenuPortal>
+								<DropdownMenuSubContent className="w-36">
+									<DropdownMenuItem
+										onClick={() => setLanguage("es")}
+										className="flex justify-between items-center cursor-pointer"
+									>
+										<span className={cn(language === "es" ? "text-foreground font-medium" : "text-muted-foreground")}>
+											{t("language.es", "Español")}
+										</span>
+										{language === "es" && <Check size={14} className="text-emerald-500" />}
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => setLanguage("en")}
+										className="flex justify-between items-center cursor-pointer"
+									>
+										<span className={cn(language === "en" ? "text-foreground font-medium" : "text-muted-foreground")}>
+											{t("language.en", "English")}
+										</span>
+										{language === "en" && <Check size={14} className="text-emerald-500" />}
+									</DropdownMenuItem>
+								</DropdownMenuSubContent>
+							</DropdownMenuPortal>
+						</DropdownMenuSub>
+
 						{!expanded && (
 							<DropdownMenuItem
 								onClick={() => {
 									setExpanded(true);
 								}}
 							>
-								<span className="text-muted-foreground">Abrir menú</span>
+								<span className="text-muted-foreground">{t("nav.openMenu", "Abrir menú")}</span>
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuGroup>
@@ -304,7 +372,7 @@ function GigbladeAccountMenu() {
 							}
 						}}
 					>
-						<span className="text-muted-foreground">Salir</span>
+						<span className="text-muted-foreground">{t("auth.signOut", "Salir")}</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

@@ -30,6 +30,7 @@ import { fetchSiteVisits, type SiteVisitStats } from "@/gigblade/site-api";
 import { GenerateDjPasswordButton } from "@/gigblade/GenerateDjPassword";
 import { InstallDesktopCard } from "@/gigblade/InstallDesktop";
 import { DeleteDjButton } from "@/gigblade/DeleteDjButton";
+import { ConnectDomainModal } from "@/gigblade/ConnectDomainModal";
 import {
 	DjSelect,
 	DjStatusCell,
@@ -38,10 +39,12 @@ import {
 } from "@/gigblade/ui";
 import { useDjProfile } from "@/gigblade/useDjContent";
 import { useSession } from "@/lib/auth-client";
+import { useLanguage } from "@/contexts/LanguageProvider";
 
 export default function DjStudioPage() {
 	const { dj, setDj, draft, visitsReady } = useDjProfile();
 	const { data: session } = useSession();
+	const { t } = useLanguage();
 	const navigate = useNavigate();
 	const isPlatform =
 		(session?.user as { role?: string } | undefined)?.role === "platform";
@@ -68,7 +71,7 @@ export default function DjStudioPage() {
 					<BreadcrumbList className="text-tertiary-foreground text-xs">
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to={`/studio?dj=${dj.slug}`}>Mi página</Link>
+								<Link to={`/studio?dj=${dj.slug}`}>{t("nav.myPage", "Mi página")}</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
@@ -81,7 +84,7 @@ export default function DjStudioPage() {
 					<DjSelect value={dj.slug} onValueChange={setDj} />
 					<OpenPublicPageButton
 						href={pageUrl}
-						label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir página"}
+						label={pageUrl?.includes(".localhost") ? t("action.viewTemplate", "Ver plantilla") : t("action.openPage", "Abrir página")}
 					/>
 				</div>
 			</div>
@@ -93,11 +96,16 @@ export default function DjStudioPage() {
 					</h1>
 					<DjStatusCell status={dj.status} />
 				</div>
-				<div className="flex gap-2 flex-wrap min-w-0">
-					<Button variant="primary" size="sm" asChild>
+				<div className="flex gap-2 flex-wrap min-w-0 items-center">
+					<Button
+						variant="primary"
+						size="sm"
+						className="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all"
+						asChild
+					>
 						<Link to={contentHref}>
-							<IdentificationCardIcon size={16} aria-hidden />
-							Editar contenido
+							<IdentificationCardIcon size={14} aria-hidden />
+							{t("action.editContent", "Editar contenido")}
 						</Link>
 					</Button>
 					<CopyButton
@@ -143,6 +151,15 @@ export default function DjStudioPage() {
 								: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
 						</p>
 						<div className="flex flex-wrap gap-2">
+							<ConnectDomainModal
+								fixedSlug={dj.slug}
+								triggerText={intendedDomain ? "Cambiar o verificar dominio" : "Conectar dominio propio"}
+								triggerVariant={intendedDomain ? "secondary" : "primary"}
+								triggerClassName="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all"
+								onConnected={() => {
+									window.location.reload();
+								}}
+							/>
 							<OpenPublicPageButton
 								href={pageUrl}
 								label={pageUrl?.includes(".localhost") ? "Ver plantilla" : "Abrir"}
@@ -151,21 +168,52 @@ export default function DjStudioPage() {
 					</section>
 				) : (
 					<section className="border rounded-lg p-5 flex flex-col gap-3">
-						<div className="min-w-0">
-							<p className="text-xs text-tertiary-foreground">Link para Instagram</p>
-							<p className="text-sm font-medium text-foreground break-all">
-								{pageUrl ?? "Todavía no hay un link público"}
-							</p>
+						<div className="flex items-start justify-between gap-3">
+							<div className="min-w-0">
+								<p className="text-xs text-tertiary-foreground">Dominio Propio</p>
+								<p className="text-sm font-semibold text-foreground break-all">
+									{intendedDomain ?? (pageUrl ? "GigBlade Preview" : "Sin dominio asignado")}
+								</p>
+							</div>
+							{intendedDomain ? (
+								<span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground shrink-0">
+									<span className="relative flex h-2 w-2">
+										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+										<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+									</span>
+									Activo
+								</span>
+							) : (
+								<span className="text-xs text-tertiary-foreground font-mono shrink-0">
+									Sin conectar
+								</span>
+							)}
 						</div>
 						<p className="text-sm text-tertiary-foreground leading-6">
-							Pegalo en el bio. Es el link que abre tu página.
+							{intendedDomain
+								? `Tu página oficial responde en ${intendedDomain}. Puedes cambiar o verificar tu dominio en 1 clic.`
+								: "Conecta tu propio dominio comprado en GoDaddy, Cloudflare, Name.com u otro registrador en 1 clic."}
 						</p>
-						<div className="flex flex-wrap gap-2">
+						<div className="flex flex-wrap items-center gap-2">
+							<ConnectDomainModal
+								fixedSlug={dj.slug}
+								triggerText={intendedDomain ? "Cambiar o verificar dominio" : "Conectar dominio propio"}
+								triggerVariant={intendedDomain ? "secondary" : "primary"}
+								triggerClassName="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all"
+								onConnected={() => {
+									window.location.reload();
+								}}
+							/>
 							{pageUrl ? (
 								<CopyButton text={pageUrl} title="Copiar link" size="mini" />
 							) : null}
 							{instagramUrl && dj.instagram ? (
-								<Button variant="secondary" size="sm" asChild>
+								<Button
+									variant="secondary"
+									size="sm"
+									className="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all"
+									asChild
+								>
 									<a href={instagramUrl} target="_blank" rel="noreferrer">
 										Abrir Instagram
 									</a>
@@ -191,8 +239,13 @@ export default function DjStudioPage() {
 					<p className="text-sm text-tertiary-foreground leading-6">
 						{formatLastVisit(visits?.lastVisitedAt ?? null)}
 					</p>
-					<Button variant="secondary" size="sm" asChild>
-						<Link to={visitsHref}>Ver visitas</Link>
+					<Button
+						variant="secondary"
+						size="sm"
+						className="h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all w-fit"
+						asChild
+					>
+						<Link to={visitsHref}>{t("action.viewVisits", "Ver visitas")}</Link>
 					</Button>
 				</section>
 			</section>

@@ -6,8 +6,10 @@ import { DjsTable } from "@/gigblade/DjsTable";
 import { MetricCard, PageContainer } from "@/gigblade/ui";
 import { AnimatedCounter } from "@/gigblade/AnimatedCounter";
 import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
+import { useLanguage } from "@/contexts/LanguageProvider";
 
 export default function PlatformOverview() {
+	const { t } = useLanguage();
 	const { djs, sites } = usePlatformDjs();
 	const paying = djs.filter((dj) => dj.status === "active").length;
 	const mrr = paying * PLAN.priceUsd;
@@ -23,11 +25,11 @@ export default function PlatformOverview() {
 						aria-hidden
 					/>
 				}
-				label="Monthly Recurring Revenue"
+				label={t("overview.mrr", "Ingresos recurrentes mensuales")}
 				value={`US$ ${mrr}`}
 				suffix="/mo"
 				asideValue={String(paying)}
-				asideLabel="active plans"
+				asideLabel={t("overview.activePlans", "planes activos")}
 			/>
 			<MetricCard
 				icon={
@@ -37,11 +39,11 @@ export default function PlatformOverview() {
 						aria-hidden
 					/>
 				}
-				label="Visitantes este mes"
+				label={t("overview.visitsThisMonth", "Visitantes este mes")}
 				value={<AnimatedCounter value={visits} />}
-				suffix={visits === 1 ? "visitante" : "visitantes"}
+				suffix={visits === 1 ? t("overview.visitor", "visitante") : t("overview.visitors", "visitantes")}
 				asideValue={String(djs.length)}
-				asideLabel="dominios"
+				asideLabel={t("overview.domains", "dominios")}
 			/>
 
 			<DjsTable
@@ -50,7 +52,7 @@ export default function PlatformOverview() {
 				getRowHref={(dj) => `/studio?dj=${dj.slug}`}
 				actions={
 					<Button variant="secondary" size="sm" asChild>
-						<Link to="/djs">Ver todos</Link>
+						<Link to="/djs">{t("action.viewAll", "Ver todos")}</Link>
 					</Button>
 				}
 			/>

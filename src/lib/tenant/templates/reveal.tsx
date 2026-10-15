@@ -18,8 +18,8 @@ export function SiteReveal({
   children,
   className = "",
   delay = 0,
-  yOffset = 20,
-  scaleInitial = 0.97,
+  yOffset = 12,
+  scaleInitial = 1,
 }: RevealProps) {
   const shouldReduceMotion = useReducedMotion();
 
@@ -32,15 +32,15 @@ export function SiteReveal({
       className={className}
       initial={{
         opacity: 0,
-        transform: `translateY(${yOffset}px) scale(${scaleInitial})`,
+        transform: `translateY(${yOffset}px)`,
       }}
       whileInView={{
         opacity: 1,
-        transform: "translateY(0px) scale(1)",
+        transform: "translateY(0px)",
       }}
-      viewport={{ once: true, margin: "-60px" }}
+      viewport={{ once: true, margin: "0px 0px -15px 0px" }}
       transition={{
-        duration: 0.5,
+        duration: 0.4,
         delay,
         ease: EMIL_EASE_OUT,
       }}

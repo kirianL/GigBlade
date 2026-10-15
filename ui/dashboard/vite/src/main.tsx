@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AppErrorBoundary } from "./gigblade/AppErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeProvider";
+import { LanguageProvider } from "./contexts/LanguageProvider";
 import { installFetchMock } from "./demo/installFetchMock";
 import { PostHogBoot } from "./app/PostHogBoot";
 
@@ -73,15 +74,17 @@ createRoot(document.getElementById("root")!).render(
 			}}
 		>
 			<ThemeProvider>
-				<AppErrorBoundary>
-					{shouldInitializePostHog ? (
-						<PostHogBoot>
+				<LanguageProvider>
+					<AppErrorBoundary>
+						{shouldInitializePostHog ? (
+							<PostHogBoot>
+								<App />
+							</PostHogBoot>
+						) : (
 							<App />
-						</PostHogBoot>
-					) : (
-						<App />
-					)}
-				</AppErrorBoundary>
+						)}
+					</AppErrorBoundary>
+				</LanguageProvider>
 			</ThemeProvider>
 		</PersistQueryClientProvider>
 	</StrictMode>,

@@ -7,4 +7,5 @@ export interface TenantRoutingStore {
   list(): Promise<ListedTenantRoute[]>;
   put(hostname: string, routing: TenantRouting): Promise<void>;
   deleteByTenantId(tenantId: string): Promise<string[]>;
+  delete(hostname: string): Promise<void>;
 }
