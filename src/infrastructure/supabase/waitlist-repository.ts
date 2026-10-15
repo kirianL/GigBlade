@@ -6,6 +6,7 @@ import type { WaitlistDraft, WaitlistSignup, WaitlistStatus } from "@/domain/wai
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
 import {
   failPostgrestQuery,
+  isPostgrestSchemaFailure,
   readPostgrestResult,
 } from "@/infrastructure/supabase/postgrest";
 
@@ -55,14 +56,27 @@ export class SupabaseWaitlistRepository implements WaitlistRepository {
     if (draft.referralCode) {
       insertPayload.referral_code = draft.referralCode;
     }
-    const row = readPostgrestResult(
-      await supabase
+
+    let response = await supabase
+      .from("dj_waitlist")
+      .insert(insertPayload)
+      .select(WAITLIST_COLUMNS)
+      .single();
+
+    if (
+      response.error &&
+      isPostgrestSchemaFailure(response.error.code) &&
+      insertPayload.referral_code
+    ) {
+      delete insertPayload.referral_code;
+      response = await supabase
         .from("dj_waitlist")
         .insert(insertPayload)
         .select(WAITLIST_COLUMNS)
-        .single(),
-      { operation: "waitlist.insert" },
-    );
+        .single();
+    }
+
+    const row = readPostgrestResult(response, { operation: "waitlist.insert" });
 
     if (!row) {
       throw serviceUnavailable("No se pudo guardar la inscripción");

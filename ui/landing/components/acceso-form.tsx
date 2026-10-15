@@ -439,19 +439,30 @@ export default function AccesoForm() {
 				variants={reduceMotion ? pageEnterStill : pageEnter}
 				onAnimationComplete={() => setIntroReady(true)}
 			>
-			<header className="flex h-14 shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
+			<header className="flex h-14 shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8 gap-3">
 				<AppLink
 					href="/"
 					className="access-logo access-press cursor-pointer font-sans text-[18px] font-medium tracking-[-3%] text-white"
 				>
 					<span className="access-logo-mark">GigBlade</span>
 				</AppLink>
-				<Progress
-					step={step}
-					done={status === "done"}
-					reduceMotion={Boolean(reduceMotion)}
-					live={introReady}
-				/>
+				<div className="flex items-center gap-2.5 sm:gap-3.5">
+					{fields.referralCode && (
+						<div className="flex items-center gap-1.5 text-xs text-white/40 select-none">
+							<span className="hidden sm:inline">Recomendado por código:</span>
+							<span className="sm:hidden">Código:</span>
+							<span className="font-mono text-xs font-semibold tracking-wider text-white/90">
+								{fields.referralCode}
+							</span>
+						</div>
+					)}
+					<Progress
+						step={step}
+						done={status === "done"}
+						reduceMotion={Boolean(reduceMotion)}
+						live={introReady}
+					/>
+				</div>
 			</header>
 
 			<div className="relative z-10 h-px bg-white/8">
@@ -644,30 +655,23 @@ export default function AccesoForm() {
 												Saltar
 											</button>
 										)}
-										{step === 5 && (
+										{step === 5 && !fields.referralCode && (
 											<div className="mt-4 pt-3 border-t border-white/10">
-												{fields.referralCode ? (
-													<div className="inline-flex items-center gap-2 rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
-														<span>Recomendado por código:</span>
-														<strong className="font-mono tracking-wider">{fields.referralCode}</strong>
-													</div>
-												) : (
-													<div className="flex items-center gap-2">
-														<span className="text-xs text-white/40">¿Código de referido?</span>
-														<input
-															type="text"
-															value={fields.referralCode}
-															placeholder="Ej: MAXX"
-															onChange={(e) =>
-																setFields((current) => ({
-																	...current,
-																	referralCode: e.target.value.toUpperCase().trim(),
-																}))
-															}
-															className="h-7 w-28 rounded border border-white/20 bg-white/5 px-2 text-xs font-mono tracking-wider text-white outline-none focus:border-white/40 placeholder:text-white/25"
-														/>
-													</div>
-												)}
+												<div className="flex items-center gap-2">
+													<span className="text-xs text-white/40">¿Código de referido?</span>
+													<input
+														type="text"
+														value={fields.referralCode}
+														placeholder="Ej: MAXX"
+														onChange={(e) =>
+															setFields((current) => ({
+																...current,
+																referralCode: e.target.value.toUpperCase().trim(),
+															}))
+														}
+														className="h-7 w-28 rounded border border-white/20 bg-white/5 px-2 text-xs font-mono tracking-wider text-white outline-none focus:border-white/40 placeholder:text-white/25"
+													/>
+												</div>
 											</div>
 										)}
 									</motion.div>
