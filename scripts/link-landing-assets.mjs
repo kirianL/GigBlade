@@ -4,10 +4,7 @@ import path from "node:path";
 const root = process.cwd();
 const linkType = process.platform === "win32" ? "junction" : "dir";
 
-const links = [
-  ["public", "ui/landing/public"],
-  ["content", "ui/landing/content"],
-];
+const links = [["public", "ui/landing/public"]];
 
 for (const [destName, srcName] of links) {
   const dest = path.join(root, destName);

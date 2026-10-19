@@ -110,7 +110,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/|favicon.ico|api/panel|api/platform|api/waitlist|api/mix-cover|api/blog-md|api/alog-md).*)",
+    "/((?!_next/|favicon.ico|api/panel|api/platform|api/waitlist|api/mix-cover).*)",
   ],
 };
 

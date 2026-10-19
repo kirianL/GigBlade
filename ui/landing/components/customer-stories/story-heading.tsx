@@ -6,8 +6,8 @@ export function StoryHeading() {
 				<span className="text-white">una página de DJ.</span>
 			</h2>
 			<p className="mt-4 max-w-xl text-[15px] lg:text-[16px] font-sans leading-relaxed tracking-[-1%] font-light text-[#FFFFFF99]">
-				Temas pensados para DJs y eventos. Página propia y dominio,
-				sin tocar lo técnico.
+				Temas pensados para DJs y eventos. Elegís uno y cargás tu
+				contenido. El dominio lo comprás vos.
 			</p>
 		</div>
 	);

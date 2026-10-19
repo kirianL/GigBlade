@@ -7,7 +7,7 @@ const testimonialsData = [
 	{
 		id: 1,
 		quote:
-			"Quería un sitio propio y no sabía por dónde empezar. GigBlades me dejó la página lista, con dominio y hosting.",
+			"Quería un sitio propio y no sabía por dónde empezar. GigBlades me dejó la página lista, con bookings y hosting.",
 		author: "NOX",
 	},
 	{
@@ -18,7 +18,7 @@ const testimonialsData = [
 	{
 		id: 3,
 		quote:
-			"Pago un solo plan y me olvido de hosting, DNS y certificados. Eso era lo que no quería tocar.",
+			"Pago un solo plan y me olvido del hosting y la seguridad. Eso era lo que no quería tocar.",
 		author: "LUNA",
 	},
 	{
@@ -35,7 +35,7 @@ const testimonialsData = [
 	{
 		id: 6,
 		quote:
-			"El dominio se cobra al costo. El resto —página, seguridad y hosting— viene en la suscripción.",
+			"El dominio lo compré yo. La página, la seguridad y el hosting vienen en la suscripción.",
 		author: "SELLO",
 	},
 ];
@@ -84,10 +84,10 @@ const Testimonials = () => {
 			<div className=" mx-auto">
 				<div className="px-4 sm:px-6 md:px-4 lg:px-4 xl:px-22.75 pt-[48px] xl:pt-32 pb-[48px] flex flex-row items-start justify-between">
 					<h2 className="w-full text-center md:w-auto md:text-left text-[30px] leading-[32px] sm:text-5xl md:text-[40px] font-normal tracking-[-5%]">
-						<span className="text-[#FFFFFF99]">Built for </span>
-						<span className="text-white">teams</span>
+						<span className="text-[#FFFFFF99]">Páginas que </span>
+						<span className="text-white">ya están</span>
 						<br className="sm:hidden" />
-						<span className="text-white"> that move fast</span>
+						<span className="text-white"> en la calle</span>
 					</h2>
 					<div className="hidden md:flex items-center space-x-4">
 						<button

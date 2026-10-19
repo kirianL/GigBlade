@@ -1382,19 +1382,19 @@ export const customerStoriesData: CustomerStory[] = [
 			emphasis: "lista para clubes.",
 		},
 		stats: [
-			{ value: "1", label: "Dominio propio" },
+			{ value: "1", label: "Tema de catálogo" },
 			{ value: "0", label: "Tickets de hosting" },
 			{ value: "24/7", label: "Página publicada" },
 		],
 		quote:
-			"Quería un lugar formal para que las productoras me encuentren, sin armar hosting ni pelearme con el dominio. GigBlades es eso.",
+			"Quería un lugar formal para que las productoras me encuentren, sin armar el sitio desde cero. GigBlades es eso.",
 		author: { name: "Nox", title: "Sets nocturnos" },
 	},
 	{
 		slug: "firecrawl",
 		name: "Marco",
-		href: "/wishlist",
-		linkLabel: "Escribir a Marco",
+		href: "/acceso",
+		linkLabel: "Creá tu página",
 		logo: "/images/logos/Firecrawl.svg.svg",
 		iconLogo: "/images/logos/icons/firecrawl.svg",
 		logoClassName: "scale-95 -translate-y-0.5",
@@ -1407,12 +1407,12 @@ export const customerStoriesData: CustomerStory[] = [
 			emphasis: "que es tuya.",
 		},
 		stats: [
-			{ value: "1", label: "Dominio propio" },
+			{ value: "1", label: "Página propia" },
 			{ value: "0", label: "DMs perdidos" },
 			{ value: "1", label: "Canal de contacto" },
 		],
 		quote:
-			"Las productoras te encuentran en tu dominio, no mezclado entre Instagram y WhatsApp. El contacto queda en un solo lugar.",
+			"Las productoras te encuentran en tu página, no mezclado entre Instagram y WhatsApp. El contacto queda en un solo lugar.",
 		author: {
 			name: "DJ Marco",
 			title: "Artista independiente",
@@ -1461,10 +1461,10 @@ export const customerStoriesData: CustomerStory[] = [
 		stats: [
 			{ value: "$30", label: "Al mes, página incluida" },
 			{ value: "$120", label: "Para dejar la página lista" },
-			{ value: "0", label: "Trámites de DNS" },
+			{ value: "1", label: "Panel propio" },
 		],
 		quote:
-			"Pago la suscripción y me olvido de hosting, certificados y renovaciones raras. El dominio se cobra al costo, sin margen.",
+			"Pago la suscripción y me olvido del hosting y la seguridad. El dominio lo compré yo, aparte.",
 		author: { name: "Residente", title: "DJ residente" },
 	},
 ];

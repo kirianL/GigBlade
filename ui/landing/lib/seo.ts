@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { faqData } from "@/app/constant";
-import type { BlogPostSummary } from "@/lib/blogUtils";
 import { getSiteUrl } from "@/lib/site-url";
 
 export const SITE_URL = getSiteUrl();
@@ -105,47 +104,6 @@ export function faqPageSchema() {
 			name: faq.question,
 			acceptedAnswer: { "@type": "Answer", text: toPlainText(faq.answer) },
 		})),
-	};
-}
-
-export function blogPostingSchema(post: BlogPostSummary) {
-	const postUrl = `${SITE_URL}/blog/${post.slug}`;
-	return {
-		"@context": "https://schema.org",
-		"@type": "BlogPosting",
-		"@id": `${postUrl}/#article`,
-		headline: post.title,
-		description: toPlainText(post.description),
-		url: postUrl,
-		mainEntityOfPage: postUrl,
-		...(post.image ? { image: absoluteUrl(post.image) } : {}),
-		...(post.date ? { datePublished: post.date, dateModified: post.date } : {}),
-		author: { "@type": "Organization", name: post.author },
-		publisher: { "@id": `${SITE_URL}/#organization` },
-	};
-}
-
-export function techArticleSchema(doc: {
-	slug: string;
-	title: string;
-	description: string;
-	date: string | null;
-	updated: string | null;
-	author: string;
-}) {
-	const url = `${SITE_URL}/alog/${doc.slug}`;
-	return {
-		"@context": "https://schema.org",
-		"@type": "TechArticle",
-		"@id": `${url}/#article`,
-		headline: doc.title,
-		description: toPlainText(doc.description),
-		url,
-		mainEntityOfPage: url,
-		...(doc.date ? { datePublished: doc.date } : {}),
-		...(doc.updated ? { dateModified: doc.updated } : {}),
-		author: { "@type": "Organization", name: doc.author },
-		publisher: { "@id": `${SITE_URL}/#organization` },
 	};
 }
 

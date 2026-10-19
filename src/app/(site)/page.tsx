@@ -5,6 +5,7 @@ import JsonLd from "@/components/json-ld";
 import Problem from "@/components/problem";
 import SectionDivider from "@/components/section-divider";
 import Solution from "@/components/solution";
+import Testimonials from "@/components/testimonials";
 import {
 	faqPageSchema,
 	organizationSchema,
@@ -42,6 +43,10 @@ export default function Home() {
 			<div className="home-section">
 				<SectionDivider title="CÓMO FUNCIONA" />
 				<Solution />
+			</div>
+			<div className="home-section">
+				<SectionDivider title="TESTIMONIOS" />
+				<Testimonials />
 			</div>
 			<HomeBelowFold />
 			<div className="mt-10.5 hidden w-full flex-col gap-2.5 md:flex">

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Image from "next/image";
 import AppLink from "./app-link";
 import {
 	forwardRef,
@@ -243,8 +244,17 @@ export default function Navbar({
 				<nav className="nav-root flex h-14 items-center justify-between bg-[#0F0F0F] px-3 font-mono text-xs uppercase md:px-1">
 					<AppLink
 						href="/"
-						className="nav-logo ml-1 shrink-0 font-sans text-[18px] font-medium tracking-[-3%] text-white sm:text-[20px]"
+						className="nav-logo ml-1 inline-flex shrink-0 items-center gap-2 font-sans text-[18px] font-medium tracking-[-3%] text-white sm:text-[20px]"
 					>
+						<Image
+							src="/icon-512.png"
+							alt=""
+							width={56}
+							height={56}
+							quality={90}
+							style={{ mixBlendMode: "lighten" }}
+							className="h-7 w-7 shrink-0 object-contain"
+						/>
 						GigBlades
 					</AppLink>
 
