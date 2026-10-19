@@ -5,10 +5,13 @@ const PostHogProvider = lazy(() =>
 );
 
 export function PostHogBoot({ children }: { children: ReactNode }) {
+	const apiKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+	if (!apiKey) return children;
+
 	return (
 		<Suspense fallback={children}>
 			<PostHogProvider
-				apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+				apiKey={apiKey}
 				options={{
 					api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
 					autocapture: false,
