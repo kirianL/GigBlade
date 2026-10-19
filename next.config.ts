@@ -102,12 +102,6 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        has: [{ type: "host", value: "www.gigblades.com" }],
-        destination: "https://gigblades.com/:path*",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
         has: [{ type: "host", value: "www.gigblade.com" }],
         destination: "https://gigblades.com/:path*",
         permanent: true,
