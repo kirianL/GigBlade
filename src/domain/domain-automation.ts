@@ -46,6 +46,16 @@ export type DomainAutomationDetail = {
 export const GIGBLADE_TARGET_IP = "76.76.21.21";
 export const GIGBLADE_TARGET_CNAME = "cname.vercel-dns.com";
 
+/** Vercel asigna CNAMEs como cname.vercel-dns.com o hash.vercel-dns-017.com. */
+export function cnamePointsToVercel(cname: string): boolean {
+  const host = cname.trim().toLowerCase().replace(/\.$/, "");
+  return (
+    host === "cname.vercel-dns.com" ||
+    host.endsWith(".vercel-dns.com") ||
+    /(?:^|\.)vercel-dns-\d+\.com$/.test(host)
+  );
+}
+
 export function detectProviderFromNameservers(
   nameservers: string[],
 ): DomainProvider {

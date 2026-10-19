@@ -5,6 +5,7 @@ import {
   detectProviderFromNameservers,
   generateProviderOneClickUrl,
   getProviderLabel,
+  cnamePointsToVercel,
   GIGBLADE_TARGET_IP,
   isApexDomain,
   type DomainAutomationDetail,
@@ -134,8 +135,7 @@ export async function scanDomainDns(hostname: string): Promise<DomainDnsScan> {
   );
 
   const pointsToGigBlade =
-    ips.includes(GIGBLADE_TARGET_IP) ||
-    cnames.some((cname) => cname.includes("vercel-dns.com"));
+    ips.includes(GIGBLADE_TARGET_IP) || cnames.some(cnamePointsToVercel);
 
   return {
     hostname: clean,
