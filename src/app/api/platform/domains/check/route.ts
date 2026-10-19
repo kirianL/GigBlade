@@ -43,8 +43,24 @@ export async function POST(request: Request) {
     const isApex = isApexDomain(domain);
     const oneClickUrl = generateProviderOneClickUrl(domain, provider);
     const recommendedRecords = calculateRecommendedDnsRecords(domain);
+    let targetIp = GIGBLADE_TARGET_IP;
+    let targetCname = "cname.vercel-dns.com";
 
     const app = getApp();
+    if (app.projectDomains) {
+      try {
+        const targets = await app.projectDomains.getDnsTargets(domain);
+        targetIp = targets.a;
+        targetCname = targets.cname;
+        for (const record of recommendedRecords) {
+          if (record.type === "A") record.value = targets.a;
+          if (record.type === "CNAME") record.value = targets.cname;
+        }
+      } catch {
+        // Keep the published Vercel defaults.
+      }
+    }
+
     if (app.projectDomains) {
       try {
         const vercelStatus = await app.projectDomains.getStatus(domain);
@@ -94,8 +110,8 @@ export async function POST(request: Request) {
           currentIps: scan.ips,
           currentCnames: scan.cnames,
           nameservers: scan.nameservers,
-          targetIp: GIGBLADE_TARGET_IP,
-          targetCname: "cname.vercel-dns.com",
+          targetIp,
+          targetCname,
           pointsToGigBlade: scan.pointsToGigBlade,
           oneClickUrl,
           recommendedRecords,

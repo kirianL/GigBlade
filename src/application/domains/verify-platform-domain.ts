@@ -8,6 +8,7 @@ import { notFound, validationError } from "@/domain/errors";
 import { normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile } from "@/domain/site-profile";
 import type { TenantRouting } from "@/domain/tenant";
+import { ensureApexWwwRedirect } from "@/application/domains/ensure-apex-www";
 import { clearProxyRoutingCache } from "@/lib/tenant/resolve-proxy-routing";
 
 export async function verifyPlatformDomain(
@@ -31,6 +32,12 @@ export async function verifyPlatformDomain(
     verificationChallenges = vercelRes.verification;
   } catch {
     vercelVerified = false;
+  }
+
+  try {
+    await ensureApexWwwRedirect(projectDomains, domain);
+  } catch {
+    // Apex verification still stands if the www redirect cannot be saved.
   }
 
   // 2. Find associated tenant

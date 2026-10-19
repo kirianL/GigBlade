@@ -1,7 +1,13 @@
 import type {
+  ProjectDnsTargets,
+  ProjectDomainAddOptions,
   ProjectDomains,
   ProjectDomainStatus,
 } from "@/application/ports/project-domains";
+import {
+  GIGBLADE_TARGET_CNAME,
+  GIGBLADE_TARGET_IP,
+} from "@/domain/domain-automation";
 
 export class InMemoryProjectDomains implements ProjectDomains {
   private readonly domains = new Map<string, ProjectDomainStatus>();
@@ -20,7 +26,10 @@ export class InMemoryProjectDomains implements ProjectDomains {
     });
   }
 
-  async add(domain: string): Promise<ProjectDomainStatus> {
+  async add(
+    domain: string,
+    _options?: ProjectDomainAddOptions,
+  ): Promise<ProjectDomainStatus> {
     const existing = this.domains.get(domain);
     if (existing) return existing;
 
@@ -52,5 +61,9 @@ export class InMemoryProjectDomains implements ProjectDomains {
     };
     this.domains.set(domain, verified);
     return verified;
+  }
+
+  async getDnsTargets(_domain: string): Promise<ProjectDnsTargets> {
+    return { a: GIGBLADE_TARGET_IP, cname: GIGBLADE_TARGET_CNAME };
   }
 }

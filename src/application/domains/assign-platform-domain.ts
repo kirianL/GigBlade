@@ -9,6 +9,7 @@ import { normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile } from "@/domain/site-profile";
 import type { TenantRouting } from "@/domain/tenant";
 
+import { ensureApexWwwRedirect } from "@/application/domains/ensure-apex-www";
 import { clearProxyRoutingCache } from "@/lib/tenant/resolve-proxy-routing";
 
 export type AssignDomainInput = {
@@ -55,6 +56,12 @@ export async function assignPlatformDomain(
     vercelVerified = Boolean(vercelStatus.verified);
   } catch {
     vercelVerified = false;
+  }
+
+  try {
+    await ensureApexWwwRedirect(projectDomains, domain);
+  } catch {
+    // The apex can still verify if www redirect registration fails.
   }
 
   // 2. Put into routing store

@@ -706,7 +706,15 @@ export default function DjDomainPage() {
                 <div className="bg-background/80 border border-border/60 rounded p-2.5 flex flex-col gap-1">
                   <p className="font-semibold text-foreground">2. Copia los registros</p>
                   <p className="leading-relaxed">
-                    Pega el <strong>Host</strong> y el <strong>Valor</strong> arriba indicados con TTL 300 o automático.
+                    {effectiveProvider === "cloudflare" ? (
+                      <>
+                        Borra los A, AAAA o CNAME que ya existan en <strong>@</strong> y <strong>www</strong>. Pega los de arriba con TTL Auto y deja la nube <strong>gris</strong> (DNS only). La nube naranja impide el SSL.
+                      </>
+                    ) : (
+                      <>
+                        Pega el <strong>Host</strong> y el <strong>Valor</strong> arriba indicados con TTL 300 o automático. Borra los A o AAAA anteriores del mismo host.
+                      </>
+                    )}
                   </p>
                 </div>
 
