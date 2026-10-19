@@ -20,15 +20,14 @@ export default function PricingModelsDesktop() {
 					<div>
 						<h2 className="font-sans text-[40px] leading-[1.1] font-normal tracking-[-2%]">
 							<span className="text-[#FFFFFF99]">Un solo plan.</span>{" "}
-							<span className="text-white">Todo técnico resuelto.</span>
+							<span className="text-white">Página, hosting y seguridad.</span>
 						</h2>
 						<div className="mt-4 font-sans text-[16px] leading-relaxed font-light tracking-[-1%]">
 							<span className="text-[#FFFFFF99]">
-								Elegís dominio y plantilla.
+								Elegís un tema y cargás tu contenido.
 							</span>{" "}
 							<span className="text-[#FFFFFF99]">
-								Cargás tu contenido y tu página queda lista. El dominio se
-								cobra aparte, al costo.
+								La página queda publicada. El dominio lo comprás vos, aparte.
 							</span>
 						</div>
 					</div>

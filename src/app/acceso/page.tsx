@@ -4,7 +4,7 @@ import { pageSeo } from "@/lib/seo";
 export const metadata = pageSeo({
 	title: "Acceso para DJs",
 	description:
-		"Anotate en la lista de GigBlades. Te avisamos cuando haya cupo para armar tu página con dominio propio.",
+		"Anotate en la lista de GigBlades. Te avisamos cuando haya cupo para armar tu página. El dominio lo comprás vos.",
 	path: "/acceso",
 });
 

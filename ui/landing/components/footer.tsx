@@ -73,8 +73,8 @@ export default function Footer() {
 								GigBlades
 							</AppLink>
 							<p className="text-[14px] leading-[18px] font-light tracking-[-2%] text-[#FFFFFF99] md:text-[16px] md:leading-[20px]">
-								GigBlades es presencia digital para DJs: página y dominio, sin
-								tocar lo técnico.
+								GigBlades es presencia digital para DJs: página
+								personalizable, bookings y panel. El dominio lo comprás vos.
 							</p>
 						</div>
 					</div>
@@ -83,7 +83,7 @@ export default function Footer() {
 				<div className="relative z-10 w-full border-y border-[#292929] bg-black/40 backdrop-blur-md">
 					<div className="flex flex-col md:flex-row md:items-stretch">
 						<FooterRail label="IR A">
-							<FooterStripLink href="/#ejemplos" label="EJEMPLOS" />
+							<FooterStripLink href="/#plan" label="PLAN" />
 							<FooterDot />
 							<FooterStripLink href="/pricing" label="PRECIOS" />
 							<FooterDot />

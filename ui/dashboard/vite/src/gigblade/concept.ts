@@ -37,7 +37,7 @@ export function djTemplateLabel(id: string) {
 
 export const PLAN = {
 	name: "Todo incluido",
-	setupUsd: 100,
+	setupUsd: 120,
 	priceUsd: 30,
 	cadence: "mes",
 	includes: [
@@ -47,18 +47,18 @@ export const PLAN = {
 		"Panel para contenido",
 	],
 	domainNote:
-		"El dominio queda a nombre de la plataforma. La renovación se cobra aparte, al costo real, sin margen.",
+		"El dominio lo compra el DJ. No va incluido en el pago inicial ni en la mensualidad.",
 } as const;
 
 export const CONCEPT = {
 	what: "Cada DJ que se suma tiene su propia página en internet, con su propio nombre de dominio (por ejemplo djmarco.com), donde la gente puede ver su información y contactarlo. Todos los DJs comparten por detrás la misma base técnica: no hay que armar un sistema nuevo cada vez que entra un cliente.",
 	problem:
-		"Hoy un DJ que quiere verse profesional en internet tiene dos opciones: pagarle a alguien para que le arme una página desde cero (caro y lento), o quedarse dependiendo solo de Instagram (poco profesional, y sin control sobre su imagen). GigBlades es la tercera: página propia, dominio propio, sin entender tecnología.",
+		"Hoy un DJ que quiere verse profesional en internet tiene dos opciones: pagarle a alguien para que le arme una página desde cero (caro y lento), o quedarse dependiendo solo de Instagram. GigBlades publica la página. El dominio lo compra el DJ.",
 	how: [
 		{
 			id: "01",
 			title: "Plan y dominio",
-			detail: "Elige el plan todo incluido y un dominio propio.",
+			detail: "Elige el plan. El dominio lo compra el DJ, aparte.",
 		},
 		{
 			id: "02",
@@ -77,7 +77,7 @@ export const CONCEPT = {
 		},
 	],
 	ops: "Todo el trabajo técnico — que la página funcione rápido, que esté segura, que el dominio esté activo — lo maneja la plataforma, no el DJ.",
-	model: `US$ ${PLAN.setupUsd} de setup inicial por la puesta en marcha. Después US$ ${PLAN.priceUsd} al mes cubre la página, la seguridad y el hosting. El dominio queda a nombre de la plataforma y se cobra aparte, al costo real, sin margen.`,
+	model: `US$ ${PLAN.setupUsd} para dejar la página lista. Después US$ ${PLAN.priceUsd} al mes cubre la página, la seguridad y el hosting. El dominio lo compra el DJ y no va incluido.`,
 	scale:
 		"El costo de mantener la plataforma es prácticamente el mismo con 1 DJ o con 50. Cuantos más DJs se sumen, menos cuesta cada uno mantener esa base, y más queda de ganancia por cada suscripción nueva. Con pocos DJs activos ya se cubre el costo fijo.",
 } as const;

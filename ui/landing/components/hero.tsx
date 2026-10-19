@@ -41,7 +41,7 @@ export default function Hero() {
 								</span>{" "}
 								<span className="block text-white md:inline">
 									<SlotLabel
-										text="dominio propio"
+										text="bookings"
 										options={{ rollBy: "word" }}
 									/>
 								</span>
@@ -50,13 +50,12 @@ export default function Hero() {
 								className="hero-enter w-full max-w-xs font-sans text-[14px] leading-5 font-light tracking-[-2%] text-[#FFFFFF99] sm:max-w-[480px] md:max-w-xl md:text-[16px]"
 								style={{ ["--enter" as string]: 1 }}
 							>
-								Presencia digital con dominio propio. Elegís plantilla,
-								cargás tu contenido y{" "}
+								Página personalizable para DJs. Elegís un tema, cargás
+								tu contenido y{" "}
 								<span className="font-light text-white">
-									nosotros nos ocupamos del resto
+									el plan cubre hosting y seguridad
 								</span>
-								: hosting y seguridad. El dominio se cobra aparte, al
-								costo.
+								. El dominio lo comprás vos, aparte.
 							</p>
 						</div>
 					</div>
@@ -95,7 +94,7 @@ export default function Hero() {
 					</div>
 
 					<div className="w-full md:w-fit md:flex-shrink-0">
-						<AppLink href="/#ejemplos">
+						<AppLink href="/#plan">
 							<div className="hero-cta-press relative">
 								<div
 									className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden border-r border-[#292929] bg-[#0F0F0F] px-3 py-2 font-sans text-white transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-[#FFFFFF1F] active:bg-[#FFFFFF1F]"
@@ -103,7 +102,7 @@ export default function Hero() {
 								>
 									<CTALines />
 									<SlotLabel
-										text="Ver ejemplos"
+										text="Ver el plan"
 										hover
 										className="relative z-10 text-[12px] tracking-[-2%] uppercase whitespace-nowrap md:text-[16px] md:normal-case"
 									/>

@@ -35,7 +35,7 @@ import { DashboardIconPixel } from "./dashboard-icon-pixel";
 
 const NAV_LINKS = [
 	{ label: "Temas", href: "/#temas", Icon: IconDocs },
-	{ label: "Ejemplos", href: "/#ejemplos", Icon: IconBlog },
+	{ label: "Plan", href: "/#plan", Icon: IconBlog },
 	{ label: "Precios", href: "/pricing", Icon: IconPricing },
 	{ label: "Acceso", href: "/acceso", Icon: IconDiscord },
 ];

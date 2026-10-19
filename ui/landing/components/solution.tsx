@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 const pageRows = [
-	{ label: "DOMINIO PROPIO", active: true },
-	{ label: "PLANTILLA PARA DJS", active: false },
-	{ label: "BIO, FOTOS Y REDES", active: false },
+	{ label: "TEMA PARA DJS", active: true },
+	{ label: "BIO, FOTOS Y AGENDA", active: false },
+	{ label: "REDES Y BOOKINGS", active: false },
 	{ label: "PANEL DE CONTENIDO", active: false },
 	{ label: "HOSTING Y SEGURIDAD", active: false },
 ];
@@ -80,14 +80,14 @@ export default function Solution() {
 				<div className="mb-10 flex flex-col items-center text-center lg:mb-4">
 					<h2 className="mb-6 text-[30px] leading-[30px] font-normal tracking-tight md:text-[40px] md:leading-[40px]">
 						<span className="text-[#A3A3A3]">Tu página, </span>
-						<span className="text-white">en un solo motor</span>
+						<span className="text-white">publicada</span>
 					</h2>
 					<p className="max-w-2xl text-[14px] leading-[20px] font-light tracking-[-2%] text-[#A3A3A3] md:text-[16px] sm:text-base">
-						Elegís plan y dominio, una plantilla del catálogo y tu contenido.
+						Elegís un tema y cargás tu contenido.
 						<br className="hidden sm:block" />
-						GigBlades administra el resto.{" "}
+						La mensualidad cubre hosting y seguridad.{" "}
 						<span className="text-white">
-							Tu página queda lista para que te encuentren.
+							El dominio lo comprás vos, aparte.
 						</span>
 					</p>
 				</div>

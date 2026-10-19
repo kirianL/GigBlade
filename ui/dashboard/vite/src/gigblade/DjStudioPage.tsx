@@ -147,8 +147,8 @@ export default function DjStudioPage() {
 						</div>
 						<p className="text-sm text-tertiary-foreground leading-6">
 							{intendedDomain
-								? `GigBlades registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlades. La renovación se cobra al costo.`
-								: "El dominio propio se asigna después. GigBlades lo registra y administra a nombre de la plataforma."}
+								? `La página pública responde en ${intendedDomain}. El dominio lo compra el DJ.`
+								: "El dominio lo compra el DJ. Después se conecta a la página. No va incluido en el plan."}
 						</p>
 						<div className="flex flex-wrap gap-2">
 							<ConnectDomainModal

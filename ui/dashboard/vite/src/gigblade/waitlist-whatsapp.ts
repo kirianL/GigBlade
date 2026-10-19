@@ -30,12 +30,13 @@ export function buildWaitlistWhatsappMessage(
 		"",
 		"Soy del equipo de GigBlades. Recibimos tu solicitud en la lista de espera para crear tu página web de DJ.",
 		"",
-		`El pago inicial para crear tu página es de $100 USD. La mensualidad de mantenimiento es de ${monthly} USD.`,
+		`El pago para dejar tu página lista es de $120 USD. La mensualidad es de ${monthly} USD.`,
+		"El dominio lo comprás vos, aparte. No va incluido.",
 		"",
 		"En GigBlades podés tener:",
-		"• Tu sitio web profesional con booking y contacto",
-		"• Panel para administrar tu página y solicitudes",
-		"• Hosting y soporte del servicio",
+		"• Tu página con bookings y contacto",
+		"• Panel para editar la página y las solicitudes",
+		"• Hosting y seguridad",
 	];
 
 	if (signup.city?.trim()) {

@@ -64,7 +64,7 @@ export function organizationSchema() {
 		url: SITE_URL,
 		logo: LOGO_URL,
 		description:
-			"Plataforma de presencia digital para DJs: página propia, dominio, hosting y plantillas, sin ocuparse de la infraestructura.",
+			"Presencia digital para DJs: página personalizable, bookings, panel, hosting y seguridad. El dominio lo compra el DJ.",
 		sameAs: SAME_AS,
 	};
 }
@@ -90,7 +90,7 @@ export function softwareApplicationSchema() {
 		operatingSystem: "Web",
 		url: SITE_URL,
 		description:
-			"Presencia digital para DJs. Página con dominio propio y plantillas para eventos. US$ 100 de setup inicial y US$ 30 al mes. El dominio se cobra aparte, al costo.",
+			"Presencia digital para DJs. Página personalizable con bookings. US$ 120 para dejar la página lista y US$ 30 al mes. El dominio lo compra el DJ.",
 		offers: { "@type": "Offer", price: "30", priceCurrency: "USD" },
 		publisher: { "@id": `${SITE_URL}/#organization` },
 	};

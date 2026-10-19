@@ -5,7 +5,7 @@ import { faqPageSchema, organizationSchema, pageSeo, websiteSchema } from "@/lib
 export const metadata = pageSeo({
 	title: "Precios",
 	description:
-		"US$ 100 de setup inicial y US$ 30 al mes cubren hosting, seguridad y tu página. El dominio se cobra aparte, al costo real, sin margen.",
+		"US$ 120 para dejar tu página lista y US$ 30 al mes cubren hosting, seguridad y tu página. El dominio lo comprás vos, aparte.",
 	path: "/pricing",
 });
 

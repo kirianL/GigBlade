@@ -15,25 +15,25 @@ const cards = [
 		metric: "$30",
 		label: "Al mes, página incluida",
 		description:
-			"US$ 100 de setup inicial. Después US$ 30 al mes por hosting, seguridad y tu página. El dominio se cobra aparte, al costo.",
+			"US$ 120 para dejar tu página lista. Después US$ 30 al mes por hosting, seguridad y tu página.",
 		clipart: true,
 	},
 	{
 		tint: "bg-brand-tint-2",
 		icon: "/images/production/latency.svg",
-		metric: "Cache",
-		label: "Carga rápida",
+		metric: "$120",
+		label: "Una sola vez",
 		description:
-			"Tu página se sirve desde cache la mayor parte del tiempo. Quien te busca no espera.",
+			"Ese pago es para dejar tu página lista. La mensualidad empieza después.",
 		clipart: true,
 	},
 	{
 		tint: "bg-brand-tint-3",
 		icon: "/images/production/uptiime.svg",
-		metric: "Al costo",
-		label: "Dominio aparte",
+		metric: "Aparte",
+		label: "El dominio",
 		description:
-			"El dominio se cobra aparte, al costo real, sin margen. Lo registramos y administramos nosotros.",
+			"El dominio lo comprás vos. No va incluido en los US$ 120 ni en la mensualidad.",
 		clipart: true,
 	},
 	{
@@ -42,14 +42,14 @@ const cards = [
 		metric: "Aislado",
 		label: "Tus datos",
 		description:
-			"Cada DJ tiene sus datos separados. El mismo estándar de seguridad protege a todos.",
+			"Tu contenido va separado del de otros DJs. Hosting y seguridad van en la mensualidad.",
 		clipart: true,
 	},
 ];
 
 function ProductionCards() {
 	return (
-		<section className="ps-section flex flex-col items-start justify-between gap-12 bg-[#0F0F0F] py-12 lg:flex-row lg:gap-0 lg:py-16">
+		<section id="plan" className="ps-section flex scroll-mt-16 flex-col items-start justify-between gap-12 bg-[#0F0F0F] py-12 lg:flex-row lg:gap-0 lg:py-16">
 			<div className="my-auto flex w-full flex-col gap-4 px-4 pt-2 lg:w-auto lg:gap-6 xl:pl-22.5 lg:pr-0">
 				<div className="leading-none lg:leading-10">
 					<p className="text-[30px] font-normal tracking-[-4%] text-[#FFFFFF99] lg:text-[40px]">
@@ -60,11 +60,10 @@ function ProductionCards() {
 					</h2>
 				</div>
 				<p className="text-[16px] leading-[20px] font-light text-[#FFFFFF99] lg:w-sm lg:text-sm lg:leading-5">
-					Un motor compartido, el mismo estándar de seguridad para cada DJ.{" "}
+					Un plan: página, bookings, panel, hosting y seguridad.{" "}
 					<span className="text-white">
-						Vos te ocupás de tu set
-						<br className="hidden lg:block" /> y de tu imagen. Lo técnico queda
-						de este lado.
+						El dominio lo comprás vos
+						<br className="hidden lg:block" /> y no va incluido.
 					</span>
 				</p>
 			</div>

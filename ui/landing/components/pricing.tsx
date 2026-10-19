@@ -21,39 +21,29 @@ const plans: Plan[] = [
 		name: "PLAN",
 		price: "30",
 		description:
-			"US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes por hosting, seguridad y tu página. El dominio se cobra aparte.",
+			"US$ 120 para dejar tu página lista. Después US$ 30 al mes por hosting, seguridad y tu página. El dominio lo comprás vos.",
 		features: [
-			{ label: "Página con dominio personalizado" },
-			{ label: "Plantilla del catálogo para DJs" },
-			{ label: "Bio, fotos y redes" },
-			{ label: "Panel para editar contenido" },
-			{ label: "Hosting, seguridad y cache" },
-			{ label: "Datos aislados de otros DJs" },
+			{ label: "Página personalizable" },
+			{ label: "Tres temas: claro, oscuro y party" },
+			{ label: "Bio, fotos, agenda y sets" },
+			{ label: "Bookings" },
 			{
-				label: "Setup inicial",
-				note: "US$ 100 de puesta en marcha",
+				label: "Redes",
+				note: "Instagram, TikTok, YouTube, Facebook, X, SoundCloud y Spotify",
+			},
+			{ label: "Panel para editar tu contenido" },
+			{ label: "Hosting y seguridad" },
+			{ label: "Tus datos van separados de los de otros DJs" },
+			{
+				label: "Para dejar tu página lista",
+				note: "US$ 120, una sola vez",
 			},
 			{
-				label: "Dominio propio",
-				note: "se cobra aparte, al costo",
+				label: "Dominio",
+				note: "lo comprás vos, no va incluido",
 			},
-			{ label: "Soporte de plataforma" },
 		],
 		buttonText: "Empezá ahora",
-		href: "/acceso",
-	},
-	{
-		name: "CUSTOM",
-		price: "Custom",
-		description: "Varios DJs, un sello o un roster que necesita el mismo estándar.",
-		features: [
-			{ label: "Todo lo del plan" },
-			{ label: "Varias páginas en el mismo motor" },
-			{ label: "Dominios administrados juntos" },
-			{ label: "Acompañamiento para el alta" },
-			{ label: "Mismo aislamiento por DJ" },
-		],
-		buttonText: "Hablemos",
 		href: "/acceso",
 	},
 ];
@@ -66,17 +56,17 @@ export default function Pricing() {
 					<div className="text-white flex flex-col gap-6 lg:gap-0">
 						<div className="mx-auto w-full max-w-2xl px-4 lg:px-8 pt-10 lg:pt-8 pb-16 lg:pb-18 text-center">
 							<h1 className="text-[30px] leading-[32px] md:leading-[40px] md:text-3xl lg:text-[40px] tracking-[-4%] text-white font-normal font-sans">
-								Un plan. Infra resuelta.
+								Un solo plan.
 							</h1>
 							<p className="mt-4 md:mt-5 text-[#FFFFFF99] text-pretty font-light leading-[18px] tracking-[-2%] md:font-extralight text-[16px] md:leading-[1.6]">
-								US$ 100 de setup inicial por la puesta en marcha. Después
-								US$ 30 al mes cubre hosting, seguridad y tu página. El
-								dominio se cobra aparte, al costo real, sin margen.
+								US$ 120 para dejar tu página lista. Después US$ 30 al mes
+								cubre hosting, seguridad y tu página. El dominio lo comprás
+								vos, aparte.
 							</p>
 						</div>
 
 						{/* Pricing Columns */}
-						<div className="grid grid-cols-1 md:grid-cols-2 relative z-60 gap-8 lg:gap-0">
+						<div className="relative z-60 mx-auto grid w-full max-w-xl grid-cols-1">
 							{plans.map((plan) => {
 								const isHighlighted = plan.name === "PLAN";
 								const price = plan.price;
@@ -92,12 +82,6 @@ export default function Pricing() {
 									>
 										{isHighlighted && (
 											<div className="hidden lg:block absolute -inset-px z-20 pointer-events-none border border-transparent [border-image:linear-gradient(to_bottom,var(--color-brand-glow),#000000)_1]"></div>
-										)}
-
-										{isHighlighted && (
-											<div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 bg-black text-[14px] font-mono tracking-[-1%] text-white px-3 py-1.5 md:p-2.5 border border-brand-glow">
-												RECOMENDADO
-											</div>
 										)}
 
 										<div

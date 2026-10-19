@@ -14,12 +14,12 @@ export default function Problem() {
 						</span>
 					</h2>
 					<p className="text-[#888888] font-light text-[16px] md:text-[18px] xl:text-[16px] tracking-[-2%] leading-[20px] mb-10 max-w-xl">
-						Sin sitio propio dependés de Instagram y WhatsApp para mostrarte.
-						Armarlo por tu cuenta es hosting, dominio y
-						seguridad.
+						Sin página propia, tu imagen queda repartida entre redes.
+						Armar el sitio por tu cuenta implica hosting y seguridad.
 						<span className="text-white">
 							{" "}
-							GigBlades lo deja listo, sin que tengas que saber de eso.
+							GigBlades publica tu página y se ocupa de eso. El dominio lo
+							comprás vos.
 						</span>
 					</p>
 				</div>
@@ -35,12 +35,12 @@ export default function Problem() {
 							{
 								title: "Canal.",
 								description:
-									"Las productoras te encuentran en tu dominio, con tu bio y tus redes.",
+									"En la página van tu bio, tus fotos, tus redes y un formulario de bookings.",
 							},
 							{
 								title: "Cero infra.",
 								description:
-									"Hosting, dominio y seguridad los corre la plataforma. Un solo motor, costo bajo.",
+									"Hosting y seguridad van en la mensualidad. El dominio no va incluido.",
 							},
 						].map((stat, i) => (
 							<div

@@ -41,8 +41,8 @@ export default function Features() {
 					<div className="text-white">para verte profesional.</div>
 				</h2>
 				<div className="mt-4 max-w-[420px] font-sans text-[16px] leading-[20px] font-light tracking-[-2%] text-[#FFFFFF99]">
-					Página y dominio,{" "}
-					<span className="text-white">sin tocar lo técnico.</span>
+					Página, bookings y panel.{" "}
+					<span className="text-white">El dominio lo comprás vos.</span>
 				</div>
 			</div>
 

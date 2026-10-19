@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "GigBlades",
     short_name: "GigBlades",
     description:
-      "Presencia digital para DJs: página personalizable con bookings, panel propio, hosting, seguridad y dominio administrado.",
+      "Presencia digital para DJs: página personalizable con bookings, panel, hosting y seguridad. El dominio lo compra el DJ.",
     start_url: "/",
     display: "standalone",
     background_color: "#000000",

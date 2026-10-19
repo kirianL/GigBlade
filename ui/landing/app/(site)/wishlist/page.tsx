@@ -15,7 +15,7 @@ type WishlistPageProps = {
 
 export default function WishlistPage({
 	artistName = "GigBlades",
-	tagline = "Página y dominio propios, contacto por Instagram",
+	tagline = "Página personalizable y contacto por Instagram",
 	city = "",
 }: Partial<WishlistPageProps> = {}) {
 	return (

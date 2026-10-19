@@ -1198,99 +1198,98 @@ export const faqData = [
 		id: 1,
 		question: "¿Necesito saber de tecnología?",
 		answer:
-			"No. Elegís plan, dominio y plantilla. Cargás bio, fotos y redes.\n\nGigBlades se ocupa del hosting y la seguridad. Vos no configurás DNS ni certificados.",
+			"No. Elegís un tema y cargás bio, fotos, agenda, sets y redes.\n\nLa mensualidad cubre hosting y seguridad.",
 	},
 	{
 		id: 7,
-		question: "¿El dominio es mío?",
+		question: "¿El dominio va incluido?",
 		answer:
-			"Lo registra y administra GigBlades. Vos no tocás el DNS.\n\nSe cobra aparte, al costo real, sin margen.",
+			"No. El dominio lo comprás vos, aparte.\n\nNo va en los US$ 120 ni en los US$ 30 al mes.",
 	},
 	{
 		id: 2,
 		question: "¿Cómo te contactan?",
 		answer:
-			"En tu página van bio, fotos e Instagram.\n\nQuien te busca te escribe por tus redes.",
+			"En la página podés publicar bookings, correo, teléfono y tus redes.\n\nSi cargás un teléfono, también puede salir el enlace de WhatsApp.",
 	},
 	{
 		id: 3,
-		question: "¿Es seguro mi contenido?",
+		question: "¿Mis datos están separados?",
 		answer:
-			"Sí. Tus datos van separados de los de otros DJs. Hosting y seguridad van en el plan.\n\nNo tenés que configurar nada de eso.",
+			"Sí. El contenido de tu página va separado del de otros DJs.\n\nHosting y seguridad van en la mensualidad.",
 	},
 	{
 		id: 4,
-		question: "¿Puedo irme después?",
+		question: "¿Puedo dejar de pagar?",
 		answer:
-			"Tu contenido te lo podés llevar.\n\nSi te vas, coordinamos la salida para que no quedes sin página de un día para el otro.",
+			"Sí. Podés dejar la mensualidad.\n\nLa página publicada depende de que el plan siga activo.",
 	},
 	{
 		id: 5,
-		question: "¿Por qué no un constructor genérico?",
+		question: "¿Qué temas hay?",
 		answer:
-			"Los temas son para DJs y eventos, no para cualquier negocio.\n\nHosting y seguridad van en el plan. El dominio se cobra aparte. No armás hosting ni DNS.",
+			"Tres: claro, oscuro y party.\n\nEstán pensados para una página de DJ, no para armar un sitio desde cero.",
 	},
 	{
 		id: 6,
 		question: "¿Cuánto cuesta?",
 		answer:
-			"US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes. Cubre hosting, seguridad y tu página.\n\nEl dominio se cobra aparte, al costo real, sin margen.",
+			"US$ 120 para dejar tu página lista. Después US$ 30 al mes.\n\nEso cubre la página, el panel, hosting y seguridad. El dominio lo comprás vos.",
 	},
 ];
 
 export const featuresData = [
 	{
-		title: "Dominio propio",
+		title: "Página personalizable",
 		description:
-			"Tu página vive en un dominio como djmarco.com. Lo registramos nosotros. Se cobra aparte, al costo real.",
+			"Publicás bio, fotos, agenda y sets. La página muestra lo que cargás en el panel.",
 		Icon: IconWebhooks,
 	},
 	{
-		title: "Temas para DJs",
+		title: "Tres temas",
 		description:
-			"Catálogo visual pensado para DJs y eventos. No es un constructor genérico: la estética ya está resuelta.",
+			"Claro, oscuro y party. Elegís uno. No armás el sitio desde cero.",
 		Icon: IconVersioning,
+	},
+	{
+		title: "Bookings",
+		description:
+			"Quien te quiera contratar puede enviar una solicitud desde tu página.",
+		Icon: IconPlans,
 	},
 	{
 		title: "Tus redes",
 		description:
-			"Publicás Instagram y enlaces. Quien te quiere contactar te escribe ahí.",
-		Icon: IconPlans,
-	},
-	{
-		title: "Panel del DJ",
-		description:
-			"Cargás bio, fotos y enlaces. Sin entrar a un panel de hosting.",
+			"Instagram, TikTok, YouTube, Facebook, X, SoundCloud y Spotify.",
 		Icon: IconAnalytics,
 	},
 	{
-		title: "Hosting en cache",
-		description:
-			"La página carga desde cache la mayor parte del tiempo. Rápida para quien te busca desde el celular.",
+		title: "Panel",
+		description: "Editás el contenido de tu página desde un solo panel.",
 		Icon: IconTeam,
 	},
 	{
-		title: "Seguridad incluida",
+		title: "Hosting y seguridad",
 		description:
-			"Protección de plataforma y datos aislados de otros DJs. Vos no lo configurás.",
+			"Van en los US$ 30 al mes. Tu contenido va separado del de otros DJs.",
 		Icon: IconTopUp,
 	},
 	{
-		title: "Sin saber de DNS",
+		title: "Para dejarla lista",
 		description:
-			"No elegís hosting ni certificados. El dominio lo registramos nosotros y se cobra aparte.",
+			"US$ 120, una sola vez, para dejar tu página lista. Después sigue la mensualidad.",
 		Icon: IconReact,
 	},
 	{
-		title: "Un solo motor",
+		title: "El dominio",
 		description:
-			"Todas las páginas corren sobre la misma infraestructura. Por eso el costo por DJ se mantiene bajo.",
+			"Lo comprás vos, aparte. No va incluido en el pago inicial ni en la mensualidad.",
 		Icon: IconWebhooks,
 	},
 	{
-		title: "Imagen profesional",
+		title: "Contacto",
 		description:
-			"Un lugar propio frente a organizadores. Dejás de depender solo de Instagram para que te encuentren.",
+			"Podés mostrar correo, teléfono y, si cargás un número, el enlace de WhatsApp.",
 		Icon: IconReferral,
 	},
 ];
@@ -1461,7 +1460,7 @@ export const customerStoriesData: CustomerStory[] = [
 		},
 		stats: [
 			{ value: "$30", label: "Al mes, página incluida" },
-			{ value: "$100", label: "Setup inicial" },
+			{ value: "$120", label: "Para dejar la página lista" },
 			{ value: "0", label: "Trámites de DNS" },
 		],
 		quote:
