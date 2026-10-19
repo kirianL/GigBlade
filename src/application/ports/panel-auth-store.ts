@@ -16,6 +16,7 @@ export interface PanelAuthStore {
   deleteDjAccountsBySlug(slug: string): Promise<void>;
   saveSession(record: PanelSessionRecord): Promise<void>;
   findSession(tokenHash: string): Promise<PanelSessionRecord | null>;
+  deleteSession(tokenHash: string): Promise<void>;
   findSessionWithAccount?(
     tokenHash: string,
   ): Promise<PanelSessionWithAccount | null>;

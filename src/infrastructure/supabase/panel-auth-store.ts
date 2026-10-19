@@ -156,6 +156,17 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
     }
   }
 
+  async deleteSession(tokenHash: string): Promise<void> {
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase
+      .from("panel_sessions")
+      .delete()
+      .eq("token_hash", tokenHash);
+    if (error) {
+      failPostgrestQuery(error, { operation: "panel_sessions.deleteSession" });
+    }
+  }
+
   async findSession(tokenHash: string): Promise<PanelSessionRecord | null> {
     const supabase = createSupabaseAdminClient();
     const row = readPostgrestResult(

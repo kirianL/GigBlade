@@ -51,6 +51,13 @@ export async function loginPanel(
   };
 }
 
+export async function logoutPanel(store: PanelAuthStore, token: string) {
+  if (!token) return;
+  const tokenHash = hashSessionToken(token);
+  sessionUserCache.delete(tokenHash);
+  await store.deleteSession(tokenHash);
+}
+
 export async function readPanelSession(store: PanelAuthStore, token: string) {
   if (!token) throw unauthorized("La sesión expiró. Entrá de nuevo.");
   const tokenHash = hashSessionToken(token);

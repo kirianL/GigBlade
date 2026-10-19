@@ -10,7 +10,11 @@ import {
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
 import { createDj } from "@/application/panel/create-dj";
 import { deleteDj } from "@/application/panel/delete-dj";
-import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
+import {
+  loginPanel,
+  logoutPanel,
+  readPanelSession,
+} from "@/application/panel/login-panel";
 import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
 import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
@@ -122,6 +126,7 @@ export function createRealApp() {
       return loginPanel(panelAuth, body);
     },
     readPanelSession: (token: string) => readPanelSession(panelAuth, token),
+    logoutPanel: (token: string) => logoutPanel(panelAuth, token),
     generateDjPassword: (
       actor: Parameters<typeof generateDjPassword>[2],
       input: unknown,

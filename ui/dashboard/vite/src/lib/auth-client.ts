@@ -6,9 +6,12 @@ import {
 } from "@/demo/mockData";
 import {
 	clearPanelAuthSession,
+	clearPanelSignedOut,
 	isUser,
+	markPanelSignedOut,
 	PANEL_SESSION_EVENT,
 	readPanelAuthSession,
+	wasPanelSignedOut,
 	writePanelAuthSession,
 	type PanelAuthSession,
 	type PanelUser,
@@ -60,12 +63,15 @@ function revalidateSessionOnce(
 
 	revalidatePromise = (async () => {
 		try {
+			if (wasPanelSignedOut()) return null;
 			if (!local?.token) {
 				const remote = await readPanelCookieSession();
+				if (wasPanelSignedOut()) return null;
 				if (remote) writePanelAuthSession(remote);
 				return remote;
 			}
 			const user = await readPanelAccount(local.token);
+			if (wasPanelSignedOut()) return null;
 			const next = { token: local.token, user };
 			if (
 				user.email !== local.user.email ||
@@ -124,7 +130,13 @@ export const useSession = () => {
 		}
 
 		void revalidateSessionOnce(local).then((resolved) => {
-			if (cancelled) return;
+			if (cancelled || wasPanelSignedOut()) {
+				if (!cancelled) {
+					setStored(null);
+					setPending(false);
+				}
+				return;
+			}
 			setStored(resolved);
 			setPending(false);
 		});
@@ -162,6 +174,7 @@ export const signIn = {
 	}) => {
 		try {
 			const session = await loginPanelAccount({ email, password });
+			clearPanelSignedOut();
 			writePanelAuthSession(session);
 			markPanelSessionTrusted();
 			return { data: toAuthSession(session), error: null };
@@ -205,8 +218,14 @@ export const authClient = {
 	organization,
 	signIn,
 	signOut: async () => {
-		clearPanelAuthSession();
-		void clearRemotePanelSession();
+		try {
+			await clearRemotePanelSession();
+		} finally {
+			clearPanelAuthSession();
+			markPanelSignedOut();
+			sessionRevalidated = false;
+			revalidatePromise = null;
+		}
 		return ok({});
 	},
 	emailOtp: {
@@ -230,12 +249,14 @@ export const authClient = {
 export async function acceptPanelToken(token: string, knownUser?: PanelUser) {
 	if (knownUser && isUser(knownUser)) {
 		const session = { token, user: knownUser };
+		clearPanelSignedOut();
 		writePanelAuthSession(session);
 		markPanelSessionTrusted();
 		return session;
 	}
 	const user = await readPanelAccount(token);
 	const session = { token, user };
+	clearPanelSignedOut();
 	writePanelAuthSession(session);
 	markPanelSessionTrusted();
 	return session;

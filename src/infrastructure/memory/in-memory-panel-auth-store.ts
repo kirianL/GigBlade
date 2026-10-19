@@ -106,6 +106,12 @@ export class InMemoryPanelAuthStore implements PanelAuthStore {
     this.flush();
   }
 
+  async deleteSession(tokenHash: string): Promise<void> {
+    this.hydrate();
+    this.sessions.delete(tokenHash);
+    this.flush();
+  }
+
   async findSession(tokenHash: string): Promise<PanelSessionRecord | null> {
     this.hydrate();
     return this.sessions.get(tokenHash) ?? null;

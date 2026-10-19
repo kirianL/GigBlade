@@ -34,6 +34,12 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   const requestId = createRequestId();
+  try {
+    const token = readBearerToken(request);
+    await getApp().logoutPanel(token);
+  } catch {
+    // Sin token vigente igual se borra la cookie.
+  }
   const response = jsonWithTenantCors(request, { ok: true }, { requestId });
   const headers = new Headers(response.headers);
   headers.append("Set-Cookie", panelSessionClearCookie(request));

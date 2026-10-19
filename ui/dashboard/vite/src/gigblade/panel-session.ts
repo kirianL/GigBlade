@@ -14,6 +14,22 @@ export type PanelAuthSession = {
 
 export const PANEL_SESSION_KEY = "gigblade.panel.session";
 export const PANEL_SESSION_EVENT = "gigblade-panel-session";
+const PANEL_SIGNED_OUT_KEY = "gigblade.panel.signed-out";
+
+export function markPanelSignedOut() {
+	if (typeof window === "undefined") return;
+	window.sessionStorage.setItem(PANEL_SIGNED_OUT_KEY, "1");
+}
+
+export function clearPanelSignedOut() {
+	if (typeof window === "undefined") return;
+	window.sessionStorage.removeItem(PANEL_SIGNED_OUT_KEY);
+}
+
+export function wasPanelSignedOut() {
+	if (typeof window === "undefined") return false;
+	return window.sessionStorage.getItem(PANEL_SIGNED_OUT_KEY) === "1";
+}
 
 export function isUser(value: unknown): value is PanelUser {
 	if (typeof value !== "object" || value === null) return false;
