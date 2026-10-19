@@ -83,14 +83,26 @@
           }
 
           document.documentElement.classList.add(resolvedTheme);
-          const color = resolvedTheme === "dark" ? "#000000" : "#fafaf9";
+          const authScreen = /^\/(sign-in|pw-sign-in|accept)(\/|$)/.test(
+            location.pathname,
+          );
+          const color = authScreen
+            ? "#09090b"
+            : resolvedTheme === "dark"
+              ? "#000000"
+              : "#fafaf9";
           document.documentElement.style.backgroundColor = color;
           document
             .querySelectorAll('meta[name="theme-color"]')
             .forEach((meta) => meta.setAttribute("content", color));
         } catch (e) {
           document.documentElement.classList.add("light");
-          document.documentElement.style.backgroundColor = "#fafaf9";
+          const authScreen = /^\/(sign-in|pw-sign-in|accept)(\/|$)/.test(
+            location.pathname,
+          );
+          document.documentElement.style.backgroundColor = authScreen
+            ? "#09090b"
+            : "#fafaf9";
         }
       })();
     </script>
