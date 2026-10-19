@@ -8,7 +8,7 @@ import { breadcrumbSchema } from "@/lib/seo";
 export const metadata: Metadata = {
 	title: "Blog",
 	description:
-		"Thoughts on billing infrastructure, usage-based pricing, and building for AI startups.",
+		"Notas sobre presencia digital para DJs: páginas propias, dominios, plantillas y todo lo que pasa detrás de GigBlades.",
 	alternates: { canonical: "/blog" },
 };
 
@@ -37,8 +37,8 @@ export default function BlogListingPage() {
 					<span className="text-white">Blog</span>
 				</h1>
 				<p className="text-[14px] md:text-[16px] leading-5 text-[#FFFFFF99] font-light font-sans mb-16">
-					Thoughts on billing infrastructure, usage-based pricing, and building
-					for AI startups.
+					Notas sobre presencia digital para DJs: páginas propias, dominios,
+					plantillas y todo lo que pasa detrás de GigBlades.
 				</p>
 
 				{posts.length === 0 && (

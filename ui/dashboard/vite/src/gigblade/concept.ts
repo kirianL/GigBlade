@@ -37,7 +37,8 @@ export function djTemplateLabel(id: string) {
 
 export const PLAN = {
 	name: "Todo incluido",
-	priceUsd: 65,
+	setupUsd: 100,
+	priceUsd: 30,
 	cadence: "mes",
 	includes: [
 		"Página propia con plantilla para eventos",
@@ -76,7 +77,7 @@ export const CONCEPT = {
 		},
 	],
 	ops: "Todo el trabajo técnico — que la página funcione rápido, que esté segura, que el dominio esté activo — lo maneja la plataforma, no el DJ.",
-	model: `US$ ${PLAN.priceUsd} al mes cubre absolutamente todo: la página, la seguridad y el hosting. El dominio queda a nombre de la plataforma y se cobra aparte, al costo real, sin margen.`,
+	model: `US$ ${PLAN.setupUsd} de setup inicial por la puesta en marcha. Después US$ ${PLAN.priceUsd} al mes cubre la página, la seguridad y el hosting. El dominio queda a nombre de la plataforma y se cobra aparte, al costo real, sin margen.`,
 	scale:
 		"El costo de mantener la plataforma es prácticamente el mismo con 1 DJ o con 50. Cuantos más DJs se sumen, menos cuesta cada uno mantener esa base, y más queda de ganancia por cada suscripción nueva. Con pocos DJs activos ya se cubre el costo fijo.",
 } as const;

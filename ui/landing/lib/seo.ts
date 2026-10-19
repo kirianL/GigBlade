@@ -90,8 +90,8 @@ export function softwareApplicationSchema() {
 		operatingSystem: "Web",
 		url: SITE_URL,
 		description:
-			"Presencia digital para DJs. Página con dominio propio y plantillas para eventos. El dominio se cobra aparte, al costo.",
-		offers: { "@type": "Offer", price: "65", priceCurrency: "USD" },
+			"Presencia digital para DJs. Página con dominio propio y plantillas para eventos. US$ 100 de setup inicial y US$ 30 al mes. El dominio se cobra aparte, al costo.",
+		offers: { "@type": "Offer", price: "30", priceCurrency: "USD" },
 		publisher: { "@id": `${SITE_URL}/#organization` },
 	};
 }

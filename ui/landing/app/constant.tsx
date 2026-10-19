@@ -1234,7 +1234,7 @@ export const faqData = [
 		id: 6,
 		question: "¿Cuánto cuesta?",
 		answer:
-			"US$ 65 al mes. Cubre hosting, seguridad y tu página.\n\nEl dominio se cobra aparte, al costo real, sin margen.",
+			"US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes. Cubre hosting, seguridad y tu página.\n\nEl dominio se cobra aparte, al costo real, sin margen.",
 	},
 ];
 
@@ -1460,9 +1460,9 @@ export const customerStoriesData: CustomerStory[] = [
 			emphasis: "en un solo plan.",
 		},
 		stats: [
-			{ value: "$65", label: "Al mes, página incluida" },
+			{ value: "$30", label: "Al mes, página incluida" },
+			{ value: "$100", label: "Setup inicial" },
 			{ value: "0", label: "Trámites de DNS" },
-			{ value: "1", label: "Motor compartido" },
 		],
 		quote:
 			"Pago la suscripción y me olvido de hosting, certificados y renovaciones raras. El dominio se cobra al costo, sin margen.",

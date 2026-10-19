@@ -138,7 +138,7 @@ export const demoProducts = [
 		internal_id: "prod_all_inclusive",
 		id: "all_inclusive",
 		name: "Todo incluido",
-		description: "Hosting, seguridad, página y dominio. US$ 65 al mes.",
+		description: "Hosting, seguridad, página y dominio. US$ 100 de setup inicial y US$ 30 al mes.",
 		is_add_on: false,
 		is_default: true,
 		version: 1,
@@ -149,7 +149,7 @@ export const demoProducts = [
 		items: [
 			{
 				type: ProductItemType.Price,
-				price: 65,
+				price: 30,
 				interval: ProductItemInterval.Month,
 			},
 			{

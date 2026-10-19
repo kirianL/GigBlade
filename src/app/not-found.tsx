@@ -75,7 +75,7 @@ export default function NotFound() {
 					<div className="relative z-10 mt-[-40px] flex w-full flex-col items-center justify-center px-4 text-center">
 						<Image
 							src="/images/autumn-notfound.svg"
-							alt="Autumn Logo"
+							alt="GigBlades Logo"
 							width={64}
 							height={64}
 							sizes="64px"

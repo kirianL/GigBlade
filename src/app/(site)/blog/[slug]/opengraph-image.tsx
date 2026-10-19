@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { getAllPosts, getPostBySlug } from "@/lib/blogUtils";
 
 export const dynamic = "force-static";
-export const alt = "Autumn blog";
+export const alt = "GigBlades blog";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -153,7 +153,7 @@ export default async function OgImage({
 }) {
 	const { slug } = await params;
 	const post = getPostBySlug({ slug });
-	const title = post?.title ?? "Autumn";
+	const title = post?.title ?? "GigBlades";
 
 	if (slug === "eliminating-memory-leaks") {
 		return coverImageResponse("/images/blog/eliminating-memory-leaks-og.jpg");

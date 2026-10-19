@@ -2,7 +2,7 @@ export const planItems = [
 	{
 		id: "credits",
 		label: "Plan mensual",
-		desc: "Una suscripción mensual cubre hosting, seguridad y tu página. Sin armar infraestructura por tu cuenta.",
+		desc: "US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes cubren hosting, seguridad y tu página. Sin armar infraestructura por tu cuenta.",
 	},
 	{
 		id: "free-trials",

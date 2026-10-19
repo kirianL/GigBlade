@@ -334,7 +334,7 @@ export default function DjStudioPage() {
 					<p className="text-xs text-tertiary-foreground">Plan</p>
 					<div className="flex flex-wrap items-center justify-between gap-2">
 						<p className="text-sm font-medium text-foreground">
-							{PLAN.name} · US$ {PLAN.priceUsd} /mes
+							{PLAN.name} · US$ {PLAN.setupUsd} setup + US$ {PLAN.priceUsd} /mes
 						</p>
 						<DjStatusCell status={dj.status} />
 					</div>

@@ -6,9 +6,9 @@ import { getAlogDocsByCategory } from "@/lib/alogUtils";
 import { breadcrumbSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
-	title: "Alog — Agent Reference",
+	title: "Alog — Documentación",
 	description:
-		"Structured, factual reference pages about Autumn for AI agents to crawl, quote, and compare. Every page is available as markdown.",
+		"Referencia técnica de GigBlades para agentes y desarrolladores. Cada página está disponible como markdown.",
 	alternates: { canonical: "/alog" },
 };
 
@@ -27,23 +27,23 @@ export default function AlogIndexPage() {
 						Alog
 					</h1>
 					<p className="text-[14px] md:text-[16px] leading-6 text-[#FFFFFF99] font-light font-sans max-w-[640px]">
-						Autumn content for your agent. Append{" "}
-						<code className="text-[#e0e0e0] font-mono text-[13px]">.md</code> to
-						any page for raw markdown, or read the{" "}
+						Contenido de GigBlades para tu agente. Agregá{" "}
+						<code className="text-[#e0e0e0] font-mono text-[13px]">.md</code> al
+						final de cualquier página para ver el markdown original, o leé los
+						índices{" "}
 						<AppLink
 							href="/llms.txt"
 							className="text-brand-glow hover:text-brand-soft underline underline-offset-2"
 						>
 							llms.txt
 						</AppLink>{" "}
-						and{" "}
+						y{" "}
 						<AppLink
 							href="/llms-full.txt"
 							className="text-brand-glow hover:text-brand-soft underline underline-offset-2"
 						>
 							llms-full.txt
-						</AppLink>{" "}
-						indexes.
+						</AppLink>.
 					</p>
 				</header>
 

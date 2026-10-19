@@ -12,10 +12,10 @@ const cards = [
 	{
 		tint: "bg-brand-tint-1",
 		icon: "/images/production/uptime2.svg",
-		metric: "$65",
+		metric: "$30",
 		label: "Al mes, página incluida",
 		description:
-			"Hosting, seguridad y tu página. El dominio se cobra aparte, al costo.",
+			"US$ 100 de setup inicial. Después US$ 30 al mes por hosting, seguridad y tu página. El dominio se cobra aparte, al costo.",
 		clipart: true,
 	},
 	{

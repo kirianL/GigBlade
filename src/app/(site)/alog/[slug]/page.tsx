@@ -145,7 +145,7 @@ export default async function AlogDocPage({ params }: { params: BlogParams }) {
 						{doc.relatedDocs.length > 0 && (
 							<div>
 								<h2 className="font-mono text-[12px] uppercase tracking-[-1%] text-[#FFFFFF66] mb-3">
-									Autumn docs
+									GigBlades docs
 								</h2>
 								<ul className="flex flex-col gap-2">
 									{doc.relatedDocs.map((docLink) => (

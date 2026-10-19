@@ -33,7 +33,7 @@ const geistMono = Geist_Mono({
 
 const url = getSiteUrl();
 const description =
-  "Presencia digital para DJs: dominio propio y plantilla para eventos. US$ 65 al mes cubre hosting y seguridad. El dominio se cobra aparte.";
+  "Presencia digital para DJs: dominio propio, plantilla para eventos y panel propio. Hosting, seguridad y dominio administrado por GigBlades.";
 const title = "Página propia para DJs | GigBlades";
 const previewDeploy = process.env.VERCEL_ENV === "preview";
 

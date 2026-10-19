@@ -34,7 +34,7 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "5. Payment Terms",
 		content:
-			"Fees are listed on the pricing page. The monthly plan covers hosting, security, and the artist page. The domain is billed separately, at cost, without markup. Fees are non-refundable except as required by law. We may change pricing with 30 days' notice.",
+			"Fees are listed on the pricing page. There is a one-time setup fee and a monthly plan that covers hosting, security, and the artist page. The domain is billed separately, at cost, without markup. Fees are non-refundable except as required by law. We may change pricing with 30 days' notice.",
 		isUppercase: false,
 	},
 	{

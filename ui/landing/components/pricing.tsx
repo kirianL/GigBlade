@@ -19,8 +19,9 @@ type Plan = {
 const plans: Plan[] = [
 	{
 		name: "PLAN",
-		price: "65",
-		description: "Un solo precio. Hosting y seguridad. El dominio se cobra aparte.",
+		price: "30",
+		description:
+			"US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes por hosting, seguridad y tu página. El dominio se cobra aparte.",
 		features: [
 			{ label: "Página con dominio personalizado" },
 			{ label: "Plantilla del catálogo para DJs" },
@@ -28,6 +29,10 @@ const plans: Plan[] = [
 			{ label: "Panel para editar contenido" },
 			{ label: "Hosting, seguridad y cache" },
 			{ label: "Datos aislados de otros DJs" },
+			{
+				label: "Setup inicial",
+				note: "US$ 100 de puesta en marcha",
+			},
 			{
 				label: "Dominio propio",
 				note: "se cobra aparte, al costo",
@@ -64,7 +69,8 @@ export default function Pricing() {
 								Un plan. Infra resuelta.
 							</h1>
 							<p className="mt-4 md:mt-5 text-[#FFFFFF99] text-pretty font-light leading-[18px] tracking-[-2%] md:font-extralight text-[16px] md:leading-[1.6]">
-								US$ 65 al mes cubre hosting, seguridad y tu página. El
+								US$ 100 de setup inicial por la puesta en marcha. Después
+								US$ 30 al mes cubre hosting, seguridad y tu página. El
 								dominio se cobra aparte, al costo real, sin margen.
 							</p>
 						</div>

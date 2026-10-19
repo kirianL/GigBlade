@@ -39,6 +39,6 @@ export const faqItems = [
 		id: 6,
 		question: "¿Cuánto cuesta?",
 		answer:
-			"US$ 65 al mes. Cubre hosting, seguridad y tu página.\n\nEl dominio se cobra aparte, al costo real, sin margen.",
+			"US$ 100 de setup inicial por la puesta en marcha. Después US$ 30 al mes. Cubre hosting, seguridad y tu página.\n\nEl dominio se cobra aparte, al costo real, sin margen.",
 	},
 ] as const;
