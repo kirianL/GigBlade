@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>
       (() => {
         const standalone =
@@ -83,8 +83,11 @@
           }
 
           document.documentElement.classList.add(resolvedTheme);
-          document.documentElement.style.backgroundColor =
-            resolvedTheme === "dark" ? "#000000" : "#fafaf9";
+          const color = resolvedTheme === "dark" ? "#000000" : "#fafaf9";
+          document.documentElement.style.backgroundColor = color;
+          document
+            .querySelectorAll('meta[name="theme-color"]')
+            .forEach((meta) => meta.setAttribute("content", color));
         } catch (e) {
           document.documentElement.classList.add("light");
           document.documentElement.style.backgroundColor = "#fafaf9";

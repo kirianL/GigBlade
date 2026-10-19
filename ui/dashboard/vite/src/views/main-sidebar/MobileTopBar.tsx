@@ -28,7 +28,7 @@ export function MobileTopBar({ onMenuClick }: { onMenuClick: () => void }) {
 	const title = useMobileTitle();
 
 	return (
-		<div className="gigblade-safe-bar sticky top-0 z-50 grid shrink-0 grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-border/40 bg-background/95 px-2 backdrop-blur-md sm:hidden">
+		<div className="gigblade-safe-bar sticky top-0 z-50 grid shrink-0 grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-border/60 bg-background px-2 sm:hidden">
 			<button
 				type="button"
 				onClick={onMenuClick}

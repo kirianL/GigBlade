@@ -48,7 +48,11 @@ function applyMode(mode: ThemeMode): boolean {
 	root.classList.remove("light", "dark");
 	const resolved = mode === "system" ? resolveSystemTheme() : mode;
 	root.classList.add(resolved);
-	root.style.backgroundColor = resolved === "dark" ? "#000000" : "#fafaf9";
+	const color = resolved === "dark" ? "#000000" : "#fafaf9";
+	root.style.backgroundColor = color;
+	document
+		.querySelectorAll('meta[name="theme-color"]')
+		.forEach((meta) => meta.setAttribute("content", color));
 	return resolved === "dark";
 }
 
