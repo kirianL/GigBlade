@@ -4,5 +4,11 @@
 	"installCommand": "bun install",
 	"buildCommand": "cd vite && bunx --bun vite build",
 	"outputDirectory": "vite/dist",
-	"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+	"rewrites": [
+		{
+			"source": "/api/:path*",
+			"destination": "https://www.gigblades.com/api/:path*"
+		},
+		{ "source": "/(.*)", "destination": "/index.html" }
+	]
 }

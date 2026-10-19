@@ -107,16 +107,26 @@ function withTimeout(parent?: AbortSignal, timeoutMs = FETCH_TIMEOUT_MS) {
 	};
 }
 
+function panelUsesSameOriginApi() {
+	if (import.meta.env.DEV) return true;
+	if (
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "1" ||
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "true"
+	) {
+		return true;
+	}
+	return (
+		typeof window !== "undefined" &&
+		window.location.hostname === "app.gigblades.com"
+	);
+}
+
 function siteOrigin() {
 	return gigbladeMarketingSiteUrl();
 }
 
 function tenantApi(slug: string, path = "/api/tenant") {
-	const useRelative =
-		import.meta.env.DEV ||
-		import.meta.env.VITE_PANEL_SAME_ORIGIN === "1" ||
-		import.meta.env.VITE_PANEL_SAME_ORIGIN === "true";
-	const base = useRelative ? window.location.origin : siteOrigin();
+	const base = panelUsesSameOriginApi() ? window.location.origin : siteOrigin();
 	const url = new URL(path, `${base}/`);
 	url.searchParams.set("slug", slug);
 	return url.toString();
@@ -131,11 +141,7 @@ export function publicSiteAssetUrl(slug: string, url: string) {
 }
 
 function platformApiOrigin() {
-	const useRelative =
-		import.meta.env.DEV ||
-		import.meta.env.VITE_PANEL_SAME_ORIGIN === "1" ||
-		import.meta.env.VITE_PANEL_SAME_ORIGIN === "true";
-	return useRelative ? "" : siteOrigin();
+	return panelUsesSameOriginApi() ? "" : siteOrigin();
 }
 
 export type SiteVisitStats = {
