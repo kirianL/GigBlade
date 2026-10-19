@@ -4,7 +4,7 @@ import type { TenantRepository } from "@/application/ports/tenant-repository";
 import type { TenantRoutingStore } from "@/application/ports/tenant-routing-store";
 import type { DomainAutomationDetail } from "@/domain/domain-automation";
 import { buildDomainAutomationDetail } from "@/infrastructure/domains/detector";
-import { notFound, validationError } from "@/domain/errors";
+import { conflict, notFound, validationError } from "@/domain/errors";
 import { normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile } from "@/domain/site-profile";
 import type { TenantRouting } from "@/domain/tenant";
@@ -70,7 +70,13 @@ export async function assignPlatformDomain(
     status: "active",
     canonicalHostname: domain,
   };
-  await routing.put(domain, routingRecord);
+  const existing = await routing.get(domain);
+  if (existing && existing.id !== tenant.id) {
+    throw conflict("Ese dominio ya está en uso.");
+  }
+  if (!existing) {
+    await routing.put(domain, routingRecord);
+  }
   clearProxyRoutingCache();
 
   // 3. Sync to Edge Config if writer available

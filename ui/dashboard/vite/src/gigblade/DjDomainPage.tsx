@@ -121,10 +121,10 @@ const DOMAIN_PROVIDERS = [
 type ProviderId = (typeof DOMAIN_PROVIDERS)[number]["id"];
 
 export default function DjDomainPage() {
-  const { dj, setDj } = useSelectedDj();
+  const { dj, setDj, ownSiteReady } = useSelectedDj();
   const { t } = useLanguage();
   const pageUrl = djPublicUrl(dj);
-  const customDomain = djIntendedDomain(dj);
+  const customDomain = ownSiteReady ? djIntendedDomain(dj) : null;
 
   const [scan, setScan] = useState<DomainDnsScanResult | null>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -317,7 +317,11 @@ export default function DjDomainPage() {
       </div>
 
       {/* Domain Status Card */}
-      {customDomain ? (
+      {!ownSiteReady ? (
+        <div className="border border-border/80 rounded-xl bg-card p-8 text-center text-xs text-tertiary-foreground mt-3">
+          Cargando tu dominio…
+        </div>
+      ) : customDomain ? (
         <div className="border border-border/80 rounded-xl bg-card overflow-hidden divide-y divide-border/60 shadow-sm mt-2 transition-all">
           {/* Header Row: Authentic Brand Logo, Domain, Dynamic Live Status, Action Group: Ver, Editar, Verificar, Eliminar */}
           <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 bg-interactive-secondary/15">

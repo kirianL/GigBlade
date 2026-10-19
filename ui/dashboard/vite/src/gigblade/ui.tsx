@@ -6,6 +6,7 @@ import {
 import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import {
 	GIGBLADE_DJS,
@@ -17,6 +18,7 @@ import {
 } from "@/gigblade/concept";
 import { useLocalStorage } from "@/hooks/common/useLocalStorage";
 import { useSession } from "@/lib/auth-client";
+import { fetchPublicSite } from "@/gigblade/site-api";
 import { usePlatformDjs } from "@/gigblade/usePlatformDjs";
 import { CustomerProductsStatus } from "@/views/customers2/components/table/customer-products/CustomerProductsStatus";
 import { cn } from "@/lib/utils";
@@ -128,18 +130,21 @@ export function MetricCard({
 	);
 }
 
-function djFromAccount(user: {
-	slug?: string;
-	name?: string;
-	email?: string;
-}): GigbladeDj | null {
+function djFromAccount(
+	user: {
+		slug?: string;
+		name?: string;
+		email?: string;
+	},
+	domain?: string,
+): GigbladeDj | null {
 	if (!user.slug) return null;
 	const seed = GIGBLADE_DJS.find((dj) => dj.slug === user.slug);
 	return {
 		slug: user.slug,
 		name: user.name || seed?.name || user.slug,
 		email: user.email || seed?.email || "",
-		domain: seed?.domain ?? "",
+		domain: domain || seed?.domain || "",
 		city: seed?.city ?? "",
 		template: seed?.template ?? "after",
 		status: "active",
@@ -152,19 +157,30 @@ function djFromAccount(user: {
 export function useSelectedDj() {
 	const [params, setParams] = useSearchParams();
 	const [lastSlug, setLastSlug] = useLocalStorage(LAST_DJ_STORAGE_KEY, "");
-	const { data: session } = useSession();
+	const { data: session, isPending: sessionPending } = useSession();
 	const user = session?.user as
 		| { role?: string; slug?: string; name?: string; email?: string }
 		| undefined;
 	const { djs, status: sitesStatus } = usePlatformDjs();
 	const lockedSlug = user?.role === "dj" ? user.slug : undefined;
+	const ownSite = useQuery({
+		queryKey: ["panel", "own-site", lockedSlug],
+		queryFn: () => fetchPublicSite(lockedSlug ?? ""),
+		enabled: Boolean(lockedSlug),
+		staleTime: 15_000,
+		retry: false,
+	});
 	const paramDj = params.get("dj");
 	const requested = lockedSlug || paramDj || lastSlug || "";
 	const liveDj =
 		user?.role === "platform" && sitesStatus === "ready"
 			? (djs.find((item) => item.slug === requested) ?? djs[0])
 			: undefined;
-	const accountDj = lockedSlug ? djFromAccount(user ?? {}) : null;
+	const accountDj = lockedSlug
+		? djFromAccount(user ?? {}, ownSite.data?.domain)
+		: null;
+	const ownSiteReady =
+		!sessionPending && (!lockedSlug || ownSite.isSuccess || ownSite.isError);
 	const dj = liveDj ?? accountDj ?? djBySlug(requested || "marco");
 	const visitsReady = Boolean(liveDj || accountDj);
 	const sitesReady = visitsReady || sitesStatus === "error";
@@ -201,7 +217,7 @@ export function useSelectedDj() {
 		);
 	};
 
-	return { dj, setDj, sitesReady, visitsReady };
+	return { dj, setDj, sitesReady, visitsReady, ownSiteReady };
 }
 
 export function DjSelect({
