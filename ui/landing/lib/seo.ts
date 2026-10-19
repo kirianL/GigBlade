@@ -14,9 +14,9 @@ export function absoluteUrl(path: string) {
 }
 
 const OG_IMAGE = {
-	url: "/images/og-image.png",
-	width: 1200,
-	height: 630,
+	url: "/OpenGraph.jpg",
+	width: 2848,
+	height: 1504,
 	alt: "GigBlades — Página propia para DJs",
 };
 

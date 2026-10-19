@@ -81,9 +81,9 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: "/images/og-image.png",
-        width: 1200,
-        height: 630,
+        url: "/OpenGraph.jpg",
+        width: 2848,
+        height: 1504,
         alt: "GigBlades — Página propia para DJs",
       },
     ],
@@ -95,7 +95,7 @@ export const metadata: Metadata = {
       template: "%s | GigBlades",
     },
     description,
-    images: ["/images/og-image.png"],
+    images: ["/OpenGraph.jpg"],
   },
   robots: previewDeploy
     ? { index: false, follow: false }

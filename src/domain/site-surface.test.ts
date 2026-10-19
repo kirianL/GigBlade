@@ -33,6 +33,6 @@ describe("site-surface", () => {
     expect(tenantSiteRewritePath("/login")).toBeNull();
     expect(tenantSiteRewritePath("/sign-in")).toBeNull();
     expect(tenantSiteRewritePath("/site")).toBeNull();
-    expect(tenantSiteRewritePath("/images/og-image.png")).toBeNull();
+    expect(tenantSiteRewritePath("/OpenGraph.jpg")).toBeNull();
   });
 });
