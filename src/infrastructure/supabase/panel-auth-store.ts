@@ -8,6 +8,7 @@ import {
   hashPassword,
   PLATFORM_EMAIL,
   PLATFORM_NAME,
+  verifyPassword,
   type PanelAccount,
   type PanelSessionRecord,
 } from "@/domain/panel-auth";
@@ -143,6 +144,10 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
 
   async saveSession(record: PanelSessionRecord): Promise<void> {
     const supabase = createSupabaseAdminClient();
+    await supabase
+      .from("panel_sessions")
+      .delete()
+      .lte("expires_at", new Date().toISOString());
     const { error } = await supabase.from("panel_sessions").upsert(
       {
         token_hash: record.tokenHash,
@@ -232,15 +237,19 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
 
   private async ensurePlatformAccount() {
     if (this.platformSeeded) return;
+    if (!this.platformPassword) {
+      this.platformSeeded = true;
+      return;
+    }
     const supabase = createSupabaseAdminClient();
     const existing = readPostgrestResult(
       await supabase
         .from("panel_accounts")
-        .select("email")
+        .select("email, password_hash")
         .eq("email", PLATFORM_EMAIL)
         .maybeSingle(),
       { operation: "panel_accounts.seedPlatform.read" },
-    );
+    ) as { email: string; password_hash: string } | null;
     if (!existing) {
       const { error } = await supabase.from("panel_accounts").insert({
         email: PLATFORM_EMAIL,
@@ -253,6 +262,19 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
       if (error && !/duplicate key/i.test(error.message ?? "")) {
         failPostgrestQuery(error, {
           operation: "panel_accounts.seedPlatform.insert",
+        });
+      }
+    } else if (!verifyPassword(this.platformPassword, existing.password_hash)) {
+      const { error } = await supabase
+        .from("panel_accounts")
+        .update({
+          password_hash: hashPassword(this.platformPassword),
+          password_set_at: new Date().toISOString(),
+        })
+        .eq("email", PLATFORM_EMAIL);
+      if (error) {
+        failPostgrestQuery(error, {
+          operation: "panel_accounts.seedPlatform.rotate",
         });
       }
     }

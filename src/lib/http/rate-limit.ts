@@ -3,12 +3,22 @@ import { rateLimited } from "@/domain/errors";
 const hits = new Map<string, number[]>();
 
 export function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
+  const realIp =
+    request.headers.get("x-vercel-forwarded-for") ||
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-real-ip");
+  if (realIp) {
+    const parts = realIp.split(",");
+    return parts[parts.length - 1]?.trim() || "unknown";
   }
 
-  return request.headers.get("x-real-ip") ?? "unknown";
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",");
+    return parts[parts.length - 1]?.trim() || "unknown";
+  }
+
+  return "unknown";
 }
 
 export function requestHost(request: Request): string {

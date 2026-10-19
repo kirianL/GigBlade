@@ -37,6 +37,7 @@ export type TurnstileWidgetProps = {
   onError?: () => void;
   theme?: "light" | "dark" | "auto";
   className?: string;
+  bare?: boolean;
 };
 
 export function TurnstileWidget({
@@ -45,11 +46,18 @@ export function TurnstileWidget({
   onError,
   theme = "auto",
   className = "",
+  bare = false,
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onSuccessRef = useRef(onSuccess);
+  const onExpireRef = useRef(onExpire);
+  const onErrorRef = useRef(onError);
   const [loaded, setLoaded] = useState(false);
   const siteKey = configuredTurnstileSiteKey();
+  onSuccessRef.current = onSuccess;
+  onExpireRef.current = onExpire;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     if (!siteKey) return;
@@ -65,18 +73,17 @@ export function TurnstileWidget({
           theme,
           size: "flexible",
           callback: (token: string) => {
-            if (isMounted) onSuccess(token);
+            if (isMounted) onSuccessRef.current(token);
           },
           "expired-callback": () => {
-            if (isMounted) onExpire?.();
+            if (isMounted) onExpireRef.current?.();
           },
           "error-callback": () => {
             if (isMounted) {
-              // In local dev fallback gracefully if turnstile fails
               if (process.env.NODE_ENV !== "production") {
-                onSuccess("XXXX.DUMMY.TOKEN.XXXX");
+                onSuccessRef.current("XXXX.DUMMY.TOKEN.XXXX");
               } else {
-                onError?.();
+                onErrorRef.current?.();
               }
             }
           },
@@ -86,7 +93,7 @@ export function TurnstileWidget({
       } catch {
         // Fallback gracefully in dev
         if (process.env.NODE_ENV !== "production") {
-          onSuccess("XXXX.DUMMY.TOKEN.XXXX");
+          onSuccessRef.current("XXXX.DUMMY.TOKEN.XXXX");
         }
       }
     }
@@ -106,7 +113,7 @@ export function TurnstileWidget({
         script.onload = () => renderWidget();
         script.onerror = () => {
           if (process.env.NODE_ENV !== "production") {
-            onSuccess("XXXX.DUMMY.TOKEN.XXXX");
+            onSuccessRef.current("XXXX.DUMMY.TOKEN.XXXX");
           }
         };
         document.head.appendChild(script);
@@ -132,9 +139,17 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, theme, onSuccess, onExpire, onError]);
+  }, [siteKey, theme]);
 
   if (!siteKey) return null;
+
+  if (bare) {
+    return (
+      <div className="flex w-full items-center justify-center">
+        <div ref={containerRef} />
+      </div>
+    );
+  }
 
   return (
     <div

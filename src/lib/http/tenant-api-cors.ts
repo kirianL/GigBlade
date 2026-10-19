@@ -15,14 +15,17 @@ function configuredDashboardOrigin(): string {
 
 export function isAllowedDashboardOrigin(origin: string): boolean {
   if (origin === configuredDashboardOrigin()) return true;
-  if (origin === LOCAL_DASHBOARD_ORIGIN) return true;
   if (origin === PLATFORM_DASHBOARD_ORIGIN) return true;
-  try {
-    const url = new URL(origin);
-    return url.protocol === "https:" && url.hostname.endsWith(".vercel.app");
-  } catch {
-    return false;
+  if (process.env.NODE_ENV !== "production") {
+    if (origin === LOCAL_DASHBOARD_ORIGIN) return true;
+    try {
+      const url = new URL(origin);
+      return url.protocol === "https:" && url.hostname.endsWith(".vercel.app");
+    } catch {
+      return false;
+    }
   }
+  return false;
 }
 
 export function tenantApiCorsHeaders(request: Request): Headers {

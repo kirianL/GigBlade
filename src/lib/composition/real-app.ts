@@ -48,7 +48,8 @@ export function createRealApp() {
   const waitlist = new SupabaseWaitlistRepository();
   const visits = new SupabaseSiteVisitStore();
   const panelAuth = new SupabasePanelAuthStore(
-    process.env.GIGBLADE_PANEL_PASSWORD?.trim() || "gigblade",
+    process.env.GIGBLADE_PANEL_PASSWORD?.trim() ||
+      (process.env.NODE_ENV === "production" ? "" : "gigblade"),
   );
   const edgeConfigWriter = new VercelEdgeConfigWriter();
   const bookings = new SupabaseBookingRepository();

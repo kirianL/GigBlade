@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BOOKING_EVENT_TYPES,
   BOOKING_EVENT_TYPE_LABELS,
   type BookingEventType,
 } from "@/domain/booking";
-import {
-  configuredTurnstileSiteKey,
-  TurnstileWidget,
-} from "@/lib/tenant/templates/turnstile-widget";
+import { BookingCaptcha } from "@/lib/tenant/templates/booking-captcha";
+import { configuredTurnstileSiteKey } from "@/lib/tenant/templates/turnstile-widget";
 
 const panelClass =
   "site-booking-panel rounded-3xl border border-[var(--site-fg)] bg-[var(--site-fg)] text-[var(--site-bg)] shadow-[0_20px_50px_rgba(0,0,0,0.28)] overflow-hidden w-full max-w-full";
@@ -39,6 +37,13 @@ export function BookingForm({
   const [eventDate, setEventDate] = useState("");
   const [note, setNote] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [captchaMounted, setCaptchaMounted] = useState(false);
+  const captchaEnabled = Boolean(configuredTurnstileSiteKey());
+
+  useEffect(() => {
+    setCaptchaMounted(true);
+  }, []);
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">(
     "idle",
@@ -55,6 +60,10 @@ export function BookingForm({
     }
     if (!email.trim() || !email.includes("@")) {
       setErrorMessage("Por favor ingresá un correo electrónico válido.");
+      return;
+    }
+    if (captchaEnabled && !turnstileToken) {
+      setErrorMessage("Completá la verificación de seguridad para continuar.");
       return;
     }
 
@@ -82,6 +91,7 @@ export function BookingForm({
 
       if (!response.ok) {
         setStatus("error");
+        setCaptchaResetKey((key) => key + 1);
         setErrorMessage(
           data?.message || "No se pudo enviar la solicitud. Por favor intentá nuevamente.",
         );
@@ -298,16 +308,20 @@ export function BookingForm({
         />
       </div>
 
-      {configuredTurnstileSiteKey() ? (
-        <div className="mt-1 w-full min-w-0 overflow-hidden">
-          <TurnstileWidget
-            theme={theme}
-            onSuccess={(token) => setTurnstileToken(token)}
-            onExpire={() => setTurnstileToken("")}
-            onError={() => {
-              setTurnstileToken("");
-            }}
-          />
+      {captchaEnabled ? (
+        <div className="mt-1 min-h-[78px] w-full min-w-0 overflow-hidden">
+          {captchaMounted ? (
+            <BookingCaptcha
+              theme={theme}
+              resetKey={captchaResetKey}
+              onToken={setTurnstileToken}
+              onClear={() => setTurnstileToken("")}
+              onError={() => {
+                setTurnstileToken("");
+                setErrorMessage("No se pudo cargar la verificación de seguridad.");
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
 

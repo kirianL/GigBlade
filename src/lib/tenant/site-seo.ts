@@ -14,6 +14,7 @@ const PRIVATE_PATHS = [
   "/dashboard",
   "/api/",
   "/site",
+  "/captcha",
 ];
 
 export function tenantSiteOrigin(hostname: string): string {

@@ -1,3 +1,5 @@
+import { isCaptchaTokenHostnameAllowed } from "@/domain/captcha-host";
+
 export type VerifyTurnstileOptions = {
   token: string | undefined | null;
   remoteIp?: string | null;
@@ -18,15 +20,16 @@ export async function verifyTurnstileToken({
   remoteIp,
 }: VerifyTurnstileOptions): Promise<VerifyTurnstileResult> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY?.trim();
+  const isProd = process.env.NODE_ENV === "production";
 
-  // If in local development or memory runtime without configured secret,
-  // allow bypass or allow dummy token
   if (!secretKey) {
-    if (process.env.NODE_ENV !== "production") {
+    if (!isProd) {
       return { success: true };
     }
-    // In production without secret key, log warning and let pass or enforce depending on config
-    return { success: true };
+    return {
+      success: false,
+      error: "Falta configurar la verificación de seguridad del servidor.",
+    };
   }
 
   if (!token?.trim()) {
@@ -36,8 +39,10 @@ export async function verifyTurnstileToken({
     };
   }
 
-  // If using Cloudflare testing dummy tokens in dev/staging
-  if (token === "XXXX.DUMMY.TOKEN.XXXX" || token === "dummy-test-token") {
+  if (
+    !isProd &&
+    (token === "XXXX.DUMMY.TOKEN.XXXX" || token === "dummy-test-token")
+  ) {
     return { success: true };
   }
 
@@ -66,11 +71,19 @@ export async function verifyTurnstileToken({
 
     const data = (await response.json()) as {
       success?: boolean;
+      hostname?: string;
       "error-codes"?: string[];
     };
 
-    if (data.success) {
+    if (data.success && isCaptchaTokenHostnameAllowed(data.hostname, isProd)) {
       return { success: true };
+    }
+
+    if (data.success) {
+      return {
+        success: false,
+        error: "La verificación de seguridad no corresponde a este sitio.",
+      };
     }
 
     return {

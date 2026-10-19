@@ -4,6 +4,11 @@ import {
   panelSessionSetCookie,
   readJsonBody,
 } from "@/lib/http/panel-request";
+import {
+  assertCombinedRateLimit,
+  clientIp,
+  requestHost,
+} from "@/lib/http/rate-limit";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -20,6 +25,12 @@ export async function POST(request: Request) {
   const startedAt = performance.now();
 
   try {
+    assertCombinedRateLimit({
+      ip: clientIp(request),
+      host: requestHost(request),
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+    });
     const body = await readJsonBody(request);
     const session = await getApp().loginPanel(body);
     const response = jsonWithTenantCors(request, session, {

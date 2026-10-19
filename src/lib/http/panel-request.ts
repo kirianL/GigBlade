@@ -35,7 +35,10 @@ export function readBearerToken(request: Request): string {
 }
 
 function cookieDomainForRequest(request: Request): string | undefined {
-  const explicit = process.env.PANEL_SESSION_COOKIE_Domain?.trim();
+  const explicit = (
+    process.env.PANEL_SESSION_COOKIE_DOMAIN ||
+    process.env.PANEL_SESSION_COOKIE_Domain
+  )?.trim();
   if (explicit) return explicit;
   try {
     const { hostname } = new URL(request.url);
