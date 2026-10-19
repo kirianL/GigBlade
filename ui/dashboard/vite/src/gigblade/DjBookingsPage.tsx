@@ -18,7 +18,7 @@ import {
 	WhatsappLogoIcon,
 	XCircleIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { djDomainLabel, djPublicUrl } from "@/gigblade/concept";
@@ -104,37 +104,65 @@ export default function DjBookingsPage() {
 	const [updatingId, setUpdatingId] = useState<string | null>(null);
 
 	const session = readPanelAuthSession();
+	const isMountedRef = useRef(true);
 
-	useEffect(() => {
-		let isMounted = true;
-		const controller = new AbortController();
-		setLoading(true);
+	const reloadBookings = useCallback(
+		async (options?: { showLoading?: boolean }) => {
+			const showLoading = options?.showLoading ?? false;
+			const token = session?.token;
+			if (!token) {
+				if (showLoading) setLoading(false);
+				return;
+			}
 
-		if (!session?.token) {
-			setLoading(false);
-			return;
-		}
+			if (showLoading) setLoading(true);
 
-		void fetchDjBookings({
-			slug: dj.slug,
-			token: session.token,
-			signal: controller.signal,
-		})
-			.then((data) => {
-				if (isMounted) {
+			try {
+				const data = await fetchDjBookings({
+					slug: dj.slug,
+					token,
+				});
+				if (isMountedRef.current) {
 					setBookings(data);
+				}
+			} catch {
+				// Sin toast: el refresco en segundo plano no debe interrumpir al DJ.
+			} finally {
+				if (showLoading && isMountedRef.current) {
 					setLoading(false);
 				}
-			})
-			.catch(() => {
-				if (isMounted) setLoading(false);
-			});
+			}
+		},
+		[dj.slug, session?.token],
+	);
 
+	useEffect(() => {
+		isMountedRef.current = true;
+		void reloadBookings({ showLoading: true });
 		return () => {
-			isMounted = false;
-			controller.abort();
+			isMountedRef.current = false;
 		};
-	}, [dj.slug, session?.token]);
+	}, [reloadBookings]);
+
+	useEffect(() => {
+		if (!session?.token) return;
+
+		const intervalId = window.setInterval(() => {
+			void reloadBookings();
+		}, 20_000);
+
+		function onVisible() {
+			if (document.visibilityState === "visible") {
+				void reloadBookings();
+			}
+		}
+
+		document.addEventListener("visibilitychange", onVisible);
+		return () => {
+			window.clearInterval(intervalId);
+			document.removeEventListener("visibilitychange", onVisible);
+		};
+	}, [reloadBookings, session?.token]);
 
 	async function handleStatusChange(
 		bookingId: string,
