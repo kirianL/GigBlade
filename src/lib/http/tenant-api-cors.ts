@@ -1,15 +1,22 @@
-const DEFAULT_DASHBOARD_ORIGIN = "http://localhost:3001";
+import { PLATFORM_DASHBOARD_ORIGIN } from "@/domain/hostname";
+
+const LOCAL_DASHBOARD_ORIGIN = "http://localhost:3001";
 
 function configuredDashboardOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_DASHBOARD_URL?.replace(/\/$/, "") ||
-    DEFAULT_DASHBOARD_ORIGIN
-  );
+  const raw = process.env.NEXT_PUBLIC_DASHBOARD_URL?.replace(/\/$/, "");
+  if (raw) {
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://${raw}`;
+  }
+  return process.env.NODE_ENV === "production"
+    ? PLATFORM_DASHBOARD_ORIGIN
+    : LOCAL_DASHBOARD_ORIGIN;
 }
 
 export function isAllowedDashboardOrigin(origin: string): boolean {
   if (origin === configuredDashboardOrigin()) return true;
-  if (origin === DEFAULT_DASHBOARD_ORIGIN) return true;
+  if (origin === LOCAL_DASHBOARD_ORIGIN) return true;
+  if (origin === PLATFORM_DASHBOARD_ORIGIN) return true;
   try {
     const url = new URL(origin);
     return url.protocol === "https:" && url.hostname.endsWith(".vercel.app");

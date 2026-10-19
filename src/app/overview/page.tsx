@@ -19,9 +19,8 @@ export default function OverviewPage() {
 	return (
 		<main className="flex min-h-dvh items-center justify-center bg-[#09090b] px-5 text-white">
 			<p className="max-w-md text-center text-sm leading-6 text-white/55">
-				Esta no es el dashboard. En Vercel, en el proyecto de la landing,
-				poné NEXT_PUBLIC_DASHBOARD_URL con la URL de gig-blade y volvé a
-				deployar.
+				Esta no es el dashboard. En el proyecto de la landing en Vercel, configurá
+				NEXT_PUBLIC_DASHBOARD_URL=https://app.gigblades.com y redeployá.
 			</p>
 		</main>
 	);

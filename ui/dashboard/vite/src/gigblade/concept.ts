@@ -113,6 +113,16 @@ export function djByArtistName(name: string | null) {
 }
 
 const PRODUCTION_SITE_URL = "https://gigblades.com";
+const PRODUCTION_DASHBOARD_URL = "https://app.gigblades.com";
+
+export function gigbladeDashboardSiteUrl() {
+	const configured = import.meta.env.VITE_FRONTEND_URL?.replace(/\/$/, "");
+	if (configured && !(import.meta.env.PROD && configured.includes("localhost"))) {
+		return configured;
+	}
+	if (import.meta.env.PROD) return PRODUCTION_DASHBOARD_URL;
+	return configured || "http://localhost:3001";
+}
 
 export function gigbladeMarketingSiteUrl() {
 	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");

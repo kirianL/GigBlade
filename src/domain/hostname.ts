@@ -47,6 +47,10 @@ export function isLocalNetworkHostname(hostname: string): boolean {
 export const PLATFORM_MARKETING_HOST = "gigblades.com";
 export const PLATFORM_MARKETING_ORIGIN = `https://${PLATFORM_MARKETING_HOST}`;
 
+/** Panel de administración (proyecto Vite en Vercel) */
+export const PLATFORM_DASHBOARD_HOST = "app.gigblades.com";
+export const PLATFORM_DASHBOARD_ORIGIN = `https://${PLATFORM_DASHBOARD_HOST}`;
+
 const MARKETING_HOSTS = new Set([
   PLATFORM_MARKETING_HOST,
   `www.${PLATFORM_MARKETING_HOST}`,

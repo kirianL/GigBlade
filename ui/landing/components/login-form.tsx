@@ -83,7 +83,7 @@ export default function LoginForm() {
 				next = new URL("/sign-in", getDashboardUrl());
 			} catch {
 				setError(
-					"NEXT_PUBLIC_DASHBOARD_URL no es una URL válida. Tiene que ser la del proyecto gig-blade, con https://",
+					"NEXT_PUBLIC_DASHBOARD_URL no es una URL válida. Usá https://app.gigblades.com (o localhost:3001 en dev).",
 				);
 				setSubmitting(false);
 				return;
