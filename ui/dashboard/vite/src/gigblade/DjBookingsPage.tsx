@@ -105,6 +105,7 @@ export default function DjBookingsPage() {
 
 	const session = readPanelAuthSession();
 	const isMountedRef = useRef(true);
+	const knownBookingIdsRef = useRef<Set<string>>(new Set());
 
 	const reloadBookings = useCallback(
 		async (options?: { showLoading?: boolean }) => {
@@ -122,9 +123,19 @@ export default function DjBookingsPage() {
 					slug: dj.slug,
 					token,
 				});
-				if (isMountedRef.current) {
-					setBookings(data);
+				if (!isMountedRef.current) return;
+
+				const known = knownBookingIdsRef.current;
+				if (known.size > 0) {
+					const fresh = data.filter((booking) => !known.has(booking.id));
+					if (fresh.length === 1) {
+						toast.info(`Nueva solicitud de ${fresh[0].name}`);
+					} else if (fresh.length > 1) {
+						toast.info(`${fresh.length} solicitudes nuevas`);
+					}
 				}
+				knownBookingIdsRef.current = new Set(data.map((booking) => booking.id));
+				setBookings(data);
 			} catch {
 				// Sin toast: el refresco en segundo plano no debe interrumpir al DJ.
 			} finally {
@@ -138,6 +149,7 @@ export default function DjBookingsPage() {
 
 	useEffect(() => {
 		isMountedRef.current = true;
+		knownBookingIdsRef.current = new Set();
 		void reloadBookings({ showLoading: true });
 		return () => {
 			isMountedRef.current = false;
@@ -149,18 +161,20 @@ export default function DjBookingsPage() {
 
 		const intervalId = window.setInterval(() => {
 			void reloadBookings();
-		}, 20_000);
+		}, 8_000);
 
-		function onVisible() {
+		function refreshIfActive() {
 			if (document.visibilityState === "visible") {
 				void reloadBookings();
 			}
 		}
 
-		document.addEventListener("visibilitychange", onVisible);
+		document.addEventListener("visibilitychange", refreshIfActive);
+		window.addEventListener("focus", refreshIfActive);
 		return () => {
 			window.clearInterval(intervalId);
-			document.removeEventListener("visibilitychange", onVisible);
+			document.removeEventListener("visibilitychange", refreshIfActive);
+			window.removeEventListener("focus", refreshIfActive);
 		};
 	}, [reloadBookings, session?.token]);
 
