@@ -211,6 +211,7 @@ export function createMemoryApp() {
           tenants,
           routing,
           panelAuth,
+          referrals,
           sendAccessEmail: sendDjAccessEmail,
         },
         actor,

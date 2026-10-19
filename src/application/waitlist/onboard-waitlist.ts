@@ -1,4 +1,5 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import type { ReferralRepository } from "@/application/ports/referral-repository";
 import type { TenantRepository } from "@/application/ports/tenant-repository";
 import type { TenantRoutingStore } from "@/application/ports/tenant-routing-store";
 import type { WaitlistRepository } from "@/application/ports/waitlist-repository";
@@ -24,6 +25,7 @@ export async function onboardWaitlistSignup(
     tenants: TenantRepository;
     routing: TenantRoutingStore;
     panelAuth: PanelAuthStore;
+    referrals?: ReferralRepository;
     sendAccessEmail?: (input: {
       to: string;
       name: string;
@@ -62,6 +64,27 @@ export async function onboardWaitlistSignup(
   );
 
   await deps.waitlist.markOnboarded(signup.id);
+
+  if (deps.referrals && signup.referralCode) {
+    try {
+      const affiliate = await deps.referrals.findAffiliateByCode(
+        signup.referralCode,
+      );
+      if (affiliate && affiliate.status === "active") {
+        await deps.referrals.recordConversion({
+          affiliateId: affiliate.id,
+          djName: signup.artistName,
+          djEmail: signup.email,
+          djWaitlistId: signup.id,
+          tenantId: created.tenantId ?? null,
+          chargeType: "initial_setup",
+          packageId: signup.packageId || "initial_setup",
+        });
+      }
+    } catch {
+      // No frenar la creación de la página si ocurre un error secundario al registrar la comisión
+    }
+  }
 
   let emailed = false;
   if (deps.sendAccessEmail) {

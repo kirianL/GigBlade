@@ -160,6 +160,7 @@ export type WaitlistSignup = {
 	instagram: string | null;
 	phone: string | null;
 	note: string | null;
+	referralCode?: string | null;
 	status: "pending" | "contacted" | "onboarded" | "declined";
 	createdAt: string;
 };

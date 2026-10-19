@@ -25,7 +25,7 @@ type WaitlistRow = {
 };
 
 const WAITLIST_COLUMNS =
-  "id, artist_name, email, country, city, instagram, phone, note, status, created_at";
+  "id, artist_name, email, country, city, instagram, phone, note, status, referral_code, created_at";
 
 export class SupabaseWaitlistRepository implements WaitlistRepository {
   async findByEmail(email: string): Promise<WaitlistSignup | null> {

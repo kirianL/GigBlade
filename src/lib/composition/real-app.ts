@@ -209,6 +209,7 @@ export function createRealApp() {
           tenants,
           routing: domainRouting,
           panelAuth,
+          referrals,
           sendAccessEmail: sendDjAccessEmail,
         },
         actor,

@@ -128,6 +128,7 @@ export async function createDj(
     invalidatePlatformSitesCache();
     clearProxyRoutingCache();
     return {
+      tenantId: tenant.id,
       slug: access.slug,
       email: access.email,
       name: access.name,

@@ -13,6 +13,7 @@ import {
 import {
 	EnvelopeSimpleIcon,
 	PlusIcon,
+	ShareNetworkIcon,
 	TrashIcon,
 	WhatsappLogoIcon,
 } from "@phosphor-icons/react";
@@ -265,6 +266,9 @@ function CreatePageButton({
 								<DialogDescription id={descId}>
 									El acceso queda con {signup.email}. La ciudad, el Instagram y el
 									teléfono de la solicitud pasan a la página.
+									{signup.referralCode
+										? ` Al crear la página se acreditará la comisión inicial al promotor ${signup.referralCode}.`
+										: ""}
 								</DialogDescription>
 							</DialogHeader>
 							{error ? (
@@ -329,13 +333,24 @@ function SignupRow({
 		<li className="border rounded-lg bg-interactive-secondary p-4 sm:p-5 flex flex-col gap-2.5">
 			<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
 				<div className="min-w-0 flex-1">
-					<div className="flex items-center justify-between sm:justify-start gap-2">
+					<div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
 						<p className="text-sm font-semibold text-foreground truncate">
 							{signup.artistName}
 						</p>
-						<span className="inline-flex items-center rounded-md border bg-background/60 px-2 py-0.5 text-[11px] font-medium text-tertiary-foreground shrink-0">
-							{statusLabel}
-						</span>
+						<div className="flex flex-wrap items-center gap-1.5 shrink-0">
+							{signup.referralCode ? (
+								<span
+									className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-mono font-bold text-primary"
+									title={`Referido por el promotor ${signup.referralCode}`}
+								>
+									<ShareNetworkIcon size={12} weight="fill" aria-hidden />
+									Ref: {signup.referralCode}
+								</span>
+							) : null}
+							<span className="inline-flex items-center rounded-md border bg-background/60 px-2 py-0.5 text-[11px] font-medium text-tertiary-foreground">
+								{statusLabel}
+							</span>
+						</div>
 					</div>
 					<a
 						href={`mailto:${signup.email}`}
@@ -458,6 +473,9 @@ export default function PlatformWaitlist() {
 							onCreated={() => {
 								void queryClient.invalidateQueries({
 									queryKey: PLATFORM_WAITLIST_QUERY_KEY,
+								});
+								void queryClient.invalidateQueries({
+									queryKey: PLATFORM_REFERRALS_QUERY_KEY,
 								});
 								void queryClient.invalidateQueries({
 									queryKey: ["platform", "djs"],

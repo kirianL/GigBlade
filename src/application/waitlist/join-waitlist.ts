@@ -42,22 +42,7 @@ export async function joinWaitlist(
     throw serviceUnavailable("No se pudo guardar la inscripción");
   }
 
-  if (referrals && draft.referralCode) {
-    try {
-      const affiliate = await referrals.findAffiliateByCode(draft.referralCode);
-      if (affiliate && affiliate.status === "active") {
-        await referrals.recordConversion({
-          affiliateId: affiliate.id,
-          djName: draft.artistName,
-          djEmail: draft.email,
-          djWaitlistId: inserted?.id ?? null,
-          packageId: draft.packageId || "all_inclusive",
-        });
-      }
-    } catch {
-      // No frenar la inscripción del DJ si ocurre un error secundario en la atribución
-    }
-  }
-
+  void inserted;
+  void referrals;
   return { alreadyJoined: false };
 }
