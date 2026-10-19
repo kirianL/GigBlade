@@ -184,7 +184,7 @@ export function DjsTable({
 				size: 260,
 				cell: ({ row }) => (
 					<div
-						className="flex justify-end gap-1.5 pr-2"
+						className="flex flex-wrap sm:justify-end gap-1.5 sm:pr-2"
 						onClick={(event) => event.stopPropagation()}
 						onKeyDown={(event) => event.stopPropagation()}
 					>
@@ -230,6 +230,7 @@ export function DjsTable({
 				emptyStateText: resolvedEmptyState,
 				rowClassName: "h-10",
 				flexibleTableColumns: true,
+				mobileCards: true,
 				getRowHref: getRowHref
 					? (row: DjRow) => getRowHref(row)
 					: undefined,

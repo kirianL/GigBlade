@@ -75,7 +75,7 @@ function AuditRow({ site }: { site: PlatformSiteAudit }) {
 						{site.routeStatus === "missing" ? "ausente" : site.routeStatus}
 					</p>
 				</div>
-				<div className="flex flex-wrap gap-2 shrink-0">
+				<div className="flex flex-wrap gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
 					<OpenPublicPageButton href={pageUrl} />
 					<Button variant="secondary" size="sm" asChild>
 						<Link to={`/studio?dj=${site.slug}`}>Panel DJ</Link>
@@ -131,28 +131,28 @@ export default function PlatformSiteHealth() {
 
 	return (
 		<PageContainer>
-			<div className="flex items-start justify-between gap-4">
-				<PageHeader
-					icon={
-						<ShieldCheckIcon
-							size={16}
-							weight="fill"
-							className="text-subtle"
-							aria-hidden
-						/>
-					}
-					title="Estado de páginas"
-				/>
-				<Button
-					variant="secondary"
-					size="sm"
-					onClick={() => void load(true)}
-					disabled={refreshing || status === "loading"}
-				>
-					<ArrowsClockwiseIcon size={16} aria-hidden />
-					{refreshing ? "Auditando…" : "Auditar de nuevo"}
-				</Button>
-			</div>
+      <PageHeader
+        icon={
+          <ShieldCheckIcon
+            size={16}
+            weight="fill"
+            className="text-subtle"
+            aria-hidden
+          />
+        }
+        title="Estado de páginas"
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-full sm:w-auto justify-center"
+          onClick={() => void load(true)}
+          disabled={refreshing || status === "loading"}
+        >
+          <ArrowsClockwiseIcon size={16} aria-hidden />
+          {refreshing ? "Auditando…" : "Auditar de nuevo"}
+        </Button>
+      </PageHeader>
 			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
 				Revisión de enrutamiento, API pública, acceso al panel, contacto visible y
 				enlaces inseguros. Última corrida: {checkedAt}.

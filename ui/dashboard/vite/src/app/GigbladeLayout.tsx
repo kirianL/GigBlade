@@ -64,8 +64,18 @@ export function GigbladeLayout() {
 	}
 
 	return (
-		<div className="flex h-dvh w-screen bg-outer-background">
-			<Toaster position="top-center" duration={6000} />
+		<div className="flex h-dvh w-full max-w-full overflow-x-hidden bg-outer-background">
+			<Toaster
+				position="top-center"
+				duration={4200}
+				visibleToasts={3}
+				mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+				offset={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+				toastOptions={{
+					className:
+						"w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border bg-card px-3.5 py-3 text-sm text-foreground shadow-lg",
+				}}
+			/>
 			<div className="hidden sm:flex">
 				<GigbladeSidebar />
 			</div>
@@ -73,14 +83,14 @@ export function GigbladeLayout() {
 				open={mobileSidebarOpen}
 				onOpenChange={setMobileSidebarOpen}
 			/>
-			<main className="relative flex h-full min-h-0 w-full flex-col overflow-hidden font-normal sm:py-3 sm:pr-3">
-				<div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden sm:rounded-xl sm:border">
+			<main className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden font-normal sm:py-3 sm:pr-3">
+				<div className="relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden sm:rounded-xl sm:border">
 					<MobileTopBar onMenuClick={() => setMobileSidebarOpen(true)} />
 					<div
 						data-main-content
-						className="gigblade-safe-bottom relative flex min-h-0 w-full flex-1 justify-center overflow-auto bg-background"
+						className="gigblade-safe-bottom relative flex min-h-0 min-w-0 w-full flex-1 justify-center overflow-x-hidden overflow-y-auto bg-background"
 					>
-						<div className="w-full min-h-full justify-center">
+						<div className="min-h-full min-w-0 w-full max-w-full justify-center">
 							<AppErrorBoundary
 								pathname={pathname}
 								message="No se pudo abrir esta página. Probá otra del menú."

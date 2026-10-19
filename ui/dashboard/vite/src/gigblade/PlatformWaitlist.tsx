@@ -23,10 +23,12 @@ import { readPanelAuthSession } from "@/gigblade/panel-session";
 import { useLanguage } from "@/contexts/LanguageProvider";
 import {
 	deleteWaitlistSignup,
+	fetchPlatformReferrals,
 	fetchPlatformWaitlist,
 	onboardWaitlistSignup,
 	type WaitlistSignup,
 } from "@/gigblade/site-api";
+import { PLATFORM_REFERRALS_QUERY_KEY } from "@/gigblade/platform-referrals-query";
 import { waitlistWhatsappHref } from "@/gigblade/waitlist-whatsapp";
 
 export const PLATFORM_WAITLIST_QUERY_KEY = ["platform", "waitlist"] as const;
@@ -85,6 +87,7 @@ function DeleteSignupButton({
 				variant="secondary"
 				size="sm"
 				type="button"
+				className="flex-1 sm:flex-none justify-center"
 				onClick={() => {
 					setError(null);
 					setOpen(true);
@@ -201,6 +204,7 @@ function CreatePageButton({
 				variant="secondary"
 				size="sm"
 				type="button"
+				className="flex-1 sm:flex-none justify-center"
 				onClick={() => {
 					setError(null);
 					setCreated(null);
@@ -297,10 +301,12 @@ function CreatePageButton({
 
 function SignupRow({
 	signup,
+	monthlyPriceUsd,
 	onDeleted,
 	onCreated,
 }: {
 	signup: WaitlistSignup;
+	monthlyPriceUsd: number;
 	onDeleted: (id: string) => void;
 	onCreated: () => void;
 }) {
@@ -308,7 +314,7 @@ function SignupRow({
 	const instagram = signup.instagram
 		? `https://instagram.com/${signup.instagram}`
 		: null;
-	const whatsapp = waitlistWhatsappHref(signup);
+	const whatsapp = waitlistWhatsappHref(signup, monthlyPriceUsd);
 
 	const statusLabel =
 		signup.status === "pending"
@@ -320,12 +326,17 @@ function SignupRow({
 					: t("waitlist.declined", "Descartado");
 
 	return (
-		<li className="border rounded-lg bg-interactive-secondary p-4 sm:p-5 flex flex-col gap-2">
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div className="min-w-0">
-					<p className="text-sm font-medium text-foreground truncate">
-						{signup.artistName}
-					</p>
+		<li className="border rounded-lg bg-interactive-secondary p-4 sm:p-5 flex flex-col gap-2.5">
+			<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+				<div className="min-w-0 flex-1">
+					<div className="flex items-center justify-between sm:justify-start gap-2">
+						<p className="text-sm font-semibold text-foreground truncate">
+							{signup.artistName}
+						</p>
+						<span className="inline-flex items-center rounded-md border bg-background/60 px-2 py-0.5 text-[11px] font-medium text-tertiary-foreground shrink-0">
+							{statusLabel}
+						</span>
+					</div>
 					<a
 						href={`mailto:${signup.email}`}
 						className="mt-1 block text-sm text-foreground underline-offset-2 hover:underline break-all"
@@ -344,12 +355,9 @@ function SignupRow({
 						</a>
 					) : null}
 				</div>
-				<div className="flex flex-wrap items-center justify-end gap-2">
-					<p className="text-xs font-medium text-tertiary-foreground w-full sm:w-auto sm:mr-1">
-						{statusLabel}
-					</p>
+				<div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60 w-full sm:w-auto sm:justify-end">
 					{whatsapp ? (
-						<Button variant="outline" size="sm" className="gap-1.5" asChild>
+						<Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none justify-center" asChild>
 							<a
 								href={whatsapp}
 								target="_blank"
@@ -400,6 +408,13 @@ export default function PlatformWaitlist() {
 		staleTime: 15_000,
 		retry: 1,
 	});
+	const referralsQuery = useQuery({
+		queryKey: PLATFORM_REFERRALS_QUERY_KEY,
+		queryFn: ({ signal }) => fetchPlatformReferrals(signal),
+		staleTime: 30_000,
+		retry: 1,
+	});
+	const monthlyPriceUsd = referralsQuery.data?.settings.monthlyPriceUsd ?? 30;
 	const signups = query.data ?? [];
 	const pending = signups.filter((signup) => signup.status === "pending").length;
 
@@ -433,6 +448,7 @@ export default function PlatformWaitlist() {
 						<SignupRow
 							key={signup.id}
 							signup={signup}
+							monthlyPriceUsd={monthlyPriceUsd}
 							onDeleted={(id) => {
 								queryClient.setQueryData<WaitlistSignup[]>(
 									PLATFORM_WAITLIST_QUERY_KEY,

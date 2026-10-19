@@ -37,7 +37,7 @@ export function OpenPublicPageButton({
 	const { t } = useLanguage();
 	const displayLabel = label ?? t("action.openPage", "Abrir página");
 	const baseClassName =
-		"h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all inline-flex items-center justify-center";
+		"h-8 px-3 text-xs font-medium gap-1.5 active:scale-[0.98] transition-all inline-flex items-center justify-center shrink-0 whitespace-nowrap";
 
 	if (!href) {
 		return (
@@ -70,7 +70,7 @@ export function OpenPublicPageButton({
 }
 
 const SELECT_CLASS =
-	"h-7 min-w-[160px] rounded-lg border border-input bg-input-background px-2 text-sm text-foreground outline-none shadow-sm input-base input-shadow-default";
+	"h-8 min-w-0 max-w-[160px] sm:min-w-[160px] sm:max-w-[220px] flex-1 sm:flex-none rounded-lg border border-input bg-input-background px-2.5 text-xs sm:text-sm text-foreground outline-none shadow-sm input-base input-shadow-default truncate";
 
 export function DjStatusCell({ status }: { status: DjStatus }) {
 	return (
@@ -97,7 +97,7 @@ export function MetricCard({
 	asideLabel?: string;
 }) {
 	return (
-		<div className="flex items-center justify-between gap-4 rounded-lg border bg-interactive-secondary px-5 py-4">
+		<div className="flex items-center justify-between gap-3 sm:gap-4 rounded-lg border bg-interactive-secondary px-4 sm:px-5 py-4 min-w-0">
 			<div className="flex min-w-0 items-center gap-3">
 				<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
 					{icon}
@@ -106,7 +106,7 @@ export function MetricCard({
 					<p className="w-fit text-xs leading-4 text-tertiary-foreground">
 						{label}
 					</p>
-					<div className="mt-0.5 flex items-baseline gap-1 text-lg font-semibold leading-none text-foreground tabular-nums">
+					<div className="mt-0.5 flex flex-wrap items-baseline gap-1 text-lg font-semibold leading-none text-foreground tabular-nums">
 						{value}
 						{suffix ? (
 							<span className="text-xs font-normal leading-none text-subtle">
@@ -117,11 +117,11 @@ export function MetricCard({
 				</div>
 			</div>
 			{asideValue ? (
-				<div className="shrink-0 text-right">
-					<p className="text-lg font-semibold leading-none text-muted-foreground tabular-nums">
+				<div className="shrink-0 text-right max-w-[40%]">
+					<p className="text-base sm:text-lg font-semibold leading-none text-muted-foreground tabular-nums truncate">
 						{asideValue}
 					</p>
-					<p className="mt-1 text-xs leading-4 text-subtle">{asideLabel}</p>
+					<p className="mt-1 text-xs leading-4 text-subtle truncate">{asideLabel}</p>
 				</div>
 			) : null}
 		</div>

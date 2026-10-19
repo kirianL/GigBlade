@@ -149,7 +149,8 @@ export function GigbladeSidebar({
 									onTouchStart={() => prefetch(link.to)}
 									className={({ isActive }) =>
 										cn(
-											"group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full border border-transparent transition-colors hover:text-foreground hover:bg-interactive-secondary/60",
+											"group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 rounded-lg w-full border border-transparent transition-colors hover:text-foreground hover:bg-interactive-secondary/60 active:bg-interactive-secondary",
+											isMobileSheet ? "h-11" : "h-7",
 											isActive &&
 												"border border-border/80 !text-foreground bg-interactive-secondary shadow-2xs font-semibold",
 										)
@@ -187,7 +188,10 @@ export function GigbladeSidebar({
 						href={gigbladeMarketingSiteUrl()}
 						target="_blank"
 						rel="noreferrer"
-						className="group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 h-7 rounded-lg w-full hover:text-foreground hover:bg-interactive-secondary/60 border border-transparent transition-colors"
+						className={cn(
+							"group cursor-pointer font-medium text-sm flex items-center text-muted-foreground px-2 rounded-lg w-full hover:text-foreground hover:bg-interactive-secondary/60 border border-transparent transition-colors active:bg-interactive-secondary",
+							isMobileSheet ? "h-11" : "h-7",
+						)}
 					>
 						<div className="flex items-center gap-2">
 							<div
@@ -395,7 +399,7 @@ export function GigbladeMobileSidebar({
 				side="left"
 				hideCloseButton
 				portalContainer={document.body}
-				className="gigblade-safe-top gigblade-safe-bottom w-[280px] max-w-[80vw] bg-outer-background"
+				className="gigblade-safe-top gigblade-safe-bottom h-dvh w-[min(20rem,88vw)] max-w-[88vw] border-r bg-outer-background p-0 shadow-xl"
 				aria-describedby={undefined}
 			>
 				<SheetTitle className="sr-only">Navegación</SheetTitle>

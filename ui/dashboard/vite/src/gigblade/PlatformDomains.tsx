@@ -143,13 +143,13 @@ export default function PlatformDomains() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => void refetch()}
             disabled={isRefetching}
-            className="gap-1.5 h-8 px-3 text-xs font-medium active:scale-[0.98] transition-all"
+            className="gap-1.5 h-9 sm:h-8 px-3 text-xs font-medium justify-center active:scale-[0.98] transition-all"
           >
             <ArrowsClockwiseIcon
               size={13}
@@ -158,7 +158,12 @@ export default function PlatformDomains() {
             {isRefetching ? "Actualizando..." : "Re-escanear"}
           </Button>
 
-          {isPlatform && <ConnectDomainModal onConnected={() => void refetch()} />}
+          {isPlatform && (
+            <ConnectDomainModal
+              onConnected={() => void refetch()}
+              triggerClassName="gap-1.5 h-9 sm:h-8 text-xs font-medium px-3 justify-center active:scale-[0.98] transition-all"
+            />
+          )}
         </div>
       </div>
 

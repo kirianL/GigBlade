@@ -264,32 +264,34 @@ export default function PlatformFinance() {
 				}
 				title={t("finance.title", "Finanzas & Reparto de Ingresos")}
 			>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
 					<Link
 						to="/referidos"
-						className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
+						className="inline-flex items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-2 sm:py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
 					>
-						<ShareNetworkIcon size={16} className="text-primary" />
+						<ShareNetworkIcon size={16} className="text-primary shrink-0" />
 						<span>{t("finance.viewAffiliates", "Ver Afiliados & Comisiones")}</span>
 					</Link>
-					<button
-						type="button"
-						onClick={() => query.refetch()}
-						disabled={query.isFetching}
-						className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-						title={t("finance.refresh", "Actualizar")}
-					>
-						<ArrowsClockwiseIcon size={16} className={query.isFetching ? "animate-spin" : ""} />
-						<span>{t("finance.refresh", "Actualizar")}</span>
-					</button>
-					<button
-						type="button"
-						onClick={() => setSettingsModalOpen(true)}
-						className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
-					>
-						<GearIcon size={16} weight="bold" />
-						<span>{t("finance.configSplit", "Configurar % de Reparto")}</span>
-					</button>
+					<div className="grid grid-cols-2 sm:flex items-center gap-2">
+						<button
+							type="button"
+							onClick={() => query.refetch()}
+							disabled={query.isFetching}
+							className="inline-flex items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-2 sm:py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+							title={t("finance.refresh", "Actualizar")}
+						>
+							<ArrowsClockwiseIcon size={16} className={`shrink-0 ${query.isFetching ? "animate-spin" : ""}`} />
+							<span>{t("finance.refresh", "Actualizar")}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setSettingsModalOpen(true)}
+							className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 sm:py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
+						>
+							<GearIcon size={16} weight="bold" className="shrink-0" />
+							<span>{t("finance.configSplit", "Configurar % de Reparto")}</span>
+						</button>
+					</div>
 				</div>
 			</PageHeader>
 			<p className="text-sm text-tertiary-foreground leading-relaxed mt-1 sm:mt-2 max-w-3xl">
@@ -409,17 +411,17 @@ export default function PlatformFinance() {
 			</div>
 
 			{/* Pestañas de Navegación (Mismo diseño exacto que Referidos y resto de plataforma) */}
-			<div className="mt-6 flex border-b">
+			<div className="mt-6 flex overflow-x-auto border-b">
 				<button
 					type="button"
 					onClick={() => setActiveTab("desglose")}
-					className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+					className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
 						activeTab === "desglose"
 							? "border-primary text-foreground"
 							: "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
 					}`}
 				>
-					<TrendUpIcon size={18} />
+					<TrendUpIcon size={16} className="shrink-0" />
 					<span>{t("finance.tabs.ledger", "Desglose en tiempo real")}</span>
 					<span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary font-bold">
 						{conversions.length}
@@ -428,25 +430,25 @@ export default function PlatformFinance() {
 				<button
 					type="button"
 					onClick={() => setActiveTab("simulador")}
-					className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+					className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
 						activeTab === "simulador"
 							? "border-primary text-foreground"
 							: "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
 					}`}
 				>
-					<CalculatorIcon size={18} />
+					<CalculatorIcon size={16} className="shrink-0" />
 					<span>{t("finance.tabs.simulator", "Simulador de cascada")}</span>
 				</button>
 				<button
 					type="button"
 					onClick={() => setActiveTab("infraestructura")}
-					className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+					className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
 						activeTab === "infraestructura"
 							? "border-primary text-foreground"
 							: "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
 					}`}
 				>
-					<WrenchIcon size={18} />
+					<WrenchIcon size={16} className="shrink-0" />
 					<span>{t("finance.tabs.infrastructure", "Infraestructura & costos")}</span>
 					<span className="ml-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
 						{maintenanceMonthlyCostUsd > 0 ? `${formatUsd(maintenanceMonthlyCostUsd)}/mes` : "Cloud"}
@@ -589,17 +591,17 @@ export default function PlatformFinance() {
 							</p>
 
 							{/* Barra unificada de controles del simulador */}
-							<div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-2.5">
+							<div className="mt-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2.5 rounded-lg border bg-muted/30 p-2.5">
 								<span className="text-xs font-semibold text-muted-foreground">
 									{t("finance.simulateScenario", "Escenario a simular:")}
 								</span>
-								<div className="flex flex-wrap items-center gap-2">
+								<div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
 									{/* Selector de Cobro */}
-									<div className="inline-flex items-center rounded-lg border bg-background/90 p-0.5 shadow-2xs">
+									<div className="grid grid-cols-2 sm:inline-flex items-center rounded-lg border bg-background/90 p-0.5 shadow-2xs">
 										<button
 											type="button"
 											onClick={() => setActiveSimChargeType("initial_setup")}
-											className={`rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+											className={`rounded-md px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs font-semibold text-center transition-all cursor-pointer ${
 												activeSimChargeType === "initial_setup"
 													? "bg-primary text-primary-foreground shadow-xs"
 													: "text-muted-foreground hover:text-foreground"
@@ -611,7 +613,7 @@ export default function PlatformFinance() {
 										<button
 											type="button"
 											onClick={() => setActiveSimChargeType("monthly")}
-											className={`rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+											className={`rounded-md px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs font-semibold text-center transition-all cursor-pointer ${
 												activeSimChargeType === "monthly"
 													? "bg-primary text-primary-foreground shadow-xs"
 													: "text-muted-foreground hover:text-foreground"
@@ -623,11 +625,11 @@ export default function PlatformFinance() {
 									</div>
 
 									{/* Selector de Canal de Venta */}
-									<div className="inline-flex items-center rounded-lg border bg-background/90 p-0.5 shadow-2xs">
+									<div className="grid grid-cols-2 sm:inline-flex items-center rounded-lg border bg-background/90 p-0.5 shadow-2xs">
 										<button
 											type="button"
 											onClick={() => setActiveSimChannel("referral")}
-											className={`rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+											className={`rounded-md px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs font-semibold text-center transition-all cursor-pointer ${
 												activeSimChannel === "referral"
 													? "bg-primary text-primary-foreground shadow-xs"
 													: "text-muted-foreground hover:text-foreground"
@@ -638,7 +640,7 @@ export default function PlatformFinance() {
 										<button
 											type="button"
 											onClick={() => setActiveSimChannel("direct")}
-											className={`rounded-md px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+											className={`rounded-md px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs font-semibold text-center transition-all cursor-pointer ${
 												activeSimChannel === "direct"
 													? "bg-primary text-primary-foreground shadow-xs"
 													: "text-muted-foreground hover:text-foreground"
@@ -649,7 +651,7 @@ export default function PlatformFinance() {
 									</div>
 
 									{/* Costo de Mantenimiento Dinámico del Simulador */}
-									<div className="inline-flex items-center gap-1.5 rounded-lg border bg-background/90 px-2.5 py-1 shadow-2xs">
+									<div className="inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border bg-background/90 px-2.5 py-1.5 sm:py-1 shadow-2xs">
 										<span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
 											<WrenchIcon size={13} className="text-emerald-500" />
 											{t("finance.maintenanceCost", "Mantenimiento")}:

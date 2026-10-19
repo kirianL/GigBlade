@@ -266,8 +266,8 @@ export default function DjDomainPage() {
   return (
     <PageContainer>
       {/* Top Bar with Breadcrumbs & DJ selector */}
-      <div className="flex items-center justify-between w-full gap-4">
-        <Breadcrumb className="text-tertiary-foreground flex justify-start">
+      <div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-4">
+        <Breadcrumb className="text-tertiary-foreground flex justify-start min-w-0">
           <BreadcrumbList className="text-tertiary-foreground text-xs">
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -278,7 +278,7 @@ export default function DjDomainPage() {
             <BreadcrumbItem>{t("nav.domain", "Dominio")}</BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
           <DjSelect value={dj.slug} onValueChange={setDj} />
           <OpenPublicPageButton href={pageUrl} />
         </div>
@@ -419,7 +419,7 @@ export default function DjDomainPage() {
             </div>
 
             {/* Standardized h-8 action buttons: Ver, Editar, Verificar, Eliminar */}
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
               {/* 1. VER */}
               <Button
                 variant="secondary"
@@ -602,7 +602,7 @@ export default function DjDomainPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -618,13 +618,13 @@ export default function DjDomainPage() {
               </div>
             </div>
 
-            <div className="border border-border/80 rounded-lg overflow-hidden bg-background">
-              <table className="w-full text-xs text-left">
+            <div className="border border-border/80 rounded-lg overflow-x-auto bg-background">
+              <table className="w-full min-w-[320px] text-xs text-left">
                 <thead className="bg-interactive-secondary/30 border-b border-border text-[11px] font-mono text-tertiary-foreground">
                   <tr>
-                    <th className="px-3.5 py-2.5 font-medium w-20">{t("djDomain.tableType", "TIPO")}</th>
-                    <th className="px-3.5 py-2.5 font-medium w-36">{t("djDomain.tableName", "NOMBRE / HOST")}</th>
-                    <th className="px-3.5 py-2.5 font-medium">{t("djDomain.tableValue", "VALOR / DESTINO")}</th>
+                    <th className="px-2.5 sm:px-3.5 py-2.5 font-medium w-16 sm:w-20">{t("djDomain.tableType", "TIPO")}</th>
+                    <th className="px-2.5 sm:px-3.5 py-2.5 font-medium w-28 sm:w-36">{t("djDomain.tableName", "NOMBRE / HOST")}</th>
+                    <th className="px-2.5 sm:px-3.5 py-2.5 font-medium">{t("djDomain.tableValue", "VALOR / DESTINO")}</th>
                     <th className="px-3.5 py-2.5 font-medium hidden md:table-cell w-44">PROPÓSITO</th>
                   </tr>
                 </thead>
@@ -646,7 +646,7 @@ export default function DjDomainPage() {
                           isTxt ? "bg-amber-500/5 dark:bg-amber-500/10" : ""
                         }`}
                       >
-                        <td className="px-3.5 py-2.5 font-semibold text-foreground">
+                        <td className="px-2.5 sm:px-3.5 py-2.5 font-semibold text-foreground">
                           <span
                             className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-semibold ${
                               isTxt
@@ -657,13 +657,13 @@ export default function DjDomainPage() {
                             {rec.type}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2.5 text-foreground">
+                        <td className="px-2.5 sm:px-3.5 py-2.5 text-foreground">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="font-semibold">{rec.name}</span>
+                            <span className="font-semibold break-all">{rec.name}</span>
                             <CopyButtonMini value={rec.name} label="Nombre/Host" />
                           </div>
                         </td>
-                        <td className="px-3.5 py-2.5 text-foreground break-all select-all font-mono">
+                        <td className="px-2.5 sm:px-3.5 py-2.5 text-foreground break-all select-all font-mono">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-mono text-xs">{rec.value}</span>
                             <CopyButtonMini value={rec.value} label="Valor" />
@@ -772,14 +772,14 @@ export default function DjDomainPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border">
+          <DialogFooter className="mt-3 pt-3 border-t border-border">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               disabled={isDeleting}
               onClick={() => setDeleteDialogOpen(false)}
-              className="h-8 px-3 text-xs font-medium active:scale-[0.98] transition-all"
+              className="h-9 sm:h-8 px-3 text-xs font-medium active:scale-[0.98] transition-all"
             >
               {t("action.cancel", "Cancelar")}
             </Button>
@@ -788,14 +788,14 @@ export default function DjDomainPage() {
               size="sm"
               disabled={isDeleting}
               onClick={handleDeleteDomain}
-              className="h-8 px-3 text-xs font-medium bg-red-600 hover:bg-red-700 text-white gap-1.5 active:scale-[0.98] transition-all"
+              className="h-9 sm:h-8 px-3 text-xs font-medium bg-red-600 hover:bg-red-700 text-white gap-1.5 active:scale-[0.98] transition-all"
             >
               <TrashIcon size={13} weight="bold" />
               <span>
                 {isDeleting ? t("djDomain.disconnecting", "Desconectando...") : t("djDomain.disconnectConfirm", "Desconectar dominio")}
               </span>
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageContainer>

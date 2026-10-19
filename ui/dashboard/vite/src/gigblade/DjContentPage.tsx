@@ -536,8 +536,8 @@ export default function DjContentPage() {
 
 	return (
 		<PageContainer>
-			<div className="flex items-center justify-between w-full gap-4">
-				<Breadcrumb className="text-tertiary-foreground flex justify-start">
+			<div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-4">
+				<Breadcrumb className="text-tertiary-foreground flex justify-start min-w-0">
 					<BreadcrumbList className="text-tertiary-foreground text-xs">
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
@@ -550,7 +550,7 @@ export default function DjContentPage() {
 						<BreadcrumbItem>Contenido</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 min-w-0 max-w-full">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
 					<OpenPublicPageButton
 						href={pageUrl}

@@ -14,13 +14,15 @@ export function PageHeader({
 	children?: ReactNode;
 }) {
 	return (
-		<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
-			<div className="text-muted-foreground text-md py-0 px-1 sm:px-2 rounded-lg flex gap-2 items-center min-w-0">
-				{icon}
-				<span className="font-semibold text-foreground text-base sm:text-lg">{title}</span>
+		<div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
+			<div className="text-muted-foreground text-md py-0 px-0 sm:px-2 rounded-lg flex gap-2 items-center min-w-0">
+				<span className="shrink-0">{icon}</span>
+				<span className="font-semibold text-foreground text-base sm:text-lg leading-snug break-words min-w-0">
+					{title}
+				</span>
 			</div>
 			{children && (
-				<div className="flex flex-wrap items-center gap-2 px-1 sm:px-0">
+				<div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
 					{children}
 				</div>
 			)}

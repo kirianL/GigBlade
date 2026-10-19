@@ -239,20 +239,20 @@ export default function PlatformReferrals() {
         }
         title={t("referrals.title", "Sistema de Referidos y Comisiones")}
       >
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           <Link
             to="/distribucion"
-            className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-2 sm:py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
           >
-            <CurrencyDollarIcon size={16} className="text-primary" />
+            <CurrencyDollarIcon size={16} className="text-primary shrink-0" />
             <span>{t("referrals.financeButton", "Finanzas & Reparto")}</span>
           </Link>
           <button
             type="button"
             onClick={() => setSettingsModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-2 sm:py-1.5 text-xs font-semibold hover:bg-muted/80 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
           >
-            <GearIcon size={16} />
+            <GearIcon size={16} className="shrink-0" />
             <span>
               {t("referrals.modifyRates", "Modificar Porcentajes y Tarifas")}
             </span>
@@ -260,9 +260,9 @@ export default function PlatformReferrals() {
           <button
             type="button"
             onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 sm:py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-150 shadow-xs cursor-pointer active:scale-95"
           >
-            <PlusIcon size={16} weight="bold" />
+            <PlusIcon size={16} weight="bold" className="shrink-0" />
             <span>{t("referrals.newAffiliate", "Nuevo Afiliado")}</span>
           </button>
         </div>
@@ -420,17 +420,17 @@ export default function PlatformReferrals() {
       </div>
 
       {/* Pestañas con feedback interactivo claro */}
-      <div className="mt-6 flex border-b">
+      <div className="mt-6 flex overflow-x-auto border-b">
         <button
           type="button"
           onClick={() => setActiveTab("tablero")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
             activeTab === "tablero"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
           }`}
         >
-          <TrendUpIcon size={18} />
+          <TrendUpIcon size={16} className="shrink-0" />
           <span>
             {t("referrals.tabs.conversions", "Tablero de Comisiones")}
           </span>
@@ -441,13 +441,13 @@ export default function PlatformReferrals() {
         <button
           type="button"
           onClick={() => setActiveTab("afiliados")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
             activeTab === "afiliados"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
           }`}
         >
-          <UsersIcon size={18} />
+          <UsersIcon size={16} className="shrink-0" />
           <span>{t("referrals.tabs.affiliates", "Promotores & Enlaces")}</span>
           <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">
             {affiliates.length}
@@ -456,13 +456,13 @@ export default function PlatformReferrals() {
         <button
           type="button"
           onClick={() => setActiveTab("pagos")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex shrink-0 whitespace-nowrap items-center gap-2 border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
             activeTab === "pagos"
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
           }`}
         >
-          <BankIcon size={18} />
+          <BankIcon size={16} className="shrink-0" />
           <span>{t("referrals.tabs.payouts", "Historial de Pagos SINPE")}</span>
           <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">
             {payouts.length}
@@ -1303,14 +1303,14 @@ function ModalAjustarPorcentajes({
             </div>
 
             {/* Preview en vivo con alto contraste */}
-            <div className="rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 px-3 py-2.5 flex items-center justify-between text-xs">
+            <div className="rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 px-3 py-2.5 flex flex-wrap items-center justify-between gap-1 text-xs">
               <span className="text-purple-800 dark:text-purple-300 font-semibold">
                 {t(
                   "referrals.modalSettings.affiliateReceives",
                   "El afiliado recibe de comisión:",
                 )}
               </span>
-              <span className="font-extrabold text-purple-950 dark:text-purple-100 text-sm">
+              <span className="font-extrabold text-purple-950 dark:text-purple-100 text-xs sm:text-sm">
                 {formatUsd(initialCommissionUsd)} USD ≈{" "}
                 {formatCrc(initialCommissionCrc)}
               </span>
@@ -1390,14 +1390,14 @@ function ModalAjustarPorcentajes({
             </div>
 
             {/* Preview en vivo con alto contraste */}
-            <div className="rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 px-3 py-2.5 flex items-center justify-between text-xs">
+            <div className="rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 px-3 py-2.5 flex flex-wrap items-center justify-between gap-1 text-xs">
               <span className="text-sky-800 dark:text-sky-300 font-semibold">
                 {t(
                   "referrals.modalSettings.affiliateReceivesMonthly",
                   "El afiliado recibe cada mes:",
                 )}
               </span>
-              <span className="font-extrabold text-sky-950 dark:text-sky-100 text-sm">
+              <span className="font-extrabold text-sky-950 dark:text-sky-100 text-xs sm:text-sm">
                 {formatUsd(monthlyCommissionUsd)}
                 {t("referrals.perMonth", "/mes")} ≈{" "}
                 {formatCrc(monthlyCommissionCrc)}
@@ -1596,7 +1596,7 @@ function ModalNuevoAfiliado({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1">
                 {t("referrals.modalNew.emailLabel", "Correo electrónico *")}
@@ -1785,19 +1785,19 @@ function ModalLiquidacionPago({
 
         <form onSubmit={handlePay} className="mt-4 space-y-3">
           <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
-            <div className="flex justify-between text-xs">
+            <div className="flex flex-wrap justify-between gap-1 text-xs">
               <span className="text-muted-foreground">
                 {t("referrals.modalPayout.affiliate", "Afiliado:")}
               </span>
-              <span className="font-semibold text-foreground">
+              <span className="font-semibold text-foreground break-words">
                 {target.affiliate.name} ({target.affiliate.code})
               </span>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex flex-wrap justify-between gap-1 text-xs">
               <span className="text-muted-foreground">
                 {t("referrals.modalPayout.destination", "Destino de pago:")}
               </span>
-              <span className="font-mono font-medium text-emerald-500 dark:text-emerald-400">
+              <span className="font-mono font-medium text-emerald-500 dark:text-emerald-400 break-all">
                 {method === "sinpe"
                   ? `SINPE: ${target.affiliate.paymentDetails.sinpePhone || target.affiliate.phone || "---"}`
                   : `IBAN: ${target.affiliate.paymentDetails.iban || "---"}`}

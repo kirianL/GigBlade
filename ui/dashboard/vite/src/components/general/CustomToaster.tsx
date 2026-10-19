@@ -14,11 +14,13 @@ export const CustomToaster = () => {
 		<ToasterComponent
 			position={isOnboarding ? "bottom-left" : "top-center"}
 			className={isOnboarding ? "" : "flex justify-center"}
-			duration={6000}
+			duration={4200}
+			mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+			offset={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
 			toastOptions={{
-				duration: 6000,
+				duration: 4200,
 				className:
-					"w-96 px-3 pt-3 pb-2.5 rounded-xl shadow-[0_4px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_6px_0_rgba(0,0,0,0.04),0_4px_24px_0_rgba(0,0,0,0.03)] outline outline-16 inline-flex flex-row justify-start items-start gap-3 overflow-hidden !bg-card !text-foreground",
+					"w-[min(24rem,calc(100vw-1.5rem))] px-3 pt-3 pb-2.5 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_6px_0_rgba(0,0,0,0.04),0_4px_24px_0_rgba(0,0,0,0.03)] outline outline-16 inline-flex flex-row justify-start items-start gap-3 overflow-hidden !bg-card !text-foreground",
 				classNames: {
 					description: "!text-muted-foreground",
 				},

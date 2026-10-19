@@ -375,13 +375,13 @@ export function ConnectDomainModal({
                     </span>
                   </div>
 
-                  <div className="border border-border/70 rounded overflow-hidden bg-background">
-                    <table className="w-full text-[11px] text-left">
+                  <div className="border border-border/70 rounded overflow-x-auto bg-background">
+                    <table className="w-full min-w-[260px] text-[11px] text-left">
                       <thead className="bg-interactive-secondary/30 border-b border-border/70 text-[10px] font-mono text-tertiary-foreground">
                         <tr>
-                          <th className="px-2.5 py-1.5 font-medium w-14">{t("djDomain.tableType", "TIPO")}</th>
-                          <th className="px-2.5 py-1.5 font-medium w-28">{t("djDomain.tableName", "NOMBRE / HOST")}</th>
-                          <th className="px-2.5 py-1.5 font-medium">{t("djDomain.tableValue", "VALOR / DESTINO")}</th>
+                          <th className="px-2 py-1.5 font-medium w-12">{t("djDomain.tableType", "TIPO")}</th>
+                          <th className="px-2 py-1.5 font-medium w-24">{t("djDomain.tableName", "NOMBRE / HOST")}</th>
+                          <th className="px-2 py-1.5 font-medium">{t("djDomain.tableValue", "VALOR / DESTINO")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/50 font-mono">
@@ -390,16 +390,16 @@ export function ConnectDomainModal({
                             key={i}
                             className="hover:bg-interactive-secondary/20 transition-colors"
                           >
-                            <td className="px-2.5 py-1.5 font-semibold text-foreground">
+                            <td className="px-2 py-1.5 font-semibold text-foreground">
                               {rec.type}
                             </td>
-                            <td className="px-2.5 py-1.5 text-foreground">
+                            <td className="px-2 py-1.5 text-foreground">
                               <div className="flex items-center justify-between gap-1">
-                                <span>{rec.name}</span>
+                                <span className="break-all">{rec.name}</span>
                                 <CopyCellButton value={rec.name} label="Host" />
                               </div>
                             </td>
-                            <td className="px-2.5 py-1.5 text-foreground break-all select-all">
+                            <td className="px-2 py-1.5 text-foreground break-all select-all">
                               <div className="flex items-center justify-between gap-2">
                                 <span>{rec.value}</span>
                                 <CopyCellButton value={rec.value} label="Valor" />

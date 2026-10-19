@@ -661,25 +661,6 @@ export default function AccesoForm() {
 												Saltar
 											</button>
 										)}
-										{step === 5 && !fields.referralCode && (
-											<div className="mt-4 pt-3 border-t border-white/10">
-												<div className="flex items-center gap-2">
-													<span className="text-xs text-white/40">¿Código de referido?</span>
-													<input
-														type="text"
-														value={fields.referralCode}
-														placeholder="Ej: MAXX"
-														onChange={(e) =>
-															setFields((current) => ({
-																...current,
-																referralCode: e.target.value.toUpperCase().trim(),
-															}))
-														}
-														className="h-7 w-28 rounded border border-white/20 bg-white/5 px-2 text-xs font-mono tracking-wider text-white outline-none focus:border-white/40 placeholder:text-white/25"
-													/>
-												</div>
-											</div>
-										)}
 									</motion.div>
 								</AnimatePresence>
 							</motion.div>

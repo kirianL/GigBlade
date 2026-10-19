@@ -188,6 +188,44 @@ body,
 	min-height: calc(3.5rem + var(--gigblade-safe-top));
 }
 
+html,
+body,
+#root {
+	min-height: 100%;
+	overscroll-behavior: none;
+}
+
+button,
+a,
+[role="button"] {
+	-webkit-tap-highlight-color: transparent;
+	touch-action: manipulation;
+}
+
+@media (max-width: 640px) {
+	input,
+	select,
+	textarea {
+		font-size: 16px;
+	}
+
+	[data-sonner-toaster] {
+		left: 0.75rem !important;
+		right: 0.75rem !important;
+		width: auto !important;
+		transform: none !important;
+	}
+
+	[data-sonner-toaster][data-y-position="top"] {
+		top: calc(var(--gigblade-safe-top) + 0.625rem) !important;
+	}
+
+	[data-sonner-toast] {
+		width: 100% !important;
+		max-width: none !important;
+	}
+}
+
 @media (hover: hover) and (pointer: fine) {
 	a[data-slot="nav-button"]:hover,
 	[data-slot="nav-button"]:hover {

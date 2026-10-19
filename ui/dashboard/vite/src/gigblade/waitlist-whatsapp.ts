@@ -1,5 +1,17 @@
 import type { WaitlistSignup } from "@/gigblade/site-api";
 
+const DEFAULT_MONTHLY_USD = 30;
+
+function formatUsdAmount(amount: number): string {
+	const value = Number.isFinite(amount) && amount >= 0 ? amount : DEFAULT_MONTHLY_USD;
+	const rounded = Math.round(value * 100) / 100;
+	if (Number.isInteger(rounded)) return `$${rounded}`;
+	return `$${rounded.toLocaleString("en-US", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})}`;
+}
+
 function whatsappDigits(phone: string, country: WaitlistSignup["country"]): string | null {
 	let digits = phone.replace(/\D/g, "");
 	if (!digits) return null;
@@ -7,19 +19,23 @@ function whatsappDigits(phone: string, country: WaitlistSignup["country"]): stri
 	return digits;
 }
 
-export function buildWaitlistWhatsappMessage(signup: WaitlistSignup): string {
+export function buildWaitlistWhatsappMessage(
+	signup: WaitlistSignup,
+	monthlyPriceUsd: number,
+): string {
 	const name = signup.artistName.trim() || "DJ";
+	const monthly = formatUsdAmount(monthlyPriceUsd);
 	const lines = [
 		`¡Hola ${name}!`,
 		"",
 		"Soy del equipo de GigBlade. Recibimos tu solicitud en la lista de espera para crear tu página web de DJ.",
 		"",
-		"Te damos la bienvenida. En GigBlade podés tener:",
+		`El pago inicial para crear tu página es de $100 USD. La mensualidad de mantenimiento es de ${monthly} USD.`,
+		"",
+		"En GigBlade podés tener:",
 		"• Tu sitio web profesional con booking y contacto",
 		"• Panel para administrar tu página y solicitudes",
 		"• Hosting y soporte del servicio",
-		"",
-		"El siguiente paso es coordinar el setup inicial y la mensualidad de mantenimiento. Te confirmamos el monto exacto según el plan que elijas.",
 	];
 
 	if (signup.city?.trim()) {
@@ -32,7 +48,7 @@ export function buildWaitlistWhatsappMessage(signup: WaitlistSignup): string {
 
 	lines.push(
 		"",
-		"¿Te parece si lo vemos por acá y te contamos disponibilidad y cuánto sería para activar tu página?",
+		"¿Te parece si lo vemos por acá y te contamos la disponibilidad para activar tu página?",
 		"",
 		"Saludos,",
 		"Equipo GigBlade",
@@ -41,10 +57,13 @@ export function buildWaitlistWhatsappMessage(signup: WaitlistSignup): string {
 	return lines.join("\n");
 }
 
-export function waitlistWhatsappHref(signup: WaitlistSignup): string | null {
+export function waitlistWhatsappHref(
+	signup: WaitlistSignup,
+	monthlyPriceUsd: number,
+): string | null {
 	if (!signup.phone?.trim()) return null;
 	const digits = whatsappDigits(signup.phone, signup.country);
 	if (!digits) return null;
-	const text = buildWaitlistWhatsappMessage(signup);
+	const text = buildWaitlistWhatsappMessage(signup, monthlyPriceUsd);
 	return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }

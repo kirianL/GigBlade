@@ -70,6 +70,7 @@ function warmData(path: string, queryClient: QueryClient) {
 			queryFn: ({ signal }) => fetchPlatformWaitlist(signal),
 			staleTime: 30_000,
 		});
+		prefetchPlatformReferralsQuery(queryClient);
 	}
 	if (path === "/health") {
 		void queryClient.prefetchQuery({

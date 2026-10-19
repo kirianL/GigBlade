@@ -105,13 +105,13 @@ function MobileCard<T>({
 
 	const content = (
 		<>
-			<div className="flex items-center justify-between gap-3">
+			<div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0 flex-1 text-foreground font-medium text-[15px] truncate">
 					{titleCell &&
 						flexRender(titleCell.column.columnDef.cell, titleCell.getContext())}
 				</div>
 				{actionsCell && (
-					<div className="shrink-0 -mr-1.5 -my-1">
+					<div className="flex flex-wrap items-center gap-1.5">
 						{flexRender(
 							actionsCell.column.columnDef.cell,
 							actionsCell.getContext(),

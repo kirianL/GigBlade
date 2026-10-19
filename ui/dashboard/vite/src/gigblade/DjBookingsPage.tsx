@@ -193,8 +193,8 @@ export default function DjBookingsPage() {
 
 	return (
 		<PageContainer>
-			<div className="flex items-center justify-between w-full gap-4">
-				<Breadcrumb className="text-tertiary-foreground flex justify-start">
+			<div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-4">
+				<Breadcrumb className="text-tertiary-foreground flex justify-start min-w-0">
 					<BreadcrumbList className="text-tertiary-foreground text-xs">
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
@@ -205,7 +205,7 @@ export default function DjBookingsPage() {
 						<BreadcrumbItem>{t("nav.bookings", "Contrataciones")}</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 min-w-0 max-w-full">
 					<DjSelect value={dj.slug} onValueChange={setDj} />
 					<OpenPublicPageButton href={pageUrl} />
 				</div>
@@ -250,7 +250,7 @@ export default function DjBookingsPage() {
 
 			{/* Barra de Filtros y Búsqueda */}
 			<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full border-b pb-4">
-				<div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+				<div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
 					{[
 						{ id: "all", label: t("bookings.all", "Todas") },
 						{ id: "pending", label: t("bookings.pending", "Pendientes") },
@@ -261,10 +261,10 @@ export default function DjBookingsPage() {
 							key={tab.id}
 							type="button"
 							onClick={() => setFilterStatus(tab.id)}
-							className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+							className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-center transition-all ${
 								filterStatus === tab.id
 									? "bg-interactive-secondary text-foreground font-semibold shadow-sm border border-border"
-									: "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+									: "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
 							}`}
 						>
 							{tab.label}
@@ -272,7 +272,7 @@ export default function DjBookingsPage() {
 					))}
 				</div>
 
-				<div className="relative min-w-[220px] max-w-sm">
+				<div className="relative w-full sm:w-64 sm:max-w-sm">
 					<MagnifyingGlassIcon
 						size={15}
 						className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tertiary-foreground"
@@ -283,7 +283,7 @@ export default function DjBookingsPage() {
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						placeholder="Buscar por nombre, ciudad..."
-						className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-input bg-input-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+						className="w-full h-9 sm:h-8 pl-8 pr-3 text-xs rounded-lg border border-input bg-input-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 					/>
 				</div>
 			</div>
@@ -325,9 +325,9 @@ export default function DjBookingsPage() {
 								key={item.id}
 								className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border bg-card hover:border-border/80 transition-colors"
 							>
-								<div className="flex flex-col gap-2 min-w-0 flex-1">
+								<div className="flex flex-col gap-2 min-w-0 w-full flex-1">
 									<div className="flex items-center gap-2 flex-wrap">
-										<span className="font-semibold text-sm text-foreground">
+										<span className="font-semibold text-sm text-foreground break-words">
 											{item.name}
 										</span>
 										<span
@@ -346,12 +346,12 @@ export default function DjBookingsPage() {
 									{/* Fecha y Ciudad */}
 									<div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
 										<div className="flex items-center gap-1 text-foreground/90 font-medium">
-											<CalendarBlankIcon size={14} className="text-tertiary-foreground" />
+											<CalendarBlankIcon size={14} className="text-tertiary-foreground shrink-0" />
 											<span>{formatEventDate(item.eventDate)}</span>
 										</div>
 										{item.city && (
 											<div className="flex items-center gap-1">
-												<MapPinIcon size={14} className="text-tertiary-foreground" />
+												<MapPinIcon size={14} className="text-tertiary-foreground shrink-0" />
 												<span>{item.city}</span>
 											</div>
 										)}
@@ -359,28 +359,27 @@ export default function DjBookingsPage() {
 
 									{/* Nota o mensaje del cliente */}
 									{item.note && (
-										<p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 max-w-2xl leading-relaxed">
+										<p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 max-w-2xl leading-relaxed break-words">
 											"{item.note}"
 										</p>
 									)}
 
 									{/* Canales de contacto directos con el cliente */}
-									<div className="flex items-center gap-3 pt-1 text-xs">
+									<div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1 text-xs">
 										<a
 											href={`mailto:${item.email}`}
-											className="inline-flex items-center gap-1.5 text-xs text-foreground hover:underline font-medium"
+											className="inline-flex items-center gap-1.5 text-xs text-foreground hover:underline font-medium break-all"
 										>
-											<EnvelopeSimpleIcon size={14} className="text-tertiary-foreground" />
+											<EnvelopeSimpleIcon size={14} className="text-tertiary-foreground shrink-0" />
 											{item.email}
 										</a>
 										{item.phone && (
 											<>
-												<span className="text-border">•</span>
 												<a
 													href={`tel:${item.phone}`}
-													className="inline-flex items-center gap-1.5 text-xs text-foreground hover:underline font-medium"
+													className="inline-flex items-center gap-1.5 text-xs text-foreground hover:underline font-medium whitespace-nowrap"
 												>
-													<PhoneIcon size={14} className="text-tertiary-foreground" />
+													<PhoneIcon size={14} className="text-tertiary-foreground shrink-0" />
 													{item.phone}
 												</a>
 												{whatsappHref && (
@@ -388,9 +387,9 @@ export default function DjBookingsPage() {
 														href={whatsappHref}
 														target="_blank"
 														rel="noreferrer"
-														className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium hover:bg-emerald-500/20 transition-colors"
+														className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors whitespace-nowrap"
 													>
-														<WhatsappLogoIcon size={13} weight="fill" />
+														<WhatsappLogoIcon size={14} weight="fill" />
 														WhatsApp
 													</a>
 												)}
@@ -401,14 +400,14 @@ export default function DjBookingsPage() {
 
 								{/* Acciones de estado */}
 								<div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0">
-									<div className="flex items-center gap-1.5">
+									<div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
 										{item.status !== "confirmed" && (
 											<Button
 												variant="secondary"
 												size="sm"
 												disabled={isUpdating}
 												onClick={() => handleStatusChange(item.id, "confirmed")}
-												className="h-7 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30"
+												className="h-9 sm:h-7 w-full sm:w-auto justify-center text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30"
 											>
 												<CheckCircleIcon size={14} weight="bold" />
 												Confirmar
@@ -420,7 +419,7 @@ export default function DjBookingsPage() {
 												size="sm"
 												disabled={isUpdating}
 												onClick={() => handleStatusChange(item.id, "declined")}
-												className="h-7 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30"
+												className="h-9 sm:h-7 w-full sm:w-auto justify-center text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30"
 											>
 												<XCircleIcon size={14} weight="bold" />
 												Rechazar
@@ -432,7 +431,7 @@ export default function DjBookingsPage() {
 												size="sm"
 												disabled={isUpdating}
 												onClick={() => handleStatusChange(item.id, "pending")}
-												className="h-7 text-xs text-muted-foreground"
+												className="h-9 sm:h-7 w-full sm:w-auto justify-center text-xs text-muted-foreground"
 											>
 												Reabrir
 											</Button>

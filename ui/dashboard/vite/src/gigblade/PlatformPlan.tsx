@@ -111,6 +111,7 @@ export default function PlatformPlan() {
 						numberOfColumns: planColumns.length,
 						enableSorting: false,
 						rowClassName: "h-10",
+						mobileCards: true,
 					}}
 				>
 					<Table.Container>
