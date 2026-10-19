@@ -10,7 +10,7 @@ import {
   isApexDomain,
 } from "@/domain/domain-automation";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import { readJsonBody, requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     if (actor.role !== "platform" && actor.role !== "dj") {
       throw unauthorized("No autorizado para diagnosticar dominios.");
     }

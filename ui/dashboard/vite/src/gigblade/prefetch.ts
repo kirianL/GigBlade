@@ -5,6 +5,7 @@ import {
 	fetchPlatformSiteHealth,
 	fetchPlatformSites,
 	fetchPlatformWaitlist,
+	fetchPublicSite,
 } from "@/gigblade/site-api";
 import { PLATFORM_SITES_QUERY_KEY } from "@/gigblade/usePlatformDjs";
 import { PLATFORM_DOMAINS_QUERY_KEY } from "@/gigblade/usePlatformDomains";
@@ -40,13 +41,17 @@ function warmChunk(path: string) {
 
 function warmData(path: string, queryClient: QueryClient) {
 	const session = readPanelAuthSession();
+	const isPlatform = session?.user.role === "platform";
 
-	if (path === "/overview" || path === "/djs" || path === "/studio") {
+	if (isPlatform && (path === "/overview" || path === "/djs")) {
 		void queryClient.prefetchQuery({
 			queryKey: PLATFORM_SITES_QUERY_KEY,
 			queryFn: ({ signal }) => fetchPlatformSites(signal),
 			staleTime: 60_000,
 		});
+	}
+	if (path === "/studio" && session?.user.slug) {
+		void fetchPublicSite(session.user.slug);
 	}
 	if (path === "/domains" || path === "/studio/domains") {
 		void queryClient.prefetchQuery({
@@ -78,6 +83,10 @@ function warmData(path: string, queryClient: QueryClient) {
 	}
 }
 
+export function warmPanelChunks(paths: string[]) {
+	for (const path of paths) warmChunk(path);
+}
+
 export function prefetchPanelRoute(path: string, queryClient: QueryClient) {
 	warmChunk(path);
 	warmData(path, queryClient);
@@ -92,5 +101,21 @@ export function prefetchAllPanelRoutes(
 		warmData("/djs", queryClient);
 		warmData("/lista", queryClient);
 		warmData("/health", queryClient);
+	}
+}
+
+/** Solo la pantalla de inicio: evita bloquear el hilo al importar todos los chunks. */
+export function prefetchHomePanelRoute(
+	role: string | undefined,
+	queryClient: QueryClient,
+) {
+	if (role === "dj") {
+		warmChunk("/studio");
+		warmData("/studio", queryClient);
+		return;
+	}
+	if (role === "platform") {
+		warmChunk("/overview");
+		warmData("/overview", queryClient);
 	}
 }

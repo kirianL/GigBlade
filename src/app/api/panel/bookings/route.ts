@@ -1,14 +1,15 @@
-import { forbidden, notFound, unauthorized } from "@/domain/errors";
+import { forbidden, notFound } from "@/domain/errors";
 import type { TenantContext } from "@/domain/tenant";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import { readJsonBody, requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
   tenantApiPreflight,
   withTenantCors,
 } from "@/lib/http/tenant-api-cors";
+import { resolveTenantBySlug } from "@/lib/tenant/request-context";
 
 export function OPTIONS(request: Request) {
   return tenantApiPreflight(request);
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const url = new URL(request.url);
     const requestedSlug = url.searchParams.get("slug")?.trim().toLowerCase();
 
@@ -35,11 +36,9 @@ export async function GET(request: Request) {
       targetSlug = requestedSlug || "nox";
     }
 
-    const tenants = await getApp().tenants.list();
-    const tenant = tenants.find((t) => t.slug === targetSlug);
-    if (!tenant) {
+    const tenant = await resolveTenantBySlug(targetSlug).catch(() => {
       throw notFound("DJ no encontrado.");
-    }
+    });
 
     const context: TenantContext = {
       tenantId: tenant.id,
@@ -63,7 +62,7 @@ export async function PATCH(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const body = (await readJsonBody(request)) as {
       id?: string;
       status?: string;
@@ -87,11 +86,9 @@ export async function PATCH(request: Request) {
       targetSlug = body.slug || "nox";
     }
 
-    const tenants = await getApp().tenants.list();
-    const tenant = tenants.find((t) => t.slug === targetSlug);
-    if (!tenant) {
+    const tenant = await resolveTenantBySlug(targetSlug).catch(() => {
       throw notFound("DJ no encontrado.");
-    }
+    });
 
     const context: TenantContext = {
       tenantId: tenant.id,

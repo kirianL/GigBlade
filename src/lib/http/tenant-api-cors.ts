@@ -23,6 +23,7 @@ export function tenantApiCorsHeaders(request: Request): Headers {
   const origin = request.headers.get("origin");
   if (origin && isAllowedDashboardOrigin(origin)) {
     headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Credentials", "true");
     headers.set("Vary", "Origin");
     headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     headers.set("Access-Control-Allow-Headers", "content-type, authorization");
@@ -40,11 +41,14 @@ export function tenantApiPreflight(request: Request): Response {
 export function jsonWithTenantCors(
   request: Request,
   body: unknown,
-  init: { status?: number; requestId: string },
+  init: { status?: number; requestId: string; durationMs?: number },
 ): Response {
   const headers = tenantApiCorsHeaders(request);
   headers.set("content-type", "application/json");
   headers.set("x-request-id", init.requestId);
+  if (typeof init.durationMs === "number") {
+    headers.set("server-timing", `app;dur=${init.durationMs.toFixed(1)}`);
+  }
   return new Response(JSON.stringify(body), {
     status: init.status ?? 200,
     headers,

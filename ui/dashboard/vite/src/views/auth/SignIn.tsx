@@ -1,20 +1,39 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { CustomToaster } from "@/components/general/CustomToaster";
-import { panelHomePath } from "@/gigblade/panel-session";
+import { isUser, panelHomePath, type PanelUser } from "@/gigblade/panel-session";
+import { prefetchPanelRoute, warmPanelChunks } from "@/gigblade/prefetch";
 import { acceptPanelToken, authClient, useSession } from "@/lib/auth-client";
 import { getSafeNextPath } from "@/utils/genUtils";
 import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
 import { AuthBackground } from "./components/AuthBackground";
 
-export const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
+const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 
 const fieldClass =
 	"h-10 w-full rounded-md border bg-transparent px-3 text-[16px] text-white outline-none transition-colors placeholder:text-white/40 focus-visible:border-[#5ba8ff]";
 
+function routePath(destination: string) {
+	const path = destination.split("?")[0];
+	return path || "/overview";
+}
+
+function readUserParam(searchParams: URLSearchParams): PanelUser | undefined {
+	const raw = searchParams.get("user");
+	if (!raw) return undefined;
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		return isUser(parsed) ? parsed : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 export const SignIn = () => {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const id = useId();
 	const { data: session, isPending } = useSession();
 	const [email, setEmail] = useState(() => searchParams.get("email") ?? "");
@@ -35,15 +54,16 @@ export const SignIn = () => {
 		}
 		let cancelled = false;
 		setAcceptingToken(true);
-		void acceptPanelToken(token)
+		const knownUser = readUserParam(searchParams);
+		void acceptPanelToken(token, knownUser)
 			.then((next) => {
 				if (cancelled) return;
-				navigate(
+				const destination =
 					getSafeNextPath(searchParams) === "/"
 						? panelHomePath(next.user)
-						: defaultPath,
-					{ replace: true },
-				);
+						: defaultPath;
+				prefetchPanelRoute(routePath(destination), queryClient);
+				navigate(destination, { replace: true });
 			})
 			.catch(() => {
 				if (cancelled) return;
@@ -53,7 +73,7 @@ export const SignIn = () => {
 		return () => {
 			cancelled = true;
 		};
-	}, [defaultPath, navigate, searchParams]);
+	}, [defaultPath, navigate, queryClient, searchParams]);
 
 	useEffect(() => {
 		if (isPending || acceptingToken || !session) return;
@@ -61,9 +81,16 @@ export const SignIn = () => {
 		const home =
 			user.role === "dj" && user.slug
 				? `/studio?dj=${encodeURIComponent(user.slug)}`
-				: defaultPath;
+				: defaultPath === "/"
+					? "/overview"
+					: defaultPath;
+		prefetchPanelRoute(routePath(home), queryClient);
 		navigate(home, { replace: true });
-	}, [acceptingToken, defaultPath, isPending, navigate, session]);
+	}, [acceptingToken, defaultPath, isPending, navigate, queryClient, session]);
+
+	useEffect(() => {
+		warmPanelChunks(["/overview", "/studio"]);
+	}, []);
 
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -87,12 +114,14 @@ export const SignIn = () => {
 			return;
 		}
 		const user = data.user as { role?: string; slug?: string };
-		navigate(
+		const destination =
 			user.role === "dj" && user.slug
 				? `/studio?dj=${encodeURIComponent(user.slug)}`
-				: defaultPath,
-			{ replace: true },
-		);
+				: defaultPath === "/"
+					? "/overview"
+					: defaultPath;
+		prefetchPanelRoute(routePath(destination), queryClient);
+		navigate(destination, { replace: true });
 	};
 
 	return (

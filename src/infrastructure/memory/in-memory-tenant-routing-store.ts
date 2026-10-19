@@ -25,6 +25,16 @@ export class InMemoryTenantRoutingStore implements TenantRoutingStore {
     }));
   }
 
+  async listByTenantId(tenantId: string): Promise<ListedTenantRoute[]> {
+    const matches: ListedTenantRoute[] = [];
+    for (const [hostname, routing] of this.routes.entries()) {
+      if (routing.id === tenantId) {
+        matches.push({ hostname, ...routing });
+      }
+    }
+    return matches;
+  }
+
   async put(hostname: string, routing: TenantRouting): Promise<void> {
     this.routes.set(normalizeHostname(hostname), routing);
   }

@@ -1,7 +1,10 @@
-import { unauthorized } from "@/domain/errors";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import {
+  readJsonBody,
+  requirePanelActor,
+  requirePlatformActor,
+} from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -17,10 +20,10 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede ver la lista de espera.");
-    }
+    await requirePlatformActor(
+      request,
+      "Solo la plataforma puede ver la lista de espera.",
+    );
 
     const signups = await getApp().listWaitlist();
     return jsonWithTenantCors(request, { signups }, { requestId });
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const body = (await readJsonBody(request)) as { id?: unknown };
     const created = await getApp().onboardWaitlist(actor, { id: body.id });
     return jsonWithTenantCors(request, created, { requestId, status: 201 });
@@ -46,7 +49,7 @@ export async function DELETE(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const id = new URL(request.url).searchParams.get("id");
     const removed = await getApp().removeWaitlist(actor, { id });
     return jsonWithTenantCors(request, removed, { requestId });

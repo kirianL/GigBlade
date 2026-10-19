@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
-import { loginPanel, readPanelSession } from "@/application/panel/login-panel";
+import {
+  clearCachedPanelSessions,
+  loginPanel,
+  readPanelSession,
+} from "@/application/panel/login-panel";
 import type { Tenant } from "@/domain/tenant";
 import {
   generatePanelPassword,
@@ -93,5 +97,24 @@ describe("panel auth", () => {
         password: rotated.password,
       }),
     ).resolves.toMatchObject({ user: { slug: "nox" } });
+  });
+
+  it("resuelve sesión y cuenta en una sola consulta con findSessionWithAccount", async () => {
+    const store = new InMemoryPanelAuthStore(undefined, "clave-local");
+    const session = await loginPanel(store, {
+      email: "hola@gigblade.com",
+      password: "clave-local",
+    });
+
+    clearCachedPanelSessions();
+    const combinedSpy = vi.spyOn(store, "findSessionWithAccount");
+    const findSessionSpy = vi.spyOn(store, "findSession");
+    const findAccountSpy = vi.spyOn(store, "findAccount");
+
+    const user = await readPanelSession(store, session.token);
+    expect(user).toMatchObject({ email: "hola@gigblade.com", role: "platform" });
+    expect(combinedSpy).toHaveBeenCalledTimes(1);
+    expect(findSessionSpy).not.toHaveBeenCalled();
+    expect(findAccountSpy).not.toHaveBeenCalled();
   });
 });

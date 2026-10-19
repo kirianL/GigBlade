@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import LoginForm from "@/components/login-form";
+import { redirect } from "next/navigation";
+import { getDashboardSignInUrl } from "@/lib/dashboard-url";
 import { pageSeo } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -12,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-	return <LoginForm />;
+	redirect(getDashboardSignInUrl());
 }

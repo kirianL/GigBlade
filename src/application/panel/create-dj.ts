@@ -2,6 +2,7 @@ import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
 import type { TenantRepository } from "@/application/ports/tenant-repository";
 import type { TenantRoutingStore } from "@/application/ports/tenant-routing-store";
 import { generateDjPassword } from "@/application/panel/generate-dj-password";
+import { invalidatePlatformSitesCache } from "@/application/sites/list-platform-sites";
 import { conflict, validationError } from "@/domain/errors";
 import {
   assertPanelEmail,
@@ -14,6 +15,7 @@ import {
   assertValidSlug,
   createTenantRouting,
 } from "@/domain/tenant";
+import { clearProxyRoutingCache } from "@/lib/tenant/resolve-proxy-routing";
 
 const RESERVED_SLUGS = new Set([
   "www",
@@ -71,13 +73,17 @@ export async function createDj(
   }
   const email = assertPanelEmail(String(input.email ?? ""));
 
-  const [tenants, existingAccount, takenHost] = await Promise.all([
-    deps.tenants.list(),
+  const [existingTenant, existingAccount, takenHost] = await Promise.all([
+    deps.tenants.findBySlug
+      ? deps.tenants.findBySlug(slug)
+      : deps.tenants
+          .list()
+          .then((list) => list.find((tenant) => tenant.slug === slug) ?? null),
     deps.panelAuth.findAccount(email),
     deps.routing.get(previewHostname(slug)),
   ]);
 
-  if (tenants.some((tenant) => tenant.slug === slug) || takenHost) {
+  if (existingTenant || takenHost) {
     throw conflict("Ya hay un DJ con ese slug.");
   }
   if (existingAccount?.role === "platform") {
@@ -119,6 +125,8 @@ export async function createDj(
       email,
       name,
     });
+    invalidatePlatformSitesCache();
+    clearProxyRoutingCache();
     return {
       slug: access.slug,
       email: access.email,

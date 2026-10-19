@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import AppLink from "./app-link";
 import { getDashboardUrl } from "@/lib/dashboard-url";
 
@@ -17,6 +17,24 @@ export default function LoginForm() {
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const hintId = `${id}-hint`;
+
+	useEffect(() => {
+		try {
+			const dashboard = getDashboardUrl();
+			const origin = new URL(dashboard).origin;
+			if (origin === window.location.origin) return;
+			const link = document.createElement("link");
+			link.rel = "preconnect";
+			link.href = origin;
+			document.head.append(link);
+			const dns = document.createElement("link");
+			dns.rel = "dns-prefetch";
+			dns.href = origin;
+			document.head.append(dns);
+		} catch {
+			// URL del panel mal configurada; el submit mostrará el error.
+		}
+	}, []);
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
@@ -47,7 +65,12 @@ export default function LoginForm() {
 			});
 			const body = (await response.json().catch(() => null)) as {
 				token?: string;
-				user?: { role?: string; slug?: string };
+				user?: {
+					email?: string;
+					name?: string;
+					role?: string;
+					slug?: string;
+				};
 				message?: string;
 			} | null;
 			if (!response.ok || !body?.token) {
@@ -66,6 +89,9 @@ export default function LoginForm() {
 				return;
 			}
 			next.searchParams.set("token", body.token);
+			if (body.user?.email && body.user.name && body.user.role) {
+				next.searchParams.set("user", JSON.stringify(body.user));
+			}
 			if (body.user?.role === "dj" && body.user.slug) {
 				next.searchParams.set("next", `/studio?dj=${body.user.slug}`);
 			}

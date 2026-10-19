@@ -37,6 +37,15 @@ export class InMemoryTenantRepository implements TenantRepository {
     return this.tenants.get(id) ?? null;
   }
 
+  async findBySlug(slug: string): Promise<Tenant | null> {
+    this.hydrate();
+    const normalized = slug.trim().toLowerCase();
+    for (const tenant of this.tenants.values()) {
+      if (tenant.slug === normalized) return tenant;
+    }
+    return null;
+  }
+
   async list(): Promise<Tenant[]> {
     this.hydrate();
     return [...this.tenants.values()];

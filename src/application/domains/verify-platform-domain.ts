@@ -8,6 +8,7 @@ import { notFound, validationError } from "@/domain/errors";
 import { normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile } from "@/domain/site-profile";
 import type { TenantRouting } from "@/domain/tenant";
+import { clearProxyRoutingCache } from "@/lib/tenant/resolve-proxy-routing";
 
 export async function verifyPlatformDomain(
   tenants: TenantRepository,
@@ -38,11 +39,12 @@ export async function verifyPlatformDomain(
     throw notFound("Dominio no registrado en la plataforma");
   }
 
-  const allTenants = await tenants.list();
-  const tenant = allTenants.find((t) => t.id === route.id);
+  const tenant = await tenants.findById(route.id);
   const profile = tenant
     ? readSiteProfile(tenant.slug, tenant.themeConfig)
     : null;
+
+  clearProxyRoutingCache();
 
   // 3. If verified or pointed, ensure Edge Config is synced
   let edgeConfigSynced = false;

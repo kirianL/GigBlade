@@ -7,10 +7,9 @@ import {
 	GigbladeSidebar,
 } from "@/gigblade/GigbladeSidebar";
 import { useSession } from "@/lib/auth-client";
-import { ScreenReaderLoading } from "@/components/general/ScreenReaderLoading";
 import { AppErrorBoundary } from "@/gigblade/AppErrorBoundary";
-import { djPreviewOrigin } from "@/gigblade/concept";
-import { prefetchAllPanelRoutes } from "@/gigblade/prefetch";
+import { BootScreen } from "@/gigblade/BootScreen";
+import { prefetchHomePanelRoute } from "@/gigblade/prefetch";
 import { MobileTopBar } from "@/views/main-sidebar/MobileTopBar";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -25,18 +24,9 @@ function schedule(work: () => void) {
 
 function warmPanel(
 	role: string | undefined,
-	slug: string | undefined,
 	queryClient: QueryClient,
 ) {
-	prefetchAllPanelRoutes(role, queryClient);
-	if (role !== "dj" || !slug) return;
-	// Calienta el route handler de Next para que fetchPublicSite responda al toque.
-	const controller = new AbortController();
-	window.setTimeout(() => controller.abort(), 6000);
-	void fetch(`${djPreviewOrigin(slug)}/api/tenant`, {
-		signal: controller.signal,
-		cache: "no-store",
-	}).catch(() => {});
+	prefetchHomePanelRoute(role, queryClient);
 }
 
 export function GigbladeLayout() {
@@ -50,11 +40,11 @@ export function GigbladeLayout() {
 	const queryClient = useQueryClient();
 	useEffect(() => {
 		if (sessionLoading || !session) return;
-		schedule(() => warmPanel(panelUser?.role, panelUser?.slug, queryClient));
-	}, [sessionLoading, session, panelUser?.role, panelUser?.slug, queryClient]);
+		schedule(() => warmPanel(panelUser?.role, queryClient));
+	}, [sessionLoading, session, panelUser?.role, queryClient]);
 
-	if (sessionLoading) {
-		return <ScreenReaderLoading label="Abriendo panel" />;
+	if (sessionLoading && !session) {
+		return <BootScreen />;
 	}
 
 	if (!session) {
@@ -95,7 +85,7 @@ export function GigbladeLayout() {
 								pathname={pathname}
 								message="No se pudo abrir esta página. Probá otra del menú."
 							>
-								<Suspense fallback={<ScreenReaderLoading />}>
+								<Suspense fallback={<BootScreen fullPage={false} />}>
 									<Outlet />
 								</Suspense>
 							</AppErrorBoundary>

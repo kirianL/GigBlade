@@ -21,7 +21,7 @@ import {
 	MenuGridIcon,
 } from "@/app/constant";
 import { getGsap } from "@/lib/lazyGsap";
-import { getDashboardUrl } from "@/lib/dashboard-url";
+import { getDashboardSignInUrl, getDashboardUrl } from "@/lib/dashboard-url";
 import { getLenis, scrollToHash, scrollToHashWhenReady } from "@/lib/smooth-scroll";
 import { useMediaQuery } from "@/lib/use-media-query";
 import SlotLabel from "./slot-label";
@@ -165,7 +165,7 @@ export default function Navbar({
 	const [menuOpen, setMenuOpen] = useState(false);
 	const isLg = useMediaQuery("(min-width: 1024px)");
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const panelHref = isLoggedIn ? getDashboardUrl() : "/login";
+	const panelHref = isLoggedIn ? getDashboardUrl() : getDashboardSignInUrl();
 
 	useEffect(() => {
 		setIsLoggedIn(

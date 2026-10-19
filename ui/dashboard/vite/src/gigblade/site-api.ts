@@ -112,7 +112,12 @@ function siteOrigin() {
 }
 
 function tenantApi(slug: string, path = "/api/tenant") {
-	const url = new URL(path, `${siteOrigin()}/`);
+	const useRelative =
+		import.meta.env.DEV ||
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "1" ||
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "true";
+	const base = useRelative ? window.location.origin : siteOrigin();
+	const url = new URL(path, `${base}/`);
 	url.searchParams.set("slug", slug);
 	return url.toString();
 }
@@ -126,7 +131,11 @@ export function publicSiteAssetUrl(slug: string, url: string) {
 }
 
 function platformApiOrigin() {
-	return siteOrigin();
+	const useRelative =
+		import.meta.env.DEV ||
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "1" ||
+		import.meta.env.VITE_PANEL_SAME_ORIGIN === "true";
+	return useRelative ? "" : siteOrigin();
 }
 
 export type SiteVisitStats = {
@@ -187,17 +196,25 @@ export type PlatformSiteAuditReport = {
 	sites: PlatformSiteAudit[];
 };
 
+const siteCache = new Map<string, { site: PublicSite; expiresAt: number }>();
+
 export async function fetchPublicSite(
 	slug: string,
 	signal?: AbortSignal,
 ): Promise<PublicSite | null> {
+	const cached = siteCache.get(slug);
+	if (cached && cached.expiresAt > Date.now()) {
+		return cached.site;
+	}
 	const timeout = withTimeout(signal);
 	try {
 		const response = await fetch(tenantApi(slug), {
 			signal: timeout.signal,
 		});
 		if (!response.ok) return null;
-		return (await readJson(response)) as PublicSite;
+		const site = (await readJson(response)) as PublicSite;
+		siteCache.set(slug, { site, expiresAt: Date.now() + 15_000 });
+		return site;
 	} catch {
 		return null;
 	} finally {
@@ -215,6 +232,7 @@ export async function savePublicSite(
 		const session = readPanelAuthSession();
 		const response = await fetch(tenantApi(slug), {
 			method: "PATCH",
+			credentials: "include",
 			headers: {
 				"content-type": "application/json",
 				...(session?.token ? { authorization: `Bearer ${session.token}` } : {}),
@@ -226,7 +244,9 @@ export async function savePublicSite(
 		if (!response.ok) {
 			throw new Error(body?.message || "No se pudo publicar el contenido.");
 		}
-		return body as PublicSite;
+		const saved = body as PublicSite;
+		siteCache.set(slug, { site: saved, expiresAt: Date.now() + 15_000 });
+		return saved;
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
 			throw new Error("La API del sitio no respondió.");
@@ -285,18 +305,14 @@ export async function fetchPlatformSiteHealth(
 	const timeout = withTimeout(signal, 30_000);
 	try {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
-			return {
-				report: null,
-				error: "Volvé a entrar con la cuenta de plataforma.",
-			};
+		const headers = new Headers();
+		if (session?.token) {
+			headers.set("authorization", `Bearer ${session.token}`);
 		}
-		const headers = new Headers({
-			authorization: `Bearer ${session.token}`,
-		});
 		const response = await fetch(
 			`${platformApiOrigin()}/api/platform/site-health`,
 			{
+				credentials: "include",
 				headers,
 				signal: timeout.signal,
 			},
@@ -346,11 +362,13 @@ export async function fetchPlatformWaitlist(
 	const timeout = withTimeout(signal);
 	try {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
-			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+		const headers = new Headers();
+		if (session?.token) {
+			headers.set("authorization", `Bearer ${session.token}`);
 		}
 		const response = await fetch(`${platformApiOrigin()}/api/platform/waitlist`, {
-			headers: { authorization: `Bearer ${session.token}` },
+			credentials: "include",
+			headers,
 			signal: timeout.signal,
 		});
 		const body = (await readJson(response)) as
@@ -385,13 +403,12 @@ export async function fetchPlatformSites(
 	const timeout = withTimeout(signal);
 	try {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
-			throw new Error("Volvé a entrar con la cuenta de plataforma.");
+		const headers = new Headers();
+		if (session?.token) {
+			headers.set("authorization", `Bearer ${session.token}`);
 		}
-		const headers = new Headers({
-			authorization: `Bearer ${session.token}`,
-		});
 		const response = await fetch(`${platformApiOrigin()}/api/platform/sites`, {
+			credentials: "include",
 			headers,
 			signal: timeout.signal,
 		});
@@ -461,6 +478,7 @@ async function panelFetch(
 		}
 		const response = await fetch(`${platformApiOrigin()}${path}`, {
 			...init,
+			credentials: "include",
 			headers,
 			signal: timeout.signal,
 		});
@@ -511,6 +529,33 @@ export async function readPanelAccount(token: string): Promise<PanelUser> {
 		throw new Error("La sesión no es válida.");
 	}
 	return body.user;
+}
+
+export async function readPanelCookieSession(): Promise<{
+	user: PanelUser;
+	token: string;
+} | null> {
+	try {
+		const body = (await panelFetch("/api/panel/session", {
+			method: "GET",
+			timeoutMs: 8000,
+		})) as { user?: PanelUser; token?: string };
+		if (!body?.user?.email || !body.token) return null;
+		return { user: body.user, token: body.token };
+	} catch {
+		return null;
+	}
+}
+
+export async function clearRemotePanelSession(): Promise<void> {
+	try {
+		await panelFetch("/api/panel/session", {
+			method: "DELETE",
+			timeoutMs: 4000,
+		});
+	} catch {
+		// ignore
+	}
 }
 
 export async function generateDjPassword(input: {

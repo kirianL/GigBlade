@@ -1,9 +1,8 @@
 import type { UpdateAffiliateInput } from "@/application/ports/referral-repository";
-import { unauthorized } from "@/domain/errors";
 import { assertAffiliateDraft } from "@/domain/referral";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import { readJsonBody, requirePlatformActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -19,10 +18,10 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede ver los referidos y afiliados.");
-    }
+    await requirePlatformActor(
+      request,
+      "Solo la plataforma puede ver los referidos y afiliados.",
+    );
 
     const [affiliates, conversions, settings, payouts] = await Promise.all([
       getApp().listAffiliates(),
@@ -45,10 +44,10 @@ export async function POST(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede registrar afiliados.");
-    }
+    await requirePlatformActor(
+      request,
+      "Solo la plataforma puede registrar afiliados.",
+    );
 
     const body = (await readJsonBody(request)) as Parameters<typeof assertAffiliateDraft>[0];
     const draft = assertAffiliateDraft(body);
@@ -64,10 +63,10 @@ export async function PATCH(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede modificar afiliados.");
-    }
+    await requirePlatformActor(
+      request,
+      "Solo la plataforma puede modificar afiliados.",
+    );
 
     const body = (await readJsonBody(request)) as { id?: string } & Record<string, unknown>;
     const id = typeof body.id === "string" ? body.id : "";

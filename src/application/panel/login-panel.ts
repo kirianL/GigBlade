@@ -10,6 +10,16 @@ import {
 } from "@/domain/panel-auth";
 import { unauthorized } from "@/domain/errors";
 
+const SESSION_CACHE_TTL_MS = 10_000;
+const sessionUserCache = new Map<
+  string,
+  { user: ReturnType<typeof publicPanelUser>; expiresAt: number }
+>();
+
+export function clearCachedPanelSessions() {
+  sessionUserCache.clear();
+}
+
 export async function loginPanel(
   store: PanelAuthStore,
   input: { email: unknown; password: unknown },
@@ -22,25 +32,61 @@ export async function loginPanel(
   }
 
   const token = createSessionToken();
+  const tokenHash = hashSessionToken(token);
   await store.saveSession({
-    tokenHash: hashSessionToken(token),
+    tokenHash,
     email: account.email,
     expiresAt: sessionExpiry(),
   });
 
+  const user = publicPanelUser(account);
+  sessionUserCache.set(tokenHash, {
+    user,
+    expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+  });
+
   return {
     token,
-    user: publicPanelUser(account),
+    user,
   };
 }
 
 export async function readPanelSession(store: PanelAuthStore, token: string) {
   if (!token) throw unauthorized("La sesión expiró. Entrá de nuevo.");
-  const record = await store.findSession(hashSessionToken(token));
+  const tokenHash = hashSessionToken(token);
+  const cached = sessionUserCache.get(tokenHash);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.user;
+  }
+
+  if (store.findSessionWithAccount) {
+    const combined = await store.findSessionWithAccount(tokenHash);
+    if (!combined || Date.parse(combined.session.expiresAt) <= Date.now()) {
+      sessionUserCache.delete(tokenHash);
+      throw unauthorized("La sesión expiró. Entrá de nuevo.");
+    }
+    const user = publicPanelUser(combined.account);
+    sessionUserCache.set(tokenHash, {
+      user,
+      expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+    });
+    return user;
+  }
+
+  const record = await store.findSession(tokenHash);
   if (!record || Date.parse(record.expiresAt) <= Date.now()) {
+    sessionUserCache.delete(tokenHash);
     throw unauthorized("La sesión expiró. Entrá de nuevo.");
   }
   const account = await store.findAccount(record.email);
-  if (!account) throw unauthorized("La sesión expiró. Entrá de nuevo.");
-  return publicPanelUser(account);
+  if (!account) {
+    sessionUserCache.delete(tokenHash);
+    throw unauthorized("La sesión expiró. Entrá de nuevo.");
+  }
+  const user = publicPanelUser(account);
+  sessionUserCache.set(tokenHash, {
+    user,
+    expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+  });
+  return user;
 }

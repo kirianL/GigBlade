@@ -10,6 +10,7 @@ import { logPlatformEvent, raisePlatformAlert } from "@/lib/http/log";
 export type TenantReadContext = PostgrestQueryContext & {
   operation:
     | "tenants.findById"
+    | "tenants.findBySlug"
     | "tenants.list"
     | "tenants.create"
     | "tenants.updateSiteContent";

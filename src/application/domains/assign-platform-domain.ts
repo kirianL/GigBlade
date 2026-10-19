@@ -9,6 +9,8 @@ import { normalizeHostname } from "@/domain/hostname";
 import { readSiteProfile } from "@/domain/site-profile";
 import type { TenantRouting } from "@/domain/tenant";
 
+import { clearProxyRoutingCache } from "@/lib/tenant/resolve-proxy-routing";
+
 export type AssignDomainInput = {
   slug: string;
   domain: string;
@@ -37,8 +39,9 @@ export async function assignPlatformDomain(
     throw validationError("El formato del dominio no es válido");
   }
 
-  const allTenants = await tenants.list();
-  const tenant = allTenants.find((t) => t.slug === slug);
+  const tenant = tenants.findBySlug
+    ? await tenants.findBySlug(slug)
+    : (await tenants.list()).find((t) => t.slug === slug) ?? null;
   if (!tenant) {
     throw notFound("DJ no encontrado");
   }
@@ -61,6 +64,7 @@ export async function assignPlatformDomain(
     canonicalHostname: domain,
   };
   await routing.put(domain, routingRecord);
+  clearProxyRoutingCache();
 
   // 3. Sync to Edge Config if writer available
   let edgeConfigSynced = false;

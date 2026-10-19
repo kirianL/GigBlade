@@ -9,6 +9,7 @@ import App from "./App";
 import { AppErrorBoundary } from "./gigblade/AppErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeProvider";
 import { LanguageProvider } from "./contexts/LanguageProvider";
+import { PERSISTED_QUERY_CACHE_KEY } from "./gigblade/panel-session";
 import { installFetchMock } from "./demo/installFetchMock";
 import { PostHogBoot } from "./app/PostHogBoot";
 
@@ -16,7 +17,10 @@ installFetchMock();
 
 if ("serviceWorker" in navigator) {
 	window.addEventListener("load", () => {
-		void navigator.serviceWorker.register("/sw.js");
+		void navigator.serviceWorker
+			.getRegistrations()
+			.then((regs) => Promise.all(regs.map((reg) => reg.unregister())))
+			.catch(() => {});
 	});
 }
 
@@ -45,7 +49,7 @@ const queryClient = new QueryClient({
 
 const persister = createSyncStoragePersister({
 	storage: typeof window === "undefined" ? undefined : window.localStorage,
-	key: "gigblade.query-cache.v1",
+	key: PERSISTED_QUERY_CACHE_KEY,
 	throttleTime: 1000,
 });
 
@@ -57,18 +61,21 @@ createRoot(document.getElementById("root")!).render(
 			client={queryClient}
 			persistOptions={{
 				persister,
-				maxAge: 24 * 60 * 60_000,
-				buster: "v2",
+				maxAge: 30 * 60_000,
+				buster: "v3",
 				dehydrateOptions: {
 					shouldDehydrateQuery: (query) => {
-						const key = query.queryKey[0];
-						if (key !== "platform" || query.state.status !== "success") {
+						const [scope, subKey] = query.queryKey;
+						if (scope !== "platform" || query.state.status !== "success") {
 							return false;
 						}
-						if (query.queryKey[1] === "sites") {
+						if (subKey === "sites") {
 							return Array.isArray(query.state.data);
 						}
-						return true;
+						if (subKey === "site-health" || subKey === "domains") {
+							return true;
+						}
+						return false;
 					},
 				},
 			}}

@@ -1,8 +1,8 @@
-import { unauthorized, validationError } from "@/domain/errors";
+import { validationError } from "@/domain/errors";
 import type { CommissionPercentages, PackagePrices } from "@/domain/referral";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import { readJsonBody, requirePlatformActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -18,10 +18,10 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede consultar la configuración de comisiones.");
-    }
+    await requirePlatformActor(
+      request,
+      "Solo la plataforma puede consultar la configuración de comisiones.",
+    );
 
     const settings = await getApp().getReferralSettings();
     return jsonWithTenantCors(request, { settings }, { requestId });
@@ -34,10 +34,10 @@ export async function PUT(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
-    if (actor.role !== "platform") {
-      throw unauthorized("Solo la plataforma puede modificar las tarifas y porcentajes.");
-    }
+    const actor = await requirePlatformActor(
+      request,
+      "Solo la plataforma puede modificar las tarifas y porcentajes.",
+    );
 
     const body = (await readJsonBody(request)) as {
       currency?: string;

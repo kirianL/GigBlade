@@ -15,7 +15,7 @@ export type PanelAuthSession = {
 export const PANEL_SESSION_KEY = "gigblade.panel.session";
 export const PANEL_SESSION_EVENT = "gigblade-panel-session";
 
-function isUser(value: unknown): value is PanelUser {
+export function isUser(value: unknown): value is PanelUser {
 	if (typeof value !== "object" || value === null) return false;
 	const row = value as Partial<PanelUser>;
 	return (
@@ -45,8 +45,11 @@ export function writePanelAuthSession(session: PanelAuthSession) {
 	window.dispatchEvent(new Event(PANEL_SESSION_EVENT));
 }
 
+export const PERSISTED_QUERY_CACHE_KEY = "gigblade.query-cache.v1";
+
 export function clearPanelAuthSession() {
 	window.localStorage.removeItem(PANEL_SESSION_KEY);
+	window.localStorage.removeItem(PERSISTED_QUERY_CACHE_KEY);
 	window.dispatchEvent(new Event(PANEL_SESSION_EVENT));
 }
 

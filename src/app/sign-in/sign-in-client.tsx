@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getDashboardUrl } from "@/lib/dashboard-url";
+import { useSearchParams } from "next/navigation";
+import { getDashboardSignInUrl, getDashboardUrl } from "@/lib/dashboard-url";
 import { writePanelAuthSession, type PanelUser } from "@/lib/panel-session";
 
 function dashboardOrigin(url: string) {
@@ -14,14 +14,13 @@ function dashboardOrigin(url: string) {
 }
 
 export default function SignInClient() {
-	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [message, setMessage] = useState("Entrando…");
 
 	useEffect(() => {
 		const token = searchParams.get("token");
 		if (!token) {
-			router.replace("/login");
+			window.location.replace(getDashboardSignInUrl());
 			return;
 		}
 
@@ -52,13 +51,17 @@ export default function SignInClient() {
 
 				const remote = new URL("/sign-in", dashboard);
 				remote.searchParams.set("token", token);
+				remote.searchParams.set("user", JSON.stringify(body.user));
 				const next = searchParams.get("next");
 				if (next) remote.searchParams.set("next", next);
 				window.location.assign(remote.toString());
 			} catch {
 				if (!cancelled) {
 					setMessage("Esa sesión ya no sirve. Entrá de nuevo.");
-					window.setTimeout(() => router.replace("/login"), 1600);
+					window.setTimeout(
+						() => window.location.replace(getDashboardSignInUrl()),
+						1600,
+					);
 				}
 			}
 		})();
@@ -66,7 +69,7 @@ export default function SignInClient() {
 		return () => {
 			cancelled = true;
 		};
-	}, [router, searchParams]);
+	}, [searchParams]);
 
 	return (
 		<main className="flex min-h-dvh items-center justify-center bg-[#09090b] px-5 text-white">

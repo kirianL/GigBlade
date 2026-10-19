@@ -1,4 +1,5 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import { clearCachedPanelSessions } from "@/application/panel/login-panel";
 import { conflict, forbidden } from "@/domain/errors";
 import {
   assertPanelEmail,
@@ -30,5 +31,6 @@ export async function adoptDjLoginEmail(
   }
 
   await store.renameAccountEmail(current.email, next);
+  clearCachedPanelSessions();
   return next;
 }

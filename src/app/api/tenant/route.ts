@@ -1,7 +1,7 @@
 import { unauthorized } from "@/domain/errors";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken } from "@/lib/http/panel-request";
+import { requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -30,7 +30,7 @@ export async function PATCH(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const context = await getRequestTenantContext(request);
     const current = await getApp().getPublicTenant(context);
     if (actor.role !== "platform" && actor.slug !== current.slug) {

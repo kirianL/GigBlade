@@ -46,7 +46,6 @@ export function usePlatformDjs() {
 		staleTime: 30_000,
 		gcTime: 5 * 60_000,
 		retry: false,
-		refetchOnMount: true,
 		refetchOnWindowFocus: false,
 	});
 

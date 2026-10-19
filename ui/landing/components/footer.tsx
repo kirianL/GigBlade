@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import AppLink from "./app-link";
+import { getDashboardSignInUrl } from "@/lib/dashboard-url";
 
 function FooterStripLink({ href, label }: { href: string; label: string }) {
 	return (
@@ -88,7 +89,7 @@ export default function Footer() {
 							<FooterDot />
 							<FooterStripLink href="/acceso" label="ACCESO" />
 							<FooterDot />
-							<FooterStripLink href="/login" label="ENTRAR" />
+							<FooterStripLink href={getDashboardSignInUrl()} label="ENTRAR" />
 						</FooterRail>
 
 						<FooterRail label="LEGAL">

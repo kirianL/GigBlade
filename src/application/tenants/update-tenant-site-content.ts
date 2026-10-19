@@ -1,5 +1,6 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
 import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
+import { invalidatePlatformSitesCache } from "@/application/sites/list-platform-sites";
 import { notFound, validationError } from "@/domain/errors";
 import {
   buildSiteThemeConfig,
@@ -56,6 +57,7 @@ export async function updateTenantSiteContent(
   if (panelAuth && loginEmail) {
     await adoptDjLoginEmail(panelAuth, updated.slug, loginEmail);
   }
+  invalidatePlatformSitesCache();
 
   return toPublicTenant(updated, context.canonicalHostname);
 }

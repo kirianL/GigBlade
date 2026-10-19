@@ -5,3 +5,7 @@ export function getDashboardUrl() {
 	if (/^https?:\/\//i.test(value)) return value;
 	return `https://${value}`;
 }
+
+export function getDashboardSignInUrl() {
+	return `${getDashboardUrl()}/sign-in`;
+}

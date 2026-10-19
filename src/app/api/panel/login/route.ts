@@ -1,6 +1,9 @@
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readJsonBody } from "@/lib/http/panel-request";
+import {
+  panelSessionSetCookie,
+  readJsonBody,
+} from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -14,11 +17,25 @@ export function OPTIONS(request: Request) {
 
 export async function POST(request: Request) {
   const requestId = createRequestId();
+  const startedAt = performance.now();
 
   try {
     const body = await readJsonBody(request);
     const session = await getApp().loginPanel(body);
-    return jsonWithTenantCors(request, session, { requestId });
+    const response = jsonWithTenantCors(request, session, {
+      requestId,
+      durationMs: performance.now() - startedAt,
+    });
+    const headers = new Headers(response.headers);
+    headers.append(
+      "Set-Cookie",
+      panelSessionSetCookie(request, session.token),
+    );
+    headers.append("Set-Cookie", "logged_in_hint=1; Path=/; Max-Age=2592000; SameSite=Lax");
+    return new Response(response.body, {
+      status: response.status,
+      headers,
+    });
   } catch (error) {
     return withTenantCors(request, errorResponse(error, requestId));
   }

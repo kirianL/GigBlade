@@ -33,7 +33,9 @@ export function tenantSiteRewritePath(pathname: string): string | null {
     pathname.startsWith("/api/") ||
     pathname === "/api" ||
     pathname.startsWith("/site") ||
-    pathname.startsWith("/dashboard")
+    pathname.startsWith("/dashboard") ||
+    pathname === "/login" ||
+    pathname.startsWith("/sign-in")
   ) {
     return null;
   }

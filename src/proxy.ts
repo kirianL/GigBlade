@@ -26,6 +26,18 @@ function stripClientTenantHeaders(headers: Headers) {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  if (
+    request.method === "OPTIONS" ||
+    ((pathname.startsWith("/api/tenant") ||
+      pathname.startsWith("/api/site-visit")) &&
+      searchParams.has("slug"))
+  ) {
+    const headers = new Headers(request.headers);
+    stripClientTenantHeaders(headers);
+    return NextResponse.next({ request: { headers } });
+  }
+
   const hostname = normalizeHostname(
     request.headers.get("host") || request.nextUrl.hostname,
   );
@@ -97,5 +109,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/|favicon.ico|api/panel|api/platform|api/waitlist|api/mix-cover|api/blog-md|api/alog-md).*)",
+  ],
 };

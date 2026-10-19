@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import type {
+  PanelAuthStore,
+  PanelSessionWithAccount,
+} from "@/application/ports/panel-auth-store";
 import {
   hashPassword,
   PLATFORM_EMAIL,
@@ -27,6 +30,10 @@ type SessionRow = {
   token_hash: string;
   email: string;
   expires_at: string;
+};
+
+type SessionWithAccountRow = SessionRow & {
+  panel_accounts: AccountRow | AccountRow[] | null;
 };
 
 const ACCOUNT_COLUMNS =
@@ -160,6 +167,29 @@ export class SupabasePanelAuthStore implements PanelAuthStore {
       { operation: "panel_sessions.findSession" },
     );
     return row ? mapSession(row as SessionRow) : null;
+  }
+
+  async findSessionWithAccount(
+    tokenHash: string,
+  ): Promise<PanelSessionWithAccount | null> {
+    const supabase = createSupabaseAdminClient();
+    const row = readPostgrestResult(
+      await supabase
+        .from("panel_sessions")
+        .select(`${SESSION_COLUMNS}, panel_accounts(${ACCOUNT_COLUMNS})`)
+        .eq("token_hash", tokenHash)
+        .maybeSingle(),
+      { operation: "panel_sessions.findSessionWithAccount" },
+    ) as SessionWithAccountRow | null;
+    if (!row) return null;
+    const rawAccount = Array.isArray(row.panel_accounts)
+      ? row.panel_accounts[0] ?? null
+      : row.panel_accounts;
+    if (!rawAccount) return null;
+    return {
+      session: mapSession(row),
+      account: mapAccount(rawAccount),
+    };
   }
 
   async deleteSessionsForEmail(email: string): Promise<void> {

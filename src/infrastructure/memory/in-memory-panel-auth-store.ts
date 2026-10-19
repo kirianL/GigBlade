@@ -1,7 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
+import type {
+  PanelAuthStore,
+  PanelSessionWithAccount,
+} from "@/application/ports/panel-auth-store";
 import {
   hashPassword,
   PLATFORM_EMAIL,
@@ -106,6 +109,17 @@ export class InMemoryPanelAuthStore implements PanelAuthStore {
   async findSession(tokenHash: string): Promise<PanelSessionRecord | null> {
     this.hydrate();
     return this.sessions.get(tokenHash) ?? null;
+  }
+
+  async findSessionWithAccount(
+    tokenHash: string,
+  ): Promise<PanelSessionWithAccount | null> {
+    this.hydrate();
+    const session = this.sessions.get(tokenHash);
+    if (!session) return null;
+    const account = this.accounts.get(session.email);
+    if (!account) return null;
+    return { session, account };
   }
 
   async deleteSessionsForEmail(email: string): Promise<void> {

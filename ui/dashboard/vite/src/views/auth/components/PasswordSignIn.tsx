@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CustomToaster } from "@/components/general/CustomToaster";
 import { authClient, useSession } from "@/lib/auth-client";
-import { emailRegex } from "../SignIn";
+
+const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 
 export const PasswordSignIn = () => {
 	const [email, setEmail] = useState("");

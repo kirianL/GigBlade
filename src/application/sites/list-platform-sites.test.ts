@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { listPlatformSites } from "@/application/sites/list-platform-sites";
+import {
+  listPlatformSites,
+  paginatePlatformSites,
+} from "@/application/sites/list-platform-sites";
 import { recordSiteVisit } from "@/application/sites/record-site-visit";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
 import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
@@ -80,5 +83,48 @@ describe("platform sites", () => {
       domain: "nox.cr",
       preview: false,
     });
+  });
+
+  it("pagina y filtra sitios devolviendo totales agregados", () => {
+    const sample = [
+      {
+        slug: "luna",
+        displayName: "DJ Luna",
+        domain: "luna.cr",
+        preview: false,
+        status: "active" as const,
+        visits: 10,
+        lastVisitedAt: null,
+      },
+      {
+        slug: "marco",
+        displayName: "DJ Marco",
+        domain: "",
+        preview: true,
+        status: "active" as const,
+        visits: 5,
+        lastVisitedAt: null,
+      },
+      {
+        slug: "nox",
+        displayName: "Kiluzie",
+        domain: "nox.cr",
+        preview: false,
+        status: "suspended" as const,
+        visits: 3,
+        lastVisitedAt: null,
+      },
+    ];
+
+    const page = paginatePlatformSites(sample, { limit: 2, offset: 0 });
+    expect(page.sites.map((s) => s.slug)).toEqual(["luna", "marco"]);
+    expect(page.total).toBe(3);
+    expect(page.activeCount).toBe(2);
+    expect(page.totalVisits).toBe(18);
+
+    const filtered = paginatePlatformSites(sample, { search: "kilu" });
+    expect(filtered.sites.map((s) => s.slug)).toEqual(["nox"]);
+    expect(filtered.total).toBe(1);
+    expect(filtered.activeCount).toBe(2);
   });
 });

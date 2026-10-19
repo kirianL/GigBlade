@@ -118,6 +118,16 @@ async function getRealRouting(
   return MEMORY_DEMO_ROUTING[hostname];
 }
 
+const ROUTING_CACHE_TTL_MS = 15_000;
+const routingCache = new Map<
+  string,
+  { value: MemoryTenantRouting | undefined; expiresAt: number }
+>();
+
+export function clearProxyRoutingCache() {
+  routingCache.clear();
+}
+
 export async function resolveProxyRouting(
   hostname: string,
 ): Promise<MemoryTenantRouting | undefined> {
@@ -128,7 +138,21 @@ export async function resolveProxyRouting(
   }
 
   if (resolveAppRuntime() === "real") {
-    return getRealRouting(normalized);
+    const useCache = process.env.NODE_ENV !== "test";
+    if (useCache) {
+      const cached = routingCache.get(normalized);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+      }
+    }
+    const resolved = await getRealRouting(normalized);
+    if (useCache) {
+      routingCache.set(normalized, {
+        value: resolved,
+        expiresAt: Date.now() + ROUTING_CACHE_TTL_MS,
+      });
+    }
+    return resolved;
   }
 
   return MEMORY_DEMO_ROUTING[normalized];

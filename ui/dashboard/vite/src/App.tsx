@@ -2,7 +2,7 @@ import * as React from "react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { GigbladeLayout } from "./app/GigbladeLayout";
-import { ScreenReaderLoading } from "./components/general/ScreenReaderLoading";
+import { BootScreen } from "./gigblade/BootScreen";
 import { useSession } from "./lib/auth-client";
 import { SignIn } from "./views/auth/SignIn";
 
@@ -79,7 +79,7 @@ export default function App() {
 				<Route
 					path="/pw-sign-in"
 					element={
-						<React.Suspense fallback={<ScreenReaderLoading />}>
+						<React.Suspense fallback={<BootScreen />}>
 							<PasswordSignIn />
 						</React.Suspense>
 					}
@@ -87,7 +87,7 @@ export default function App() {
 				<Route
 					path="/accept"
 					element={
-						<React.Suspense fallback={<ScreenReaderLoading />}>
+						<React.Suspense fallback={<BootScreen />}>
 							<AcceptInvitation />
 						</React.Suspense>
 					}
@@ -95,7 +95,7 @@ export default function App() {
 				<Route
 					path="/close"
 					element={
-						<React.Suspense fallback={<ScreenReaderLoading />}>
+						<React.Suspense fallback={<BootScreen />}>
 							<CloseScreen />
 						</React.Suspense>
 					}

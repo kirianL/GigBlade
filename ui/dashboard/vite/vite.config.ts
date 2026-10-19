@@ -186,6 +186,22 @@ export default defineConfig({
 			".ngrok-free.app",
 		],
 		proxy: {
+			"/api/panel": {
+				target: process.env.VITE_GIGBLADE_SITE_URL || "http://localhost:3000",
+				changeOrigin: false,
+			},
+			"/api/platform": {
+				target: process.env.VITE_GIGBLADE_SITE_URL || "http://localhost:3000",
+				changeOrigin: false,
+			},
+			"/api/tenant": {
+				target: process.env.VITE_GIGBLADE_SITE_URL || "http://localhost:3000",
+				changeOrigin: false,
+			},
+			"/api/site-visit": {
+				target: process.env.VITE_GIGBLADE_SITE_URL || "http://localhost:3000",
+				changeOrigin: false,
+			},
 			...(isCapyDev
 				? {
 						"/__autumn_api": {
@@ -247,6 +263,12 @@ export default defineConfig({
 						}
 						if (id.includes("@tanstack")) {
 							return "vendor-tanstack";
+						}
+						if (id.includes("recharts") || id.includes("d3-")) {
+							return "vendor-charts";
+						}
+						if (id.includes("motion") || id.includes("framer-motion")) {
+							return "vendor-motion";
 						}
 						if (
 							id.includes("react") ||

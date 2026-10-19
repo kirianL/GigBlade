@@ -24,6 +24,19 @@ export class SupabaseTenantRepository implements TenantRepository {
     });
   }
 
+  async findBySlug(slug: string): Promise<Tenant | null> {
+    const supabase = createSupabaseAdminClient();
+    const result = await supabase
+      .from("tenants")
+      .select(TENANT_COLUMNS)
+      .eq("slug", slug.trim().toLowerCase())
+      .maybeSingle();
+
+    return readTenantQueryResult(result, {
+      operation: "tenants.findBySlug",
+    });
+  }
+
   async list(): Promise<Tenant[]> {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

@@ -1,6 +1,6 @@
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken, readJsonBody } from "@/lib/http/panel-request";
+import { readJsonBody, requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const body = await readJsonBody(request);
     const generated = await getApp().generateDjPassword(actor, body);
     return jsonWithTenantCors(

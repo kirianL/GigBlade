@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import AppLink from "@/components/app-link";
+import { getDashboardSignInUrl } from "@/lib/dashboard-url";
 import {
 	clearPanelAuthSession,
 	readPanelAuthSession,
@@ -16,17 +16,16 @@ export default function PanelShell({
 	title: string;
 	children: (session: PanelAuthSession) => ReactNode;
 }) {
-	const router = useRouter();
 	const [session, setSession] = useState<PanelAuthSession | null>(null);
 
 	useEffect(() => {
 		const stored = readPanelAuthSession();
 		if (!stored) {
-			router.replace("/login");
+			window.location.replace(getDashboardSignInUrl());
 			return;
 		}
 		setSession(stored);
-	}, [router]);
+	}, []);
 
 	if (!session) {
 		return (
@@ -49,7 +48,7 @@ export default function PanelShell({
 						className="text-white/80 underline-offset-4 hover:text-white hover:underline"
 						onClick={() => {
 							clearPanelAuthSession();
-							router.replace("/login");
+							window.location.replace(getDashboardSignInUrl());
 						}}
 					>
 						Salir

@@ -29,6 +29,8 @@ describe("site-surface", () => {
     expect(tenantSiteRewritePath("/contacto")).toBe("/site/contacto");
     expect(tenantSiteRewritePath("/api/tenant")).toBeNull();
     expect(tenantSiteRewritePath("/dashboard")).toBeNull();
+    expect(tenantSiteRewritePath("/login")).toBeNull();
+    expect(tenantSiteRewritePath("/sign-in")).toBeNull();
     expect(tenantSiteRewritePath("/site")).toBeNull();
     expect(tenantSiteRewritePath("/images/og-image.png")).toBeNull();
   });

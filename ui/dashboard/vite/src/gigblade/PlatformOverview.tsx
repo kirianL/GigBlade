@@ -10,7 +10,8 @@ import { useLanguage } from "@/contexts/LanguageProvider";
 
 export default function PlatformOverview() {
 	const { t } = useLanguage();
-	const { djs, sites } = usePlatformDjs();
+	const { djs, sites, status } = usePlatformDjs();
+	const isLoading = status === "loading";
 	const paying = djs.filter((dj) => dj.status === "active").length;
 	const mrr = paying * PLAN.priceUsd;
 	const visits = (sites ?? []).reduce((sum, site) => sum + site.visits, 0);
@@ -26,9 +27,15 @@ export default function PlatformOverview() {
 					/>
 				}
 				label={t("overview.mrr", "Ingresos recurrentes mensuales")}
-				value={`US$ ${mrr}`}
-				suffix="/mo"
-				asideValue={String(paying)}
+				value={
+					isLoading ? (
+						<span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
+					) : (
+						`US$ ${mrr}`
+					)
+				}
+				suffix={isLoading ? undefined : "/mo"}
+				asideValue={isLoading ? "—" : String(paying)}
 				asideLabel={t("overview.activePlans", "planes activos")}
 			/>
 			<MetricCard
@@ -40,15 +47,33 @@ export default function PlatformOverview() {
 					/>
 				}
 				label={t("overview.visitsThisMonth", "Visitantes este mes")}
-				value={<AnimatedCounter value={visits} />}
-				suffix={visits === 1 ? t("overview.visitor", "visitante") : t("overview.visitors", "visitantes")}
-				asideValue={String(djs.length)}
+				value={
+					isLoading ? (
+						<span className="inline-block h-5 w-16 animate-pulse rounded bg-muted" />
+					) : (
+						<AnimatedCounter value={visits} />
+					)
+				}
+				suffix={
+					isLoading
+						? undefined
+						: visits === 1
+							? t("overview.visitor", "visitante")
+							: t("overview.visitors", "visitantes")
+				}
+				asideValue={isLoading ? "—" : String(djs.length)}
 				asideLabel={t("overview.domains", "dominios")}
 			/>
 
 			<DjsTable
 				djs={djs}
+				isLoading={isLoading}
 				showSearch={false}
+				emptyStateText={
+					status === "error"
+						? "No se pudieron cargar los DJs. Recargá la página."
+						: undefined
+				}
 				getRowHref={(dj) => `/studio?dj=${dj.slug}`}
 				actions={
 					<Button variant="secondary" size="sm" asChild>

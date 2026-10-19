@@ -3,6 +3,11 @@ import type {
   PanelSessionRecord,
 } from "@/domain/panel-auth";
 
+export interface PanelSessionWithAccount {
+  session: PanelSessionRecord;
+  account: PanelAccount;
+}
+
 export interface PanelAuthStore {
   findAccount(email: string): Promise<PanelAccount | null>;
   upsertAccount(account: PanelAccount): Promise<void>;
@@ -11,5 +16,8 @@ export interface PanelAuthStore {
   deleteDjAccountsBySlug(slug: string): Promise<void>;
   saveSession(record: PanelSessionRecord): Promise<void>;
   findSession(tokenHash: string): Promise<PanelSessionRecord | null>;
+  findSessionWithAccount?(
+    tokenHash: string,
+  ): Promise<PanelSessionWithAccount | null>;
   deleteSessionsForEmail(email: string): Promise<void>;
 }

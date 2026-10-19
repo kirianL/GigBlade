@@ -1,6 +1,7 @@
 import type { PanelAuthStore } from "@/application/ports/panel-auth-store";
 import type { TenantRepository } from "@/application/ports/tenant-repository";
 import { adoptDjLoginEmail } from "@/application/panel/adopt-dj-login-email";
+import { clearCachedPanelSessions } from "@/application/panel/login-panel";
 import { forbidden, notFound } from "@/domain/errors";
 import {
   assertPanelEmail,
@@ -22,7 +23,9 @@ export async function generateDjPassword(
   requirePlatform(actor);
 
   const slug = normalizeSlug(String(input.slug ?? ""));
-  const tenant = (await tenants.list()).find((item) => item.slug === slug);
+  const tenant = tenants.findBySlug
+    ? await tenants.findBySlug(slug)
+    : (await tenants.list()).find((item) => item.slug === slug) ?? null;
   if (!tenant) throw notFound("No encontramos esa página.");
 
   const profileEmail = readSiteProfile(tenant.slug, tenant.themeConfig).email;
@@ -49,6 +52,7 @@ export async function generateDjPassword(
     passwordSetAt: new Date().toISOString(),
   });
   await store.deleteSessionsForEmail(email);
+  clearCachedPanelSessions();
 
   return {
     email,

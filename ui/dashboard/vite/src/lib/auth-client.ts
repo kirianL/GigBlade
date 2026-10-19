@@ -6,12 +6,19 @@ import {
 } from "@/demo/mockData";
 import {
 	clearPanelAuthSession,
+	isUser,
 	PANEL_SESSION_EVENT,
 	readPanelAuthSession,
 	writePanelAuthSession,
 	type PanelAuthSession,
+	type PanelUser,
 } from "@/gigblade/panel-session";
-import { loginPanelAccount, readPanelAccount } from "@/gigblade/site-api";
+import {
+	clearRemotePanelSession,
+	loginPanelAccount,
+	readPanelAccount,
+	readPanelCookieSession,
+} from "@/gigblade/site-api";
 
 const ok = async <T,>(data: T) => ({ data, error: null as null });
 
@@ -38,6 +45,58 @@ function toAuthSession(session: PanelAuthSession) {
 }
 
 let sessionRevalidated = false;
+let revalidatePromise: Promise<PanelAuthSession | null> | null = null;
+
+/** Sesión recién validada en login o token: evita un segundo GET /session al entrar. */
+export function markPanelSessionTrusted() {
+	sessionRevalidated = true;
+	revalidatePromise = null;
+}
+
+function revalidateSessionOnce(
+	local: PanelAuthSession | null,
+): Promise<PanelAuthSession | null> {
+	if (revalidatePromise) return revalidatePromise;
+
+	revalidatePromise = (async () => {
+		try {
+			if (!local?.token) {
+				const remote = await readPanelCookieSession();
+				if (remote) writePanelAuthSession(remote);
+				return remote;
+			}
+			const user = await readPanelAccount(local.token);
+			const next = { token: local.token, user };
+			if (
+				user.email !== local.user.email ||
+				user.role !== local.user.role ||
+				user.name !== local.user.name ||
+				user.slug !== local.user.slug
+			) {
+				writePanelAuthSession(next);
+			}
+			return next;
+		} catch (error: unknown) {
+			const status =
+				typeof error === "object" &&
+				error !== null &&
+				"status" in error &&
+				typeof error.status === "number"
+					? error.status
+					: null;
+			if (status === 401) {
+				clearPanelAuthSession();
+				return null;
+			}
+			return local;
+		} finally {
+			sessionRevalidated = true;
+			revalidatePromise = null;
+		}
+	})();
+
+	return revalidatePromise;
+}
 
 export const useSession = () => {
 	const [stored, setStored] = useState<PanelAuthSession | null>(() =>
@@ -45,7 +104,7 @@ export const useSession = () => {
 	);
 	const [isPending, setPending] = useState(() => {
 		if (typeof window === "undefined") return true;
-		return !sessionRevalidated && readPanelAuthSession() !== null;
+		return !sessionRevalidated;
 	});
 
 	useEffect(() => {
@@ -56,7 +115,7 @@ export const useSession = () => {
 		window.addEventListener(PANEL_SESSION_EVENT, onChange);
 		window.addEventListener("storage", onChange);
 
-		if (!local?.token || sessionRevalidated) {
+		if (sessionRevalidated) {
 			setPending(false);
 			return () => {
 				window.removeEventListener(PANEL_SESSION_EVENT, onChange);
@@ -64,38 +123,11 @@ export const useSession = () => {
 			};
 		}
 
-		void readPanelAccount(local.token)
-			.then((user) => {
-				if (cancelled) return;
-				const next = { token: local.token, user };
-				if (
-					user.email !== local.user.email ||
-					user.role !== local.user.role ||
-					user.name !== local.user.name ||
-					user.slug !== local.user.slug
-				) {
-					writePanelAuthSession(next);
-				}
-				setStored(next);
-				setPending(false);
-				sessionRevalidated = true;
-			})
-			.catch((error: unknown) => {
-				if (cancelled) return;
-				const status =
-					typeof error === "object" &&
-					error !== null &&
-					"status" in error &&
-					typeof error.status === "number"
-						? error.status
-						: null;
-				if (status === 401) {
-					clearPanelAuthSession();
-					setStored(null);
-				}
-				setPending(false);
-				sessionRevalidated = true;
-			});
+		void revalidateSessionOnce(local).then((resolved) => {
+			if (cancelled) return;
+			setStored(resolved);
+			setPending(false);
+		});
 
 		return () => {
 			cancelled = true;
@@ -131,6 +163,7 @@ export const signIn = {
 		try {
 			const session = await loginPanelAccount({ email, password });
 			writePanelAuthSession(session);
+			markPanelSessionTrusted();
 			return { data: toAuthSession(session), error: null };
 		} catch (error) {
 			return {
@@ -173,6 +206,7 @@ export const authClient = {
 	signIn,
 	signOut: async () => {
 		clearPanelAuthSession();
+		void clearRemotePanelSession();
 		return ok({});
 	},
 	emailOtp: {
@@ -193,9 +227,16 @@ export const authClient = {
 	},
 };
 
-export async function acceptPanelToken(token: string) {
+export async function acceptPanelToken(token: string, knownUser?: PanelUser) {
+	if (knownUser && isUser(knownUser)) {
+		const session = { token, user: knownUser };
+		writePanelAuthSession(session);
+		markPanelSessionTrusted();
+		return session;
+	}
 	const user = await readPanelAccount(token);
 	const session = { token, user };
 	writePanelAuthSession(session);
+	markPanelSessionTrusted();
 	return session;
 }

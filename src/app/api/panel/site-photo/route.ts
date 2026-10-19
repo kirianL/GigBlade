@@ -4,9 +4,9 @@ import { dirname, join } from "node:path";
 
 import { unauthorized, validationError } from "@/domain/errors";
 import { createSupabaseAdminClient } from "@/infrastructure/supabase/admin";
-import { getApp, getRuntime } from "@/lib/composition/app";
+import { getRuntime } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import { readBearerToken } from "@/lib/http/panel-request";
+import { requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const requestId = createRequestId();
 
   try {
-    const actor = await getApp().readPanelSession(readBearerToken(request));
+    const actor = await requirePanelActor(request);
     const formData = await request.formData();
     const file = formData.get("file");
     const slug = String(formData.get("slug") ?? "").trim().toLowerCase();

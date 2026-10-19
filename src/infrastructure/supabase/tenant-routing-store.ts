@@ -83,6 +83,21 @@ export class SupabaseTenantRoutingStore implements TenantRoutingStore {
     return ((data ?? []) as DomainRow[]).map(toRoute);
   }
 
+  async listByTenantId(tenantId: string): Promise<ListedTenantRoute[]> {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("tenant_domains")
+      .select("tenant_id, hostname, status")
+      .eq("tenant_id", tenantId);
+    if (error) {
+      failPostgrestQuery(error, {
+        operation: "tenant_domains.listByTenantId",
+        tenantId,
+      });
+    }
+    return ((data ?? []) as DomainRow[]).map(toRoute);
+  }
+
   async put(hostname: string, routing: TenantRouting): Promise<void> {
     const canonicalHostname = normalizeHostname(hostname);
     const supabase = createSupabaseAdminClient();
