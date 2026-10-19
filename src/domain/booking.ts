@@ -100,3 +100,81 @@ export const updateBookingStatusSchema = z.object({
     message: "Estado de contratación inválido",
   }),
 });
+
+export type BookingWhatsappDraft = {
+  artistName: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  eventType?: BookingEventType;
+  city?: string;
+  eventDate?: string;
+  note?: string;
+};
+
+function formatBookingDateForWhatsapp(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
+  return `${day}/${month}/${year}`;
+}
+
+/** Mensaje de bienvenida para abrir WhatsApp desde el formulario de contrataciones */
+export function buildBookingInquiryWhatsappMessage(
+  draft: BookingWhatsappDraft,
+): string {
+  const artist = draft.artistName.trim() || "el artista";
+  const lines: string[] = [
+    `¡Hola! Me contacto desde la web de contrataciones de *${artist}*.`,
+    "",
+  ];
+
+  const contactName = draft.name?.trim();
+  if (contactName) {
+    lines.push(
+      `Soy *${contactName}* y quiero consultar disponibilidad y cotización para un evento.`,
+    );
+  } else {
+    lines.push(`Quiero consultar disponibilidad y cotización para un evento.`);
+  }
+
+  const eventDetails: string[] = [];
+  if (draft.eventType) {
+    eventDetails.push(
+      `• Tipo de evento: ${BOOKING_EVENT_TYPE_LABELS[draft.eventType]}`,
+    );
+  }
+  if (draft.city?.trim()) {
+    eventDetails.push(`• Ciudad / lugar: ${draft.city.trim()}`);
+  }
+  if (draft.eventDate?.trim()) {
+    eventDetails.push(
+      `• Fecha estimada: ${formatBookingDateForWhatsapp(draft.eventDate.trim())}`,
+    );
+  }
+  if (eventDetails.length > 0) {
+    lines.push("", "Resumen del evento:", ...eventDetails);
+  }
+
+  const contactBits: string[] = [];
+  if (draft.email?.trim()) contactBits.push(draft.email.trim());
+  if (draft.phone?.trim()) contactBits.push(draft.phone.trim());
+  if (contactBits.length > 0) {
+    lines.push("", `Mis datos: ${contactBits.join(" · ")}`);
+  }
+
+  if (draft.note?.trim()) {
+    lines.push(
+      "",
+      "Presupuesto, horario u otros detalles:",
+      draft.note.trim(),
+    );
+  }
+
+  lines.push(
+    "",
+    "¿Podemos coordinar fecha y confirmar cuánto sería el servicio?",
+    "¡Gracias!",
+  );
+
+  return lines.join("\n");
+}

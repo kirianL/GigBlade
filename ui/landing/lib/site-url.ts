@@ -1,3 +1,5 @@
+import { PLATFORM_MARKETING_ORIGIN } from "@/domain/hostname";
+
 export function getSiteUrl() {
 	const explicit = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 	if (explicit) return explicit;
@@ -13,5 +15,5 @@ export function getSiteUrl() {
 	const preview = process.env.VERCEL_URL;
 	if (preview) return `https://${preview}`;
 
-	return "https://gigblades.vercel.app";
+	return PLATFORM_MARKETING_ORIGIN;
 }

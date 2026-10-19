@@ -1,12 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {
 	fetchPlatformDomains,
-	fetchPlatformReferrals,
 	fetchPlatformSiteHealth,
 	fetchPlatformSites,
 	fetchPlatformWaitlist,
 	fetchPublicSite,
 } from "@/gigblade/site-api";
+import { prefetchPlatformReferralsQuery } from "@/gigblade/platform-referrals-query";
 import { PLATFORM_SITES_QUERY_KEY } from "@/gigblade/usePlatformDjs";
 import { PLATFORM_DOMAINS_QUERY_KEY } from "@/gigblade/usePlatformDomains";
 import { readPanelAuthSession } from "@/gigblade/panel-session";
@@ -17,6 +17,7 @@ const ROUTE_IMPORTS: Record<string, () => Promise<unknown>> = {
 	"/overview": () => import("@/gigblade/PlatformOverview"),
 	"/djs": () => import("@/gigblade/PlatformDjs"),
 	"/referidos": () => import("@/gigblade/PlatformReferrals"),
+	"/distribucion": () => import("@/gigblade/PlatformFinance"),
 	"/lista": () => import("@/gigblade/PlatformWaitlist"),
 	"/domains": () => import("@/gigblade/PlatformDomains"),
 	"/health": () => import("@/gigblade/PlatformSiteHealth"),
@@ -60,12 +61,8 @@ function warmData(path: string, queryClient: QueryClient) {
 			staleTime: 60_000,
 		});
 	}
-	if (path === "/referidos") {
-		void queryClient.prefetchQuery({
-			queryKey: ["platform", "referrals"],
-			queryFn: ({ signal }) => fetchPlatformReferrals(signal),
-			staleTime: 30_000,
-		});
+	if (path === "/referidos" || path === "/distribucion") {
+		prefetchPlatformReferralsQuery(queryClient);
 	}
 	if (path === "/lista") {
 		void queryClient.prefetchQuery({
@@ -117,5 +114,6 @@ export function prefetchHomePanelRoute(
 	if (role === "platform") {
 		warmChunk("/overview");
 		warmData("/overview", queryClient);
+		prefetchPlatformReferralsQuery(queryClient);
 	}
 }

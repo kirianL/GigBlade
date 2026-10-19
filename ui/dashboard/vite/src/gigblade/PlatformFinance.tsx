@@ -42,7 +42,12 @@ import {
 	type PlatformReferralSettings,
 } from "@/gigblade/site-api";
 
-export const PLATFORM_FINANCE_QUERY_KEY = ["platform", "referrals"] as const;
+import { PLATFORM_REFERRALS_QUERY_KEY } from "@/gigblade/platform-referrals-query";
+import {
+	FieldNumericInput,
+	NumericInput,
+	parseNumericField,
+} from "@/gigblade/numeric-input";
 
 function formatUsd(amount: number) {
 	return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -66,20 +71,34 @@ export default function PlatformFinance() {
 	const { data: session } = useSession();
 	const queryClient = useQueryClient();
 	const { t, language } = useLanguage();
-	const isPlatform = session?.user?.is_platform_admin ?? true;
+	const isPlatform =
+		(session?.user as { role?: string } | undefined)?.role === "platform";
 
 	const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState<"desglose" | "simulador" | "infraestructura">("desglose");
 	const [activeSimChargeType, setActiveSimChargeType] = useState<"initial_setup" | "monthly">("initial_setup");
 	const [activeSimChannel, setActiveSimChannel] = useState<"referral" | "direct">("referral");
-	const [customSimMaintenanceUsd, setCustomSimMaintenanceUsd] = useState<number | null>(null);
+	const [customSimMaintenanceRaw, setCustomSimMaintenanceRaw] = useState<string | null>(
+		null,
+	);
 
 	const query = useQuery({
-		queryKey: PLATFORM_FINANCE_QUERY_KEY,
+		queryKey: PLATFORM_REFERRALS_QUERY_KEY,
 		queryFn: ({ signal }) => fetchPlatformReferrals(signal),
 		enabled: Boolean(isPlatform),
 		staleTime: 15_000,
+		retry: 1,
 	});
+
+	useEffect(() => {
+		if (!query.isError) return;
+		toast.error(
+			t(
+				"finance.loadError",
+				"No se pudieron cargar finanzas y comisiones. Recargá la página.",
+			),
+		);
+	}, [query.isError, t]);
 
 	const { affiliates, conversions, settings, payouts } = query.data ?? {
 		affiliates: [],
@@ -104,6 +123,8 @@ export default function PlatformFinance() {
 	};
 
 	const exchangeRate = settings.exchangeRateCrc || 515;
+	const setupPriceUsd = settings.initialSetupPriceUsd ?? 100;
+	const monthlyPriceUsd = settings.monthlyPriceUsd ?? 30;
 	const devPercent = settings.developerPercent ?? 50;
 	const founderPercent = settings.founderPercent ?? 50;
 	const maintenanceMonthlyCostUsd = settings.maintenanceMonthlyCostUsd ?? 0;
@@ -191,9 +212,10 @@ export default function PlatformFinance() {
 		const affiliateCrc = Math.round(affiliateUsd * exchangeRate);
 
 		// Deducción de infraestructura / servidores (configurable)
-		const effectiveMaintenanceUsd = customSimMaintenanceUsd !== null
-			? customSimMaintenanceUsd
-			: maintenanceMonthlyCostUsd;
+		const effectiveMaintenanceUsd =
+			customSimMaintenanceRaw !== null
+				? parseNumericField(customSimMaintenanceRaw, 0)
+				: maintenanceMonthlyCostUsd;
 		const maintUsd = effectiveMaintenanceUsd > 0
 			? Math.min(Math.max(0, grossUsd - affiliateUsd), effectiveMaintenanceUsd)
 			: (grossUsd * maintenancePercent) / 100;
@@ -227,7 +249,7 @@ export default function PlatformFinance() {
 			founderCrc,
 			effectiveMaintenanceUsd,
 		};
-	}, [activeSimChargeType, activeSimChannel, settings, exchangeRate, devPercent, founderPercent, maintenanceMonthlyCostUsd, maintenancePercent, customSimMaintenanceUsd]);
+	}, [activeSimChargeType, activeSimChannel, settings, exchangeRate, devPercent, founderPercent, maintenanceMonthlyCostUsd, maintenancePercent, customSimMaintenanceRaw]);
 
 	return (
 		<PageContainer>
@@ -583,7 +605,8 @@ export default function PlatformFinance() {
 													: "text-muted-foreground hover:text-foreground"
 											}`}
 										>
-											{t("finance.setupCharge", "Setup Inicial ($100)")}
+											{t("finance.setupCharge", "Setup inicial")}{" "}
+											({formatUsd(setupPriceUsd)})
 										</button>
 										<button
 											type="button"
@@ -594,7 +617,8 @@ export default function PlatformFinance() {
 													: "text-muted-foreground hover:text-foreground"
 											}`}
 										>
-											{t("finance.monthlyCharge", "Mensualidad ($30)")}
+											{t("finance.monthlyCharge", "Mensualidad")}{" "}
+											({formatUsd(monthlyPriceUsd)})
 										</button>
 									</div>
 
@@ -632,22 +656,20 @@ export default function PlatformFinance() {
 										</span>
 										<div className="relative flex items-center">
 											<span className="text-xs text-muted-foreground font-semibold mr-1">$</span>
-											<input
-												type="number"
-												min="0"
-												step="1"
-												value={simCalculation.effectiveMaintenanceUsd}
-												onChange={(e) => {
-													const val = Number(e.target.value);
-													setCustomSimMaintenanceUsd(isNaN(val) ? 0 : Math.max(0, val));
-												}}
+											<NumericInput
+												mode="decimal"
+												value={
+													customSimMaintenanceRaw ??
+													String(simCalculation.effectiveMaintenanceUsd)
+												}
+												onValueChange={(next) => setCustomSimMaintenanceRaw(next)}
 												className="w-16 rounded border bg-background px-1.5 py-0.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 											/>
 										</div>
-										{customSimMaintenanceUsd !== null && (
+										{customSimMaintenanceRaw !== null && (
 											<button
 												type="button"
-												onClick={() => setCustomSimMaintenanceUsd(null)}
+												onClick={() => setCustomSimMaintenanceRaw(null)}
 												title="Restablecer al valor guardado"
 												className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer ml-0.5"
 											>
@@ -933,9 +955,11 @@ export default function PlatformFinance() {
 				currentSettings={settings}
 				onSaved={() => {
 					setSettingsModalOpen(false);
-					setCustomSimMaintenanceUsd(null);
+					setCustomSimMaintenanceRaw(null);
 					void query.refetch();
-					void queryClient.invalidateQueries({ queryKey: PLATFORM_FINANCE_QUERY_KEY });
+					void queryClient.invalidateQueries({
+						queryKey: PLATFORM_REFERRALS_QUERY_KEY,
+					});
 				}}
 			/>
 		</PageContainer>
@@ -954,30 +978,44 @@ function FinanceSettingsModal({
 	onSaved: () => void;
 }) {
 	const { t } = useLanguage();
-	const [devPercent, setDevPercent] = useState<number>(currentSettings.developerPercent ?? 50);
-	const [founderPercent, setFounderPercent] = useState<number>(currentSettings.founderPercent ?? 50);
-	const [maintenanceMonthlyCostUsd, setMaintenanceMonthlyCostUsd] = useState<number>(
-		currentSettings.maintenanceMonthlyCostUsd ?? 0,
+	const [devPercentRaw, setDevPercentRaw] = useState(
+		String(currentSettings.developerPercent ?? 50),
+	);
+	const [founderPercentRaw, setFounderPercentRaw] = useState(
+		String(currentSettings.founderPercent ?? 50),
+	);
+	const [maintenanceMonthlyCostUsdRaw, setMaintenanceMonthlyCostUsdRaw] = useState(
+		String(currentSettings.maintenanceMonthlyCostUsd ?? 0),
 	);
 	const [maintenancePercent, setMaintenancePercent] = useState<number>(
 		currentSettings.maintenancePercent ?? 0,
 	);
-	const [exchangeRateCrc, setExchangeRateCrc] = useState<number>(
-		currentSettings.exchangeRateCrc ?? 515,
+	const [exchangeRateCrcRaw, setExchangeRateCrcRaw] = useState(
+		String(currentSettings.exchangeRateCrc ?? 515),
 	);
 	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (open) {
-			setDevPercent(currentSettings.developerPercent ?? 50);
-			setFounderPercent(currentSettings.founderPercent ?? 50);
-			setMaintenanceMonthlyCostUsd(currentSettings.maintenanceMonthlyCostUsd ?? 0);
+			setDevPercentRaw(String(currentSettings.developerPercent ?? 50));
+			setFounderPercentRaw(String(currentSettings.founderPercent ?? 50));
+			setMaintenanceMonthlyCostUsdRaw(
+				String(currentSettings.maintenanceMonthlyCostUsd ?? 0),
+			);
 			setMaintenancePercent(currentSettings.maintenancePercent ?? 0);
-			setExchangeRateCrc(currentSettings.exchangeRateCrc ?? 515);
+			setExchangeRateCrcRaw(String(currentSettings.exchangeRateCrc ?? 515));
 		}
 	}, [open, currentSettings]);
 
-	const totalPartnerPercent = (Number(devPercent) || 0) + (Number(founderPercent) || 0);
+	const devPercent = parseNumericField(devPercentRaw, 0);
+	const founderPercent = parseNumericField(founderPercentRaw, 0);
+	const maintenanceMonthlyCostUsd = parseNumericField(
+		maintenanceMonthlyCostUsdRaw,
+		0,
+	);
+	const exchangeRateCrc = parseNumericField(exchangeRateCrcRaw, 0);
+
+	const totalPartnerPercent = devPercent + founderPercent;
 	const isValidSum = totalPartnerPercent === 100;
 
 	async function handleSubmit(e: React.FormEvent) {
@@ -990,11 +1028,11 @@ function FinanceSettingsModal({
 		try {
 			setSaving(true);
 			await updatePlatformReferralSettings({
-				developerPercent: Number(devPercent),
-				founderPercent: Number(founderPercent),
-				maintenanceMonthlyCostUsd: Number(maintenanceMonthlyCostUsd),
+				developerPercent: devPercent,
+				founderPercent: founderPercent,
+				maintenanceMonthlyCostUsd,
 				maintenancePercent: Number(maintenancePercent),
-				exchangeRateCrc: Number(exchangeRateCrc),
+				exchangeRateCrc,
 			});
 			toast.success("Reglas de reparto financiero actualizadas con éxito.");
 			onSaved();
@@ -1007,114 +1045,117 @@ function FinanceSettingsModal({
 
 	return (
 		<Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-			<DialogContent className="max-w-md">
-				<DialogHeader>
+			<DialogContent className="max-w-lg gap-4">
+				<DialogHeader className="space-y-1.5 text-left">
 					<DialogTitle>{t("finance.modalTitle", "Configurar Reparto Financiero")}</DialogTitle>
-					<DialogDescription>
+					<DialogDescription className="text-xs leading-relaxed">
 						{t("finance.modalDesc", "Define cómo se divide el margen neto de GigBlade entre el desarrollador y el socio fundador, así como la reserva de mantenimiento.")}
 					</DialogDescription>
 				</DialogHeader>
 
-				<form onSubmit={handleSubmit} className="space-y-4 pt-2">
-					<div className="grid grid-cols-2 gap-3">
-						<div>
-							<label className="text-xs font-semibold text-foreground flex items-center gap-1">
-								<CodeIcon size={14} className="text-sky-500" />
-								{t("finance.developerShare", "Desarrollador")} (%)
+				<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+					<div className="grid grid-cols-2 gap-x-3 gap-y-1">
+						<div className="flex min-h-[2.75rem] flex-col justify-end">
+							<label className="flex items-center gap-1 text-xs font-semibold leading-tight text-foreground">
+								<CodeIcon size={14} className="shrink-0 text-sky-500" aria-hidden />
+								<span>{t("finance.developerShare", "Desarrollador")}</span>
 							</label>
-							<div className="relative mt-1">
-								<input
-									type="number"
-									min="0"
-									max="100"
-									step="1"
-									required
-									value={devPercent}
-									onChange={(e) => {
-										const val = Number(e.target.value);
-										setDevPercent(val);
-										if (val <= 100) setFounderPercent(100 - val);
-									}}
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary pr-8"
-								/>
-								<span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-semibold">%</span>
-							</div>
+						</div>
+						<div className="flex min-h-[2.75rem] flex-col justify-end">
+							<label className="flex items-center gap-1 text-xs font-semibold leading-tight text-foreground">
+								<CrownIcon size={14} className="shrink-0 text-amber-500" aria-hidden />
+								<span>{t("finance.founderShare", "Socio fundador")}</span>
+							</label>
 						</div>
 
-						<div>
-							<label className="text-xs font-semibold text-foreground flex items-center gap-1">
-								<CrownIcon size={14} className="text-amber-500" />
-								{t("finance.founderShare", "Socio Fundador")} (%)
+						<FieldNumericInput
+							mode="int"
+							required
+							suffix="%"
+							value={devPercentRaw}
+							onValueChange={(next) => {
+								setDevPercentRaw(next);
+								const val = parseNumericField(next, Number.NaN);
+								if (Number.isFinite(val) && val >= 0 && val <= 100) {
+									setFounderPercentRaw(String(Math.round(100 - val)));
+								}
+							}}
+						/>
+						<FieldNumericInput
+							mode="int"
+							required
+							suffix="%"
+							value={founderPercentRaw}
+							onValueChange={(next) => {
+								setFounderPercentRaw(next);
+								const val = parseNumericField(next, Number.NaN);
+								if (Number.isFinite(val) && val >= 0 && val <= 100) {
+									setDevPercentRaw(String(Math.round(100 - val)));
+								}
+							}}
+						/>
+					</div>
+
+					<div
+						className={`text-xs px-2.5 py-1.5 rounded-md ${
+							isValidSum
+								? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+								: "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
+						}`}
+					>
+						{t("finance.totalPartners", "Suma total socios")}:{" "}
+						<strong>{totalPartnerPercent}%</strong>{" "}
+						{isValidSum ? "✓ (Equilibrado)" : "⚠️ Debe sumar exactamente 100%"}
+					</div>
+
+					<div className="grid grid-cols-2 gap-x-3 gap-y-1">
+						<div className="flex min-h-[2.75rem] flex-col justify-end">
+							<label className="flex items-center gap-1 text-xs font-semibold leading-tight text-foreground">
+								<WrenchIcon size={14} className="shrink-0 text-muted-foreground" aria-hidden />
+								<span>{t("finance.fixedMaintenance", "Infra mensual")}</span>
 							</label>
-							<div className="relative mt-1">
-								<input
-									type="number"
-									min="0"
-									max="100"
-									step="1"
-									required
-									value={founderPercent}
-									onChange={(e) => {
-										const val = Number(e.target.value);
-										setFounderPercent(val);
-										if (val <= 100) setDevPercent(100 - val);
-									}}
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary pr-8"
+						</div>
+						<div className="flex min-h-[2.75rem] flex-col justify-end">
+							<label className="flex items-center gap-1 text-xs font-semibold leading-tight text-foreground">
+								<ArrowsLeftRightIcon
+									size={14}
+									className="shrink-0 text-muted-foreground"
+									aria-hidden
 								/>
-								<span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-semibold">%</span>
-							</div>
+								<span>{t("finance.exchangeRate", "Tipo de cambio")}</span>
+							</label>
+						</div>
+
+						<FieldNumericInput
+							mode="decimal"
+							prefix="$"
+							wrapperClassName="w-full"
+							value={maintenanceMonthlyCostUsdRaw}
+							onValueChange={setMaintenanceMonthlyCostUsdRaw}
+						/>
+						<div className="flex w-full min-w-0 items-center gap-1.5">
+							<FieldNumericInput
+								mode="int"
+								prefix="₡"
+								wrapperClassName="min-w-0 flex-1"
+								value={exchangeRateCrcRaw}
+								onValueChange={setExchangeRateCrcRaw}
+							/>
+							<span className="shrink-0 whitespace-nowrap text-[11px] leading-none text-muted-foreground">
+								/ USD
+							</span>
 						</div>
 					</div>
 
-					{/* Validación suma 100% */}
-					<div className={`text-xs px-2.5 py-1.5 rounded-md ${
-						isValidSum ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
-					}`}>
-						{t("finance.totalPartners", "Suma total socios")}: <strong>{totalPartnerPercent}%</strong> {isValidSum ? "✓ (Equilibrado)" : "⚠️ Debe sumar exactamente 100%"}
-					</div>
+					<p className="text-[11px] leading-snug text-muted-foreground">
+						{t(
+							"finance.fixedMaintenanceHelp",
+							"Monto mensual deducible para infraestructura antes del reparto entre socios.",
+						)}{" "}
+						{t("finance.exchangeRateHelp", "Tipo de cambio: colones por cada $1 USD.")}
+					</p>
 
-					<div className="grid grid-cols-2 gap-3">
-						<div>
-							<label className="text-xs font-semibold text-foreground flex items-center gap-1">
-								<WrenchIcon size={14} className="text-muted-foreground" />
-								{t("finance.fixedMaintenance", "Costo Infraestructura Mensual ($)")}
-							</label>
-							<div className="relative mt-1">
-								<input
-									type="number"
-									min="0"
-									step="1"
-									value={maintenanceMonthlyCostUsd}
-									onChange={(e) => setMaintenanceMonthlyCostUsd(Number(e.target.value))}
-									placeholder="0"
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary pl-7"
-								/>
-								<span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground font-semibold">$</span>
-							</div>
-							<p className="mt-1 text-[10px] text-muted-foreground">{t("finance.fixedMaintenanceHelp", "Monto mensual deducible para infraestructura antes del reparto entre socios.")}</p>
-						</div>
-
-						<div>
-							<label className="text-xs font-semibold text-foreground flex items-center gap-1">
-								<CurrencyDollarIcon size={14} className="text-muted-foreground" />
-								{t("finance.exchangeRate", "Tipo Cambio")} (₡ CRC)
-							</label>
-							<div className="relative mt-1">
-								<input
-									type="number"
-									min="100"
-									step="1"
-									value={exchangeRateCrc}
-									onChange={(e) => setExchangeRateCrc(Number(e.target.value))}
-									className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary pl-7"
-								/>
-								<span className="absolute left-2.5 top-2.5 text-xs text-muted-foreground font-semibold">₡</span>
-							</div>
-							<p className="mt-1 text-[10px] text-muted-foreground">Colones por $1 USD.</p>
-						</div>
-					</div>
-
-					<DialogFooter className="pt-2">
+					<DialogFooter className="gap-2 sm:justify-end">
 						<Button type="button" variant="outline" onClick={onClose} disabled={saving}>
 							{t("action.cancel", "Cancelar")}
 						</Button>

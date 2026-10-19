@@ -43,7 +43,13 @@ export function isLocalNetworkHostname(hostname: string): boolean {
   );
 }
 
+/** Dominio de producción de la landing y APIs públicas de GigBlade */
+export const PLATFORM_MARKETING_HOST = "gigblades.com";
+export const PLATFORM_MARKETING_ORIGIN = `https://${PLATFORM_MARKETING_HOST}`;
+
 const MARKETING_HOSTS = new Set([
+  PLATFORM_MARKETING_HOST,
+  `www.${PLATFORM_MARKETING_HOST}`,
   "gigblade.com",
   "www.gigblade.com",
   "gigblades.vercel.app",
@@ -52,6 +58,12 @@ const MARKETING_HOSTS = new Set([
 /** Apex, www, and Vercel URLs serve the platform landing, not a tenant site. */
 export function isMarketingHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);
+  if (
+    normalized === PLATFORM_MARKETING_HOST ||
+    normalized === `www.${PLATFORM_MARKETING_HOST}`
+  ) {
+    return true;
+  }
   if (MARKETING_HOSTS.has(normalized)) {
     return true;
   }

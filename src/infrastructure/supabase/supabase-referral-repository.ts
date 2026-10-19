@@ -347,7 +347,8 @@ export class SupabaseReferralRepository implements ReferralRepository {
       });
 
       const packagePrice = input.packagePrice ?? calc.packagePrice;
-      const commissionPercentage = input.commissionPercentage ?? calc.commissionPercentage;
+      const commissionPercentage =
+        input.commissionPercentage ?? calc.commissionPercentage;
       const commissionAmount = input.commissionAmount ?? calc.commissionAmount;
       const currency = input.currency ?? calc.currency;
 
@@ -359,9 +360,14 @@ export class SupabaseReferralRepository implements ReferralRepository {
           dj_email: input.djEmail,
           dj_waitlist_id: input.djWaitlistId ?? null,
           tenant_id: input.tenantId ?? null,
-          package_id: input.packageId ?? "all_inclusive",
+          charge_type: calc.chargeType,
+          amount_usd: calc.amountUsd,
+          amount_crc: calc.amountCrc,
+          package_id: input.packageId ?? calc.chargeType ?? "initial_setup",
           package_price: packagePrice,
           commission_percentage: commissionPercentage,
+          commission_amount_usd: calc.commissionAmountUsd,
+          commission_amount_crc: calc.commissionAmountCrc,
           commission_amount: commissionAmount,
           currency,
           status: "approved",

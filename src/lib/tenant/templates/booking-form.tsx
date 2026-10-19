@@ -311,7 +311,6 @@ export function BookingForm({
         </div>
       ) : null}
 
-      {/* Botón de envío */}
       <button
         type="submit"
         disabled={status === "submitting"}

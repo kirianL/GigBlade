@@ -152,6 +152,17 @@ export function phoneWhatsappUrl(phone: string): string | null {
   return `https://wa.me/${digits}`;
 }
 
+export function whatsappUrlWithText(
+  phone: string,
+  text: string,
+): string | null {
+  const base = phoneWhatsappUrl(phone);
+  if (!base) return null;
+  const message = text.trim();
+  if (!message) return base;
+  return `${base}?text=${encodeURIComponent(message)}`;
+}
+
 export function isWaitlistDraft(
   value: WaitlistDraft | { discarded: true },
 ): value is WaitlistDraft {

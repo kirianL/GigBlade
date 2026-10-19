@@ -112,7 +112,7 @@ export function djByArtistName(name: string | null) {
 	);
 }
 
-const PRODUCTION_SITE_URL = "https://gigblades.vercel.app";
+const PRODUCTION_SITE_URL = "https://gigblades.com";
 
 export function gigbladeMarketingSiteUrl() {
 	const configured = import.meta.env.VITE_GIGBLADE_SITE_URL?.replace(/\/$/, "");

@@ -18,7 +18,7 @@ describe("referral domain", () => {
 	});
 
 	it("genera enlaces directos de afiliado", () => {
-		expect(buildReferralLink("MAXX")).toBe("https://gigblades.vercel.app/acceso?ref=MAXX");
+		expect(buildReferralLink("MAXX")).toBe("https://gigblades.com/acceso?ref=MAXX");
 		expect(buildReferralLink("FAMA", "http://localhost:3000")).toBe(
 			"http://localhost:3000/acceso?ref=FAMA",
 		);

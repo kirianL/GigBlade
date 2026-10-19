@@ -22,11 +22,11 @@ describe("readBearerToken", () => {
   });
 
   it("arma Set-Cookie con Domain en dominios propios", () => {
-    const req = new Request("https://gigblade.com/api/panel/login");
+    const req = new Request("https://gigblades.com/api/panel/login");
     const header = panelSessionSetCookie(req, "abc");
     expect(header).toContain(`${PANEL_SESSION_COOKIE}=abc`);
     expect(header).toContain("HttpOnly");
     expect(header).toContain("Secure");
-    expect(header).toContain("Domain=.gigblade.com");
+    expect(header).toContain("Domain=.gigblades.com");
   });
 });

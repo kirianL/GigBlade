@@ -1,4 +1,5 @@
 import { validationError } from "@/domain/errors";
+import { PLATFORM_MARKETING_ORIGIN } from "@/domain/hostname";
 
 export type PaymentMethod = "sinpe" | "iban";
 export type AffiliateStatus = "active" | "paused" | "archived";
@@ -210,7 +211,7 @@ export function defaultReferralOrigin(): string {
     if (preview) return `https://${preview.replace(/\/+$/, "")}`;
   }
 
-  return "https://gigblades.vercel.app";
+  return PLATFORM_MARKETING_ORIGIN;
 }
 
 export function buildReferralLink(code: string, origin?: string): string {

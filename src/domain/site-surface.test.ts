@@ -11,6 +11,7 @@ describe("site-surface", () => {
     expect(servesTenantSiteSurface("localhost")).toBe(false);
     expect(servesTenantSiteSurface("127.0.0.1")).toBe(false);
     expect(servesTenantSiteSurface("192.168.50.197")).toBe(false);
+    expect(servesTenantSiteSurface("gigblades.com")).toBe(false);
     expect(servesTenantSiteSurface("gigblade.com")).toBe(false);
     expect(servesTenantSiteSurface("gigblades.vercel.app")).toBe(false);
   });

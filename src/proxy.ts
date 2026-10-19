@@ -5,6 +5,7 @@ import {
   isLocalNetworkHostname,
   isMarketingHostname,
   normalizeHostname,
+  PLATFORM_MARKETING_HOST,
 } from "./domain/hostname";
 import {
   isTenantPreviewHostname,
@@ -41,6 +42,12 @@ export async function proxy(request: NextRequest) {
   const hostname = normalizeHostname(
     request.headers.get("host") || request.nextUrl.hostname,
   );
+
+  if (hostname === `www.${PLATFORM_MARKETING_HOST}`) {
+    const redirect = request.nextUrl.clone();
+    redirect.hostname = PLATFORM_MARKETING_HOST;
+    return NextResponse.redirect(redirect, 308);
+  }
 
   if (
     isMarketingHostname(hostname) ||
@@ -113,3 +120,5 @@ export const config = {
     "/((?!_next/|favicon.ico|api/panel|api/platform|api/waitlist|api/mix-cover|api/blog-md|api/alog-md).*)",
   ],
 };
+
+export default proxy;

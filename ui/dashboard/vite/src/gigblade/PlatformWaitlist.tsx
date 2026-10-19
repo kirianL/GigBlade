@@ -10,7 +10,12 @@ import {
 	PageContainer,
 	PageHeader,
 } from "@autumn/ui";
-import { EnvelopeSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+	EnvelopeSimpleIcon,
+	PlusIcon,
+	TrashIcon,
+	WhatsappLogoIcon,
+} from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +27,7 @@ import {
 	onboardWaitlistSignup,
 	type WaitlistSignup,
 } from "@/gigblade/site-api";
+import { waitlistWhatsappHref } from "@/gigblade/waitlist-whatsapp";
 
 export const PLATFORM_WAITLIST_QUERY_KEY = ["platform", "waitlist"] as const;
 
@@ -33,13 +39,6 @@ function formatSignupDate(value: string, lang = "es") {
 		month: "short",
 		year: "numeric",
 	}).format(date);
-}
-
-function whatsappHref(phone: string, country: WaitlistSignup["country"]) {
-	let digits = phone.replace(/\D/g, "");
-	if (!digits) return null;
-	if (country === "CR" && digits.length === 8) digits = `506${digits}`;
-	return `https://wa.me/${digits}`;
 }
 
 function DeleteSignupButton({
@@ -309,9 +308,7 @@ function SignupRow({
 	const instagram = signup.instagram
 		? `https://instagram.com/${signup.instagram}`
 		: null;
-	const whatsapp = signup.phone
-		? whatsappHref(signup.phone, signup.country)
-		: null;
+	const whatsapp = waitlistWhatsappHref(signup);
 
 	const statusLabel =
 		signup.status === "pending"
@@ -347,10 +344,23 @@ function SignupRow({
 						</a>
 					) : null}
 				</div>
-				<div className="flex items-center gap-3">
-					<p className="text-xs font-medium text-tertiary-foreground">
+				<div className="flex flex-wrap items-center justify-end gap-2">
+					<p className="text-xs font-medium text-tertiary-foreground w-full sm:w-auto sm:mr-1">
 						{statusLabel}
 					</p>
+					{whatsapp ? (
+						<Button variant="outline" size="sm" className="gap-1.5" asChild>
+							<a
+								href={whatsapp}
+								target="_blank"
+								rel="noreferrer"
+								aria-label={`${t("waitlist.whatsapp", "Contactar WhatsApp")}: ${signup.artistName}`}
+							>
+								<WhatsappLogoIcon size={16} weight="fill" className="text-emerald-600" />
+								{t("waitlist.whatsapp", "WhatsApp")}
+							</a>
+						</Button>
+					) : null}
 					{signup.status === "pending" || signup.status === "contacted" ? (
 						<CreatePageButton signup={signup} onCreated={onCreated} />
 					) : null}

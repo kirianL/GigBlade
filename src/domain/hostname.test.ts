@@ -57,6 +57,8 @@ describe("hostname", () => {
     expect(isMarketingHostname("gigblades-git-main-kirian.vercel.app")).toBe(
       true,
     );
+    expect(isMarketingHostname("gigblades.com")).toBe(true);
+    expect(isMarketingHostname("www.gigblades.com")).toBe(true);
     expect(isMarketingHostname("gigblade.com")).toBe(true);
     expect(isMarketingHostname("dj.example.com")).toBe(false);
   });

@@ -29,12 +29,13 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useLanguage } from "@/contexts/LanguageProvider";
 import { gigbladeMarketingSiteUrl } from "@/gigblade/concept";
+import { NumericInput, parseNumericField } from "@/gigblade/numeric-input";
 import {
   createPlatformAffiliate,
   fetchPlatformReferrals,
@@ -46,7 +47,9 @@ import {
   type PlatformReferralSettings,
 } from "@/gigblade/site-api";
 
-export const PLATFORM_REFERRALS_QUERY_KEY = ["platform", "referrals"] as const;
+import { PLATFORM_REFERRALS_QUERY_KEY } from "@/gigblade/platform-referrals-query";
+
+export { PLATFORM_REFERRALS_QUERY_KEY };
 
 function formatUsd(amount: number) {
   return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -138,7 +141,18 @@ export default function PlatformReferrals() {
     queryFn: ({ signal }) => fetchPlatformReferrals(signal),
     enabled: Boolean(isPlatform),
     staleTime: 15_000,
+    retry: 1,
   });
+
+  useEffect(() => {
+    if (!query.isError) return;
+    toast.error(
+      t(
+        "referrals.loadError",
+        "No se pudieron cargar referidos y comisiones. Recargá la página.",
+      ),
+    );
+  }, [query.isError, t]);
 
   const { affiliates, conversions, settings, payouts } = query.data ?? {
     affiliates: [],
@@ -159,6 +173,25 @@ export default function PlatformReferrals() {
   };
 
   const exchangeRate = settings.exchangeRateCrc || 515;
+
+  const commissionScheme = useMemo(() => {
+    const setupPriceUsd = settings.initialSetupPriceUsd ?? 100;
+    const setupPercent = settings.initialSetupPercent ?? 20;
+    const monthlyPriceUsd = settings.monthlyPriceUsd ?? 30;
+    const monthlyPercent = settings.monthlyPercent ?? 15;
+    const setupCommissionUsd = (setupPriceUsd * setupPercent) / 100;
+    const monthlyCommissionUsd = (monthlyPriceUsd * monthlyPercent) / 100;
+    return {
+      setupPriceUsd,
+      setupPercent,
+      monthlyPriceUsd,
+      monthlyPercent,
+      setupCommissionUsd,
+      monthlyCommissionUsd,
+      setupCommissionCrc: Math.round(setupCommissionUsd * exchangeRate),
+      monthlyCommissionCrc: Math.round(monthlyCommissionUsd * exchangeRate),
+    };
+  }, [settings, exchangeRate]);
 
   // Métricas globales en USD y Colones
   const metrics = useMemo(() => {
@@ -310,133 +343,78 @@ export default function PlatformReferrals() {
         </div>
       </div>
 
-      {/* Resumen de Tarifas y Porcentajes Configurados (Sin Paquetes) */}
-      <div className="mt-4 rounded-xl border bg-gradient-to-r from-card via-card to-card/60 p-4 shadow-xs">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <PercentIcon size={18} className="text-primary" />
-              <span className="font-semibold text-sm">
-                {t("referrals.currentScheme", "Esquema de Comisiones Actual")}
-              </span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                {t("referrals.modifiable", "100% Modificable")}
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {t("referrals.exchangeRateLabel", "T.C.")} ₡{exchangeRate} / $1
-                USD
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {t(
-                "referrals.schemeExplanation",
-                "Cuando una persona que no es DJ recomienda el servicio y un DJ se suma a GigBlade, el promotor gana:",
-              )}
-            </p>
+      {/* Comisiones vigentes (lectura rápida) */}
+      <div className="mt-4 rounded-xl border bg-card p-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <PercentIcon size={17} className="text-primary" aria-hidden />
+              {t("referrals.currentScheme", "Comisiones por referido")}
+            </h2>
+            <span className="text-[11px] text-muted-foreground">
+              · ₡{exchangeRate.toLocaleString("es-CR")} = $1 USD
+            </span>
           </div>
           <button
             type="button"
             onClick={() => setSettingsModalOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted transition-colors cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted transition-colors cursor-pointer"
           >
-            <GearIcon size={13} />
+            <GearIcon size={13} aria-hidden />
             <span>{t("referrals.editRates", "Editar tarifas")}</span>
           </button>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* 1. Cobro Inicial de la Página */}
-          <div className="flex items-center justify-between rounded-lg border bg-background/50 p-3">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5">
-                <DesktopIcon size={16} className="text-purple-400" />
-                <span className="text-xs font-bold">
-                  {t(
-                    "referrals.setupCommissionCard",
-                    "1. Cobro Inicial (Creación de Página)",
-                  )}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {t("referrals.chargedFee", "Tarifa cobrada:")}{" "}
-                <strong className="text-foreground">
-                  {formatUsd(settings.initialSetupPriceUsd ?? 100)}
-                </strong>{" "}
-                (
-                {formatCrc(
-                  (settings.initialSetupPriceUsd ?? 100) * exchangeRate,
-                )}
-                )
-              </div>
+          <div className="rounded-lg border border-purple-200/60 bg-purple-50/50 p-3.5 dark:border-purple-900/50 dark:bg-purple-950/25">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
+              <DesktopIcon size={14} aria-hidden />
+              {t("referrals.schemeSetupLabel", "Setup web · una vez")}
             </div>
-            <div className="text-right">
-              <span className="text-base font-extrabold text-primary">
-                {settings.initialSetupPercent ?? 20}%{" "}
-                {t("referrals.commission", "comisión")}
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xl font-bold tabular-nums text-foreground">
+                {formatUsd(commissionScheme.setupCommissionUsd)}
               </span>
-              <div className="text-xs font-semibold text-emerald-500 dark:text-emerald-400">
-                {t("referrals.earns", "Gana")}{" "}
-                {formatUsd(
-                  ((settings.initialSetupPriceUsd ?? 100) *
-                    (settings.initialSetupPercent ?? 20)) /
-                    100,
-                )}{" "}
-                (
-                {formatCrc(
-                  (((settings.initialSetupPriceUsd ?? 100) *
-                    (settings.initialSetupPercent ?? 20)) /
-                    100) *
-                    exchangeRate,
-                )}
-                )
-              </div>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {formatCrc(commissionScheme.setupCommissionCrc)}
+              </span>
             </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              <span className="font-semibold text-primary">
+                {commissionScheme.setupPercent}%
+              </span>
+              {" × "}
+              {formatUsd(commissionScheme.setupPriceUsd)}{" "}
+              {t("referrals.schemeDjCharge", "cobro al DJ")}
+            </p>
           </div>
 
-          {/* 2. Mensualidad Recurrente */}
-          <div className="flex items-center justify-between rounded-lg border bg-background/50 p-3">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5">
-                <CalendarCheckIcon size={16} className="text-sky-400" />
-                <span className="text-xs font-bold">
-                  {t(
-                    "referrals.monthlyCommissionCard",
-                    "2. Mensualidad Recurrente del Servicio",
-                  )}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {t("referrals.setMonthlyFee", "Mensualidad fijada:")}{" "}
-                <strong className="text-foreground">
-                  {formatUsd(settings.monthlyPriceUsd ?? 30)}
+          <div className="rounded-lg border border-sky-200/60 bg-sky-50/50 p-3.5 dark:border-sky-900/50 dark:bg-sky-950/25">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+              <CalendarCheckIcon size={14} aria-hidden />
+              {t("referrals.schemeMonthlyLabel", "Mensualidad · cada mes")}
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-xl font-bold tabular-nums text-foreground">
+                {formatUsd(commissionScheme.monthlyCommissionUsd)}
+                <span className="text-sm font-semibold text-muted-foreground">
                   {t("referrals.perMonth", "/mes")}
-                </strong>{" "}
-                ({formatCrc((settings.monthlyPriceUsd ?? 30) * exchangeRate)}
-                {t("referrals.perMonth", "/mes")})
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-base font-extrabold text-primary">
-                {settings.monthlyPercent ?? 15}%{" "}
-                {t("referrals.recurring", "recurrente")}
+                </span>
               </span>
-              <div className="text-xs font-semibold text-emerald-500 dark:text-emerald-400">
-                {t("referrals.earns", "Gana")}{" "}
-                {formatUsd(
-                  ((settings.monthlyPriceUsd ?? 30) *
-                    (settings.monthlyPercent ?? 15)) /
-                    100,
-                )}
-                {t("referrals.perMonth", "/mes")} (
-                {formatCrc(
-                  (((settings.monthlyPriceUsd ?? 30) *
-                    (settings.monthlyPercent ?? 15)) /
-                    100) *
-                    exchangeRate,
-                )}
-                {t("referrals.perMonth", "/mes")})
-              </div>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {formatCrc(commissionScheme.monthlyCommissionCrc)}
+                {t("referrals.perMonth", "/mes")}
+              </span>
             </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              <span className="font-semibold text-primary">
+                {commissionScheme.monthlyPercent}%
+              </span>
+              {" × "}
+              {formatUsd(commissionScheme.monthlyPriceUsd)}
+              {t("referrals.perMonth", "/mes")}{" "}
+              {t("referrals.schemeDjCharge", "cobro al DJ")}
+            </p>
           </div>
         </div>
       </div>
@@ -794,7 +772,7 @@ function ListaAfiliados({
   const marketingUrl = gigbladeMarketingSiteUrl();
 
   const resolveReferralLink = (aff: PlatformAffiliate) => {
-    // En desarrollo local apunta a localhost:3000 y en producción a gigblades.vercel.app
+    // En desarrollo local apunta a localhost:3000 y en producción a gigblades.com
     return `${marketingUrl.replace(/\/+$/, "")}/acceso?ref=${encodeURIComponent(aff.code)}`;
   };
 
@@ -1106,25 +1084,31 @@ function ModalAjustarPorcentajes({
 }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [exchangeRate, setExchangeRate] = useState(
-    currentSettings.exchangeRateCrc || 515,
+  const [exchangeRateRaw, setExchangeRateRaw] = useState(
+    String(currentSettings.exchangeRateCrc || 515),
   );
 
   // 1. Cobro Inicial
-  const [initialPriceUsd, setInitialPriceUsd] = useState(
-    currentSettings.initialSetupPriceUsd ?? 100,
+  const [initialPriceUsdRaw, setInitialPriceUsdRaw] = useState(
+    String(currentSettings.initialSetupPriceUsd ?? 100),
   );
-  const [initialPercent, setInitialPercent] = useState(
-    currentSettings.initialSetupPercent ?? 20,
+  const [initialPercentRaw, setInitialPercentRaw] = useState(
+    String(currentSettings.initialSetupPercent ?? 20),
   );
 
   // 2. Mensualidad
-  const [monthlyPriceUsd, setMonthlyPriceUsd] = useState(
-    currentSettings.monthlyPriceUsd ?? 30,
+  const [monthlyPriceUsdRaw, setMonthlyPriceUsdRaw] = useState(
+    String(currentSettings.monthlyPriceUsd ?? 30),
   );
-  const [monthlyPercent, setMonthlyPercent] = useState(
-    currentSettings.monthlyPercent ?? 15,
+  const [monthlyPercentRaw, setMonthlyPercentRaw] = useState(
+    String(currentSettings.monthlyPercent ?? 15),
   );
+
+  const exchangeRate = parseNumericField(exchangeRateRaw, 0);
+  const initialPriceUsd = parseNumericField(initialPriceUsdRaw, 0);
+  const initialPercent = parseNumericField(initialPercentRaw, 0);
+  const monthlyPriceUsd = parseNumericField(monthlyPriceUsdRaw, 0);
+  const monthlyPercent = parseNumericField(monthlyPercentRaw, 0);
 
   // Previews en vivo
   const initialCommissionUsd = Number(
@@ -1139,22 +1123,37 @@ function ModalAjustarPorcentajes({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      exchangeRateRaw === "" ||
+      initialPriceUsdRaw === "" ||
+      initialPercentRaw === "" ||
+      monthlyPriceUsdRaw === "" ||
+      monthlyPercentRaw === ""
+    ) {
+      toast.error(
+        t(
+          "referrals.modalSettings.fillAllFields",
+          "Completá todos los campos numéricos.",
+        ),
+      );
+      return;
+    }
     setLoading(true);
     try {
       await updatePlatformReferralSettings({
         currency: "USD",
-        exchangeRateCrc: Number(exchangeRate),
-        initialSetupPriceUsd: Number(initialPriceUsd),
-        initialSetupPercent: Number(initialPercent),
-        monthlyPriceUsd: Number(monthlyPriceUsd),
-        monthlyPercent: Number(monthlyPercent),
+        exchangeRateCrc: exchangeRate,
+        initialSetupPriceUsd: initialPriceUsd,
+        initialSetupPercent: initialPercent,
+        monthlyPriceUsd: monthlyPriceUsd,
+        monthlyPercent: monthlyPercent,
         percentages: {
-          initial_setup: Number(initialPercent),
-          monthly: Number(monthlyPercent),
+          initial_setup: initialPercent,
+          monthly: monthlyPercent,
         },
         packagePrices: {
-          initial_setup: Number(initialPriceUsd),
-          monthly: Number(monthlyPriceUsd),
+          initial_setup: initialPriceUsd,
+          monthly: monthlyPriceUsd,
         },
       });
       toast.success(
@@ -1173,15 +1172,17 @@ function ModalAjustarPorcentajes({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent
+        className="flex max-h-[min(85vh,40rem)] w-[calc(100%-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 sm:w-full"
+      >
+        <DialogHeader className="shrink-0 space-y-1 px-5 pt-5 pb-3 text-left">
+          <DialogTitle className="pr-8 text-base leading-snug sm:text-lg">
             {t(
               "referrals.modalSettings.title",
               "Modificar Porcentajes y Tarifas de Afiliados",
             )}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs leading-relaxed">
             {t(
               "referrals.modalSettings.desc",
               "Ajustá los porcentajes que ganan los promotores por el cobro inicial de la página y por la mensualidad de $30. Todo se define en dólares con conversión a colones.",
@@ -1189,10 +1190,14 @@ function ModalAjustarPorcentajes({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-1">
           {/* Tipo de Cambio */}
-          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-2">
               <ArrowsLeftRightIcon size={18} className="text-primary" />
               <div>
                 <div className="text-xs font-bold">
@@ -1209,25 +1214,25 @@ function ModalAjustarPorcentajes({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-muted-foreground">
+            <div className="flex shrink-0 items-center justify-end gap-1.5 sm:justify-start">
+              <span className="text-sm font-semibold leading-none text-muted-foreground">
                 ₡
               </span>
-              <input
-                type="number"
+              <NumericInput
+                mode="int"
                 required
-                min="300"
-                max="1000"
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(Number(e.target.value))}
-                className="h-8 w-20 rounded-md border bg-background px-2 text-xs font-mono font-bold text-center"
+                value={exchangeRateRaw}
+                onValueChange={setExchangeRateRaw}
+                className="h-8 w-20 shrink-0 rounded-md border bg-background px-2 text-xs font-mono font-bold text-center leading-none"
               />
-              <span className="text-xs text-muted-foreground">/ USD</span>
+              <span className="whitespace-nowrap text-xs leading-none text-muted-foreground">
+                / USD
+              </span>
             </div>
           </div>
 
           {/* 1. Cobro Inicial de la Página */}
-          <div className="rounded-xl border p-4 bg-card space-y-3 shadow-2xs">
+          <div className="rounded-xl border bg-card space-y-2.5 p-3 shadow-2xs sm:p-3.5">
             <div className="flex items-center gap-2">
               <DesktopIcon
                 size={18}
@@ -1259,12 +1264,10 @@ function ModalAjustarPorcentajes({
                   <span className="absolute left-2.5 top-1.5 text-xs text-muted-foreground font-bold">
                     $
                   </span>
-                  <input
-                    type="number"
+                  <NumericInput
                     required
-                    min="10"
-                    value={initialPriceUsd}
-                    onChange={(e) => setInitialPriceUsd(Number(e.target.value))}
+                    value={initialPriceUsdRaw}
+                    onValueChange={setInitialPriceUsdRaw}
                     className="h-8 w-full rounded-md border bg-background pl-6 pr-2 text-xs font-semibold"
                   />
                 </div>
@@ -1281,13 +1284,11 @@ function ModalAjustarPorcentajes({
                   )}
                 </label>
                 <div className="flex items-center gap-1">
-                  <input
-                    type="number"
+                  <NumericInput
+                    mode="int"
                     required
-                    min="1"
-                    max="100"
-                    value={initialPercent}
-                    onChange={(e) => setInitialPercent(Number(e.target.value))}
+                    value={initialPercentRaw}
+                    onValueChange={setInitialPercentRaw}
                     className="h-8 w-full rounded-md border bg-background px-2 text-xs font-bold text-primary"
                   />
                   <span className="text-xs font-bold">%</span>
@@ -1317,7 +1318,7 @@ function ModalAjustarPorcentajes({
           </div>
 
           {/* 2. Mensualidad Recurrente */}
-          <div className="rounded-xl border p-4 bg-card space-y-3 shadow-2xs">
+          <div className="rounded-xl border bg-card space-y-2.5 p-3 shadow-2xs sm:p-3.5">
             <div className="flex items-center gap-2">
               <CalendarCheckIcon
                 size={18}
@@ -1349,12 +1350,10 @@ function ModalAjustarPorcentajes({
                   <span className="absolute left-2.5 top-1.5 text-xs text-muted-foreground font-bold">
                     $
                   </span>
-                  <input
-                    type="number"
+                  <NumericInput
                     required
-                    min="5"
-                    value={monthlyPriceUsd}
-                    onChange={(e) => setMonthlyPriceUsd(Number(e.target.value))}
+                    value={monthlyPriceUsdRaw}
+                    onValueChange={setMonthlyPriceUsdRaw}
                     className="h-8 w-full rounded-md border bg-background pl-6 pr-2 text-xs font-semibold"
                   />
                 </div>
@@ -1372,13 +1371,11 @@ function ModalAjustarPorcentajes({
                   )}
                 </label>
                 <div className="flex items-center gap-1">
-                  <input
-                    type="number"
+                  <NumericInput
+                    mode="int"
                     required
-                    min="1"
-                    max="100"
-                    value={monthlyPercent}
-                    onChange={(e) => setMonthlyPercent(Number(e.target.value))}
+                    value={monthlyPercentRaw}
+                    onValueChange={setMonthlyPercentRaw}
                     className="h-8 w-full rounded-md border bg-background px-2 text-xs font-bold text-primary"
                   />
                   <span className="text-xs font-bold">%</span>
@@ -1409,7 +1406,9 @@ function ModalAjustarPorcentajes({
             </div>
           </div>
 
-          <DialogFooter className="pt-2">
+          </div>
+
+          <DialogFooter className="shrink-0 gap-2 border-t bg-background px-5 py-3.5 sm:py-4">
             <Button
               variant="secondary"
               type="button"
@@ -1730,7 +1729,8 @@ function ModalLiquidacionPago({
 }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [amountCrc, setAmountCrc] = useState(target.amountCrc);
+  const [amountCrcRaw, setAmountCrcRaw] = useState(String(target.amountCrc));
+  const amountCrc = parseNumericField(amountCrcRaw, 0);
   const [referenceNumber, setReferenceNumber] = useState("");
   const [note, setNote] = useState("");
   const method = target.affiliate.paymentMethod;
@@ -1816,12 +1816,11 @@ function ModalLiquidacionPago({
               <span className="absolute left-2.5 top-2 text-sm font-semibold text-muted-foreground">
                 ₡
               </span>
-              <input
-                type="number"
+              <NumericInput
+                mode="int"
                 required
-                min="100"
-                value={amountCrc}
-                onChange={(e) => setAmountCrc(Number(e.target.value))}
+                value={amountCrcRaw}
+                onValueChange={setAmountCrcRaw}
                 className="h-9 w-full rounded-md border bg-background pl-7 pr-3 text-sm font-bold text-emerald-500 dark:text-emerald-400"
               />
             </div>

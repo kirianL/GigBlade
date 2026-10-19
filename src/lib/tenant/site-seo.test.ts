@@ -141,12 +141,12 @@ describe("SEO de sitios DJ", () => {
 
 describe("SEO de GigBlade", () => {
   it("lista solo páginas públicas e indexables", () => {
-    expect(platformSitemap("https://gigblade.com").map((entry) => entry.url)).toEqual([
-      "https://gigblade.com",
-      "https://gigblade.com/pricing",
-      "https://gigblade.com/acceso",
-      "https://gigblade.com/terms",
-      "https://gigblade.com/privacy",
+    expect(platformSitemap("https://gigblades.com").map((entry) => entry.url)).toEqual([
+      "https://gigblades.com",
+      "https://gigblades.com/pricing",
+      "https://gigblades.com/acceso",
+      "https://gigblades.com/terms",
+      "https://gigblades.com/privacy",
     ]);
   });
 });

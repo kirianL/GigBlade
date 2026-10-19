@@ -23,6 +23,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { djDomainLabel, djPublicUrl } from "@/gigblade/concept";
 import { readPanelAuthSession } from "@/gigblade/panel-session";
+import { djBookingWhatsappHref } from "@/gigblade/booking-whatsapp";
 import {
 	fetchDjBookings,
 	updateBookingStatus,
@@ -90,10 +91,6 @@ function formatRelativeCreated(isoStr: string) {
 	} catch {
 		return "";
 	}
-}
-
-function cleanPhoneForWhatsapp(phone: string) {
-	return phone.replace(/[^0-9]/g, "");
 }
 
 export default function DjBookingsPage() {
@@ -318,7 +315,10 @@ export default function DjBookingsPage() {
 					{filteredBookings.map((item) => {
 						const statusInfo = STATUS_LABELS[item.status] || STATUS_LABELS.pending;
 						const isUpdating = updatingId === item.id;
-						const waPhone = item.phone ? cleanPhoneForWhatsapp(item.phone) : null;
+						const whatsappHref =
+							item.phone
+								? djBookingWhatsappHref(item.phone, dj.name, item)
+								: null;
 
 						return (
 							<div
@@ -383,9 +383,9 @@ export default function DjBookingsPage() {
 													<PhoneIcon size={14} className="text-tertiary-foreground" />
 													{item.phone}
 												</a>
-												{waPhone && (
+												{whatsappHref && (
 													<a
-														href={`https://wa.me/${waPhone}`}
+														href={whatsappHref}
 														target="_blank"
 														rel="noreferrer"
 														className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium hover:bg-emerald-500/20 transition-colors"
