@@ -1,11 +1,7 @@
 import { unauthorized, validationError } from "@/domain/errors";
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
-import {
-  readJsonBody,
-  requirePanelActor,
-  requirePlatformActor,
-} from "@/lib/http/panel-request";
+import { readJsonBody, requirePanelActor } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
   jsonWithTenantCors,
@@ -21,12 +17,17 @@ export async function GET(request: Request) {
   const requestId = createRequestId();
 
   try {
-    await requirePlatformActor(
-      request,
-      "Solo la plataforma puede listar dominios.",
-    );
+    const actor = await requirePanelActor(request);
+    if (actor.role !== "platform" && actor.role !== "dj") {
+      throw unauthorized("No autorizado para ver dominios.");
+    }
+    if (actor.role === "dj" && !actor.slug) {
+      return jsonWithTenantCors(request, { domains: [] }, { requestId });
+    }
 
-    const domains = await getApp().listPlatformDomains();
+    const domains = await getApp().listPlatformDomains(
+      actor.role === "dj" ? actor.slug : undefined,
+    );
     return jsonWithTenantCors(request, { domains }, { requestId });
   } catch (error) {
     return withTenantCors(request, errorResponse(error, requestId));

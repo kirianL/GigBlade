@@ -54,7 +54,7 @@ function warmData(path: string, queryClient: QueryClient) {
 	if (path === "/studio" && session?.user.slug) {
 		void fetchPublicSite(session.user.slug);
 	}
-	if (path === "/domains" || path === "/studio/domains") {
+	if (isPlatform && path === "/domains") {
 		void queryClient.prefetchQuery({
 			queryKey: PLATFORM_DOMAINS_QUERY_KEY,
 			queryFn: () => fetchPlatformDomains(session?.token),

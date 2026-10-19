@@ -10,6 +10,7 @@ export async function listPlatformDomains(
   tenants: TenantRepository,
   routing: TenantRoutingStore,
   projectDomains: ProjectDomains,
+  onlySlug?: string,
 ): Promise<DomainAutomationDetail[]> {
   const [allTenants, allRoutes] = await Promise.all([
     tenants.list(),
@@ -26,6 +27,7 @@ export async function listPlatformDomains(
   const results: DomainAutomationDetail[] = [];
 
   for (const tenant of allTenants) {
+    if (onlySlug && tenant.slug !== onlySlug) continue;
     const profile = readSiteProfile(tenant.slug, tenant.themeConfig);
     const tenantRoutes = routesByTenant.get(tenant.id) ?? [];
     const customRoute = tenantRoutes.find(

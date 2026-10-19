@@ -15,9 +15,12 @@ export function usePlatformDomains() {
   const queryClient = useQueryClient();
   const session = readPanelAuthSession();
 
+  const isPlatform = session?.user.role === "platform";
   const query = useQuery({
     queryKey: PLATFORM_DOMAINS_QUERY_KEY,
     queryFn: () => fetchPlatformDomains(session?.token),
+    enabled: isPlatform,
+    retry: false,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnMount: false,

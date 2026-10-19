@@ -178,8 +178,8 @@ export function createRealApp() {
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
-    listPlatformDomains: () =>
-      listPlatformDomains(tenants, domainRouting, projectDomains),
+    listPlatformDomains: (slug?: string) =>
+      listPlatformDomains(tenants, domainRouting, projectDomains, slug),
     assignPlatformDomain: (input: unknown) =>
       assignPlatformDomain(
         tenants,

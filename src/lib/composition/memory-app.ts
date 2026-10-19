@@ -199,7 +199,8 @@ export function createMemoryApp() {
       input: { id: unknown },
     ) => removeWaitlistSignup(waitlist, actor, input),
     projectDomains,
-    listPlatformDomains: () => listPlatformDomains(tenants, routing, projectDomains),
+    listPlatformDomains: (slug?: string) =>
+      listPlatformDomains(tenants, routing, projectDomains, slug),
     assignPlatformDomain: (input: unknown) =>
       assignPlatformDomain(tenants, routing, projectDomains, input),
     verifyPlatformDomain: (domain: string) =>
