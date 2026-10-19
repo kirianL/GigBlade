@@ -33,7 +33,7 @@ const geistMono = Geist_Mono({
 
 const url = getSiteUrl();
 const description =
-  "Presencia digital para DJs: dominio propio, plantilla para eventos y panel propio. Hosting, seguridad y dominio administrado por GigBlades.";
+  "Presencia digital para DJs: página propia personalizable con bookings, panel propio, hosting, seguridad y dominio administrado.";
 const title = "Página propia para DJs | GigBlades";
 const previewDeploy = process.env.VERCEL_ENV === "preview";
 
