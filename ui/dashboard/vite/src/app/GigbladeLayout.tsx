@@ -64,7 +64,7 @@ export function GigbladeLayout() {
 	}
 
 	return (
-		<div className="flex h-dvh w-full max-w-full overflow-x-hidden bg-outer-background">
+		<div className="flex min-h-dvh w-full max-w-full overflow-x-hidden bg-background sm:h-dvh sm:overflow-hidden sm:bg-outer-background">
 			<Toaster
 				position="top-center"
 				duration={4200}
@@ -83,14 +83,14 @@ export function GigbladeLayout() {
 				open={mobileSidebarOpen}
 				onOpenChange={setMobileSidebarOpen}
 			/>
-			<main className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden font-normal sm:py-3 sm:pr-3">
-				<div className="relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden sm:rounded-xl sm:border">
+			<main className="relative flex min-h-dvh min-w-0 flex-1 flex-col font-normal sm:h-full sm:min-h-0 sm:overflow-hidden sm:py-3 sm:pr-3">
+				<div className="relative flex min-h-dvh min-w-0 w-full flex-1 flex-col sm:h-full sm:min-h-0 sm:overflow-hidden sm:rounded-xl sm:border">
 					<MobileTopBar onMenuClick={() => setMobileSidebarOpen(true)} />
 					<div
 						data-main-content
-						className="gigblade-safe-bottom relative flex min-h-0 min-w-0 w-full flex-1 justify-center overflow-x-hidden overflow-y-auto bg-background"
+						className="gigblade-safe-bottom relative flex min-h-0 min-w-0 w-full flex-1 justify-center overflow-x-hidden bg-background sm:overflow-y-auto"
 					>
-						<div className="min-h-full min-w-0 w-full max-w-full justify-center">
+						<div className="min-w-0 w-full max-w-full justify-center">
 							<AppErrorBoundary
 								pathname={pathname}
 								message="No se pudo abrir esta página. Probá otra del menú."
