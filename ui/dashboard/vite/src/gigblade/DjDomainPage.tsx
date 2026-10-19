@@ -712,7 +712,7 @@ export default function DjDomainPage() {
                 <div className="bg-background/80 border border-border/60 rounded p-2.5 flex flex-col gap-1">
                   <p className="font-semibold text-foreground">3. Verifica con 1 clic</p>
                   <p className="leading-relaxed">
-                    Pulsa el botón <strong>&quot;Verificar&quot;</strong> arriba. GigBlade y Vercel emitirán tu certificado SSL automáticamente.
+                    Pulsa el botón <strong>&quot;Verificar&quot;</strong> arriba. GigBlades y Vercel emitirán tu certificado SSL automáticamente.
                   </p>
                 </div>
               </div>
@@ -741,7 +741,7 @@ export default function DjDomainPage() {
               {t("djDomain.emptyTitle", "Aún no tienes un dominio propio conectado")}
             </h2>
             <p className="text-xs text-tertiary-foreground mt-1.5 leading-relaxed">
-              {t("djDomain.emptyDesc", "Actualmente tu sitio responde en la dirección temporal de GigBlade. Conecta tu propio dominio en 1 solo clic para lucir 100% profesional.")}
+              {t("djDomain.emptyDesc", "Actualmente tu sitio responde en la dirección temporal de GigBlades. Conecta tu propio dominio en 1 solo clic para lucir 100% profesional.")}
             </p>
           </div>
           <ConnectDomainModal
@@ -767,7 +767,7 @@ export default function DjDomainPage() {
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs text-tertiary-foreground leading-normal">
-              {t("djDomain.disconnectDesc", "¿Estás seguro de que deseas desconectar el dominio de tu página? Tu sitio web volverá a responder en la dirección temporal de GigBlade.")}{" "}
+              {t("djDomain.disconnectDesc", "¿Estás seguro de que deseas desconectar el dominio de tu página? Tu sitio web volverá a responder en la dirección temporal de GigBlades.")}{" "}
               <strong className="text-foreground font-mono">{customDomain}</strong>
             </DialogDescription>
           </DialogHeader>

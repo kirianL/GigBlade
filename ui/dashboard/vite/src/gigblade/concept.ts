@@ -41,7 +41,7 @@ export const PLAN = {
 	cadence: "mes",
 	includes: [
 		"Página propia con plantilla para eventos",
-		"Dominio propio (registrado y administrado por GigBlade)",
+		"Dominio propio (registrado y administrado por GigBlades)",
 		"Hosting, seguridad y performance",
 		"Panel para contenido",
 	],
@@ -52,7 +52,7 @@ export const PLAN = {
 export const CONCEPT = {
 	what: "Cada DJ que se suma tiene su propia página en internet, con su propio nombre de dominio (por ejemplo djmarco.com), donde la gente puede ver su información y contactarlo. Todos los DJs comparten por detrás la misma base técnica: no hay que armar un sistema nuevo cada vez que entra un cliente.",
 	problem:
-		"Hoy un DJ que quiere verse profesional en internet tiene dos opciones: pagarle a alguien para que le arme una página desde cero (caro y lento), o quedarse dependiendo solo de Instagram (poco profesional, y sin control sobre su imagen). GigBlade es la tercera: página propia, dominio propio, sin entender tecnología.",
+		"Hoy un DJ que quiere verse profesional en internet tiene dos opciones: pagarle a alguien para que le arme una página desde cero (caro y lento), o quedarse dependiendo solo de Instagram (poco profesional, y sin control sobre su imagen). GigBlades es la tercera: página propia, dominio propio, sin entender tecnología.",
 	how: [
 		{
 			id: "01",

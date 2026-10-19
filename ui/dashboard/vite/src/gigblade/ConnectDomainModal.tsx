@@ -313,7 +313,7 @@ export function ConnectDomainModal({
 
                   <span className="text-[11px] font-mono text-tertiary-foreground shrink-0">
                     {scanResult.pointsToGigBlade
-                      ? t("modal.pointsToGigBlade", "Apunta a GigBlade")
+                      ? t("modal.pointsToGigBlade", "Apunta a GigBlades")
                       : t("modal.pending", "Pendiente")}
                   </span>
                 </div>
@@ -336,7 +336,7 @@ export function ConnectDomainModal({
                       scanResult.provider !== "namecom" &&
                       scanResult.provider !== "namecheap" &&
                       scanResult.provider !== "vercel" &&
-                      t("djDomain.tipGeneric", "Agrega estos registros en tu registrador de dominios para que tu página responda con GigBlade.")}
+                      t("djDomain.tipGeneric", "Agrega estos registros en tu registrador de dominios para que tu página responda con GigBlades.")}
                   </p>
 
                   {scanResult.oneClickUrl && (

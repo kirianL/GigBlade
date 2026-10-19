@@ -39,7 +39,7 @@ export default function PanelShell({
 		<div className="min-h-dvh bg-[#09090b] text-white">
 			<header className="flex h-14 items-center justify-between border-b border-white/10 px-5">
 				<p className="font-sans text-[18px] font-medium tracking-[-0.03em]">
-					GigBlade
+					GigBlades
 				</p>
 				<div className="flex items-center gap-4 text-sm text-white/55">
 					<span>{session.user.email}</span>

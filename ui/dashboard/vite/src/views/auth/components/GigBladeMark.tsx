@@ -8,7 +8,7 @@ export function GigBladeMark({ className }: { className?: string }) {
 				className,
 			)}
 		>
-			GigBlade
+			GigBlades
 		</span>
 	);
 }

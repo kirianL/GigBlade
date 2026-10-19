@@ -450,7 +450,7 @@ export default function AccesoForm() {
 					href="/"
 					className="access-logo access-press cursor-pointer font-sans text-[18px] font-medium tracking-[-3%] text-white"
 				>
-					<span className="access-logo-mark">GigBlade</span>
+					<span className="access-logo-mark">GigBlades</span>
 				</AppLink>
 				<div className="flex items-center gap-2.5 sm:gap-3.5">
 					{fields.referralCode && (
@@ -867,7 +867,7 @@ function Success({
 					}}
 					className="mt-8 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
 				>
-					Volver a GigBlade
+					Volver a GigBlades
 				</AppLink>
 			</div>
 		</motion.section>

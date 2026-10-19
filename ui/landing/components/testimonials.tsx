@@ -7,7 +7,7 @@ const testimonialsData = [
 	{
 		id: 1,
 		quote:
-			"Quería un sitio propio y no sabía por dónde empezar. GigBlade me dejó la página lista, con dominio y hosting.",
+			"Quería un sitio propio y no sabía por dónde empezar. GigBlades me dejó la página lista, con dominio y hosting.",
 		author: "NOX",
 	},
 	{

@@ -20,11 +20,11 @@ export async function sendDjAccessEmail(input: {
     body: JSON.stringify({
       from,
       to: [input.to],
-      subject: "Tu acceso a GigBlade",
+      subject: "Tu acceso a GigBlades",
       text: [
         `Hola ${input.name},`,
         "",
-        "Tu página ya está en GigBlade.",
+        "Tu página ya está en GigBlades.",
         "",
         `Entrá al panel: ${dashboard}/sign-in`,
         `Correo: ${input.to}`,

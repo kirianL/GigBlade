@@ -28,11 +28,11 @@ export function buildWaitlistWhatsappMessage(
 	const lines = [
 		`¡Hola ${name}!`,
 		"",
-		"Soy del equipo de GigBlade. Recibimos tu solicitud en la lista de espera para crear tu página web de DJ.",
+		"Soy del equipo de GigBlades. Recibimos tu solicitud en la lista de espera para crear tu página web de DJ.",
 		"",
 		`El pago inicial para crear tu página es de $100 USD. La mensualidad de mantenimiento es de ${monthly} USD.`,
 		"",
-		"En GigBlade podés tener:",
+		"En GigBlades podés tener:",
 		"• Tu sitio web profesional con booking y contacto",
 		"• Panel para administrar tu página y solicitudes",
 		"• Hosting y soporte del servicio",
@@ -51,7 +51,7 @@ export function buildWaitlistWhatsappMessage(
 		"¿Te parece si lo vemos por acá y te contamos la disponibilidad para activar tu página?",
 		"",
 		"Saludos,",
-		"Equipo GigBlade",
+		"Equipo GigBlades",
 	);
 
 	return lines.join("\n");

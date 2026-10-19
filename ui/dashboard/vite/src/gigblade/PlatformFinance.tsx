@@ -295,7 +295,7 @@ export default function PlatformFinance() {
 				</div>
 			</PageHeader>
 			<p className="text-sm text-tertiary-foreground leading-relaxed mt-1 sm:mt-2 max-w-3xl">
-				{t("finance.subtitle", "Gestión del reparto financiero de GigBlade conectado en tiempo real con las comisiones de referidos, gastos de mantenimiento y división entre socios.")}
+				{t("finance.subtitle", "Gestión del reparto financiero de GigBlades conectado en tiempo real con las comisiones de referidos, gastos de mantenimiento y división entre socios.")}
 			</p>
 
 			{/* Tarjetas de Métricas Principales (Distribución Acumulada) */}
@@ -465,7 +465,7 @@ export default function PlatformFinance() {
 							<div>
 								<h3 className="text-sm font-bold text-foreground">{t("finance.ledgerTitle", "Desglose de Conversiones y Reparto en Tiempo Real")}</h3>
 								<p className="text-xs text-muted-foreground">
-									{t("finance.ledgerSubtitle", "Cada DJ registrado en GigBlade con su respectiva deducción de afiliado y reparto directo al socio y desarrollador.")}
+									{t("finance.ledgerSubtitle", "Cada DJ registrado en GigBlades con su respectiva deducción de afiliado y reparto directo al socio y desarrollador.")}
 								</p>
 							</div>
 							<div className="text-xs font-semibold text-muted-foreground">
@@ -587,7 +587,7 @@ export default function PlatformFinance() {
 								<h3 className="text-base font-bold text-foreground">{t("finance.simulatorTitle", "Simulador de Cascada de Ingresos")}</h3>
 							</div>
 							<p className="text-xs text-muted-foreground">
-								{t("finance.simulatorSubtitle", "Visualiza con precisión cuánto dinero ingresa y cómo se reparte cada dólar y colón en cada venta de GigBlade.")}
+								{t("finance.simulatorSubtitle", "Visualiza con precisión cuánto dinero ingresa y cómo se reparte cada dólar y colón en cada venta de GigBlades.")}
 							</p>
 
 							{/* Barra unificada de controles del simulador */}
@@ -700,7 +700,7 @@ export default function PlatformFinance() {
 								<p className="pt-1 text-[11px] text-muted-foreground leading-relaxed">
 									{activeSimChargeType === "initial_setup"
 										? t("finance.step1SetupDesc", "Creación de la web y configuración personalizada.")
-										: t("finance.step1MonthlyDesc", "Mantenimiento mensual del perfil y hosting de GigBlade.")}
+										: t("finance.step1MonthlyDesc", "Mantenimiento mensual del perfil y hosting de GigBlades.")}
 								</p>
 							</div>
 
@@ -867,7 +867,7 @@ export default function PlatformFinance() {
 									</h3>
 								</div>
 								<p className="text-xs text-muted-foreground">
-									{t("finance.infraServicesDesc", "GigBlade opera sobre infraestructura serverless moderna de escala mundial:")}
+									{t("finance.infraServicesDesc", "GigBlades opera sobre infraestructura serverless moderna de escala mundial:")}
 								</p>
 							</div>
 
@@ -1051,7 +1051,7 @@ function FinanceSettingsModal({
 				<DialogHeader className="space-y-1.5 text-left">
 					<DialogTitle>{t("finance.modalTitle", "Configurar Reparto Financiero")}</DialogTitle>
 					<DialogDescription className="text-xs leading-relaxed">
-						{t("finance.modalDesc", "Define cómo se divide el margen neto de GigBlade entre el desarrollador y el socio fundador, así como la reserva de mantenimiento.")}
+						{t("finance.modalDesc", "Define cómo se divide el margen neto de GigBlades entre el desarrollador y el socio fundador, así como la reserva de mantenimiento.")}
 					</DialogDescription>
 				</DialogHeader>
 

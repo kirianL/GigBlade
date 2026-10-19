@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "GigBlade",
-    short_name: "GigBlade",
+    name: "GigBlades",
+    short_name: "GigBlades",
     description: "Presencia digital para DJs: página web, dominio propio y booking.",
     start_url: "/",
     display: "standalone",

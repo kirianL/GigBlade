@@ -55,7 +55,7 @@ export function AuthBackground({ children }: AuthBackgroundProps) {
 						href={siteUrl}
 						className="absolute bottom-6 left-6 font-sans text-[18px] font-medium tracking-[-0.03em] text-white"
 					>
-						GigBlade
+						GigBlades
 					</a>
 				</div>
 
@@ -65,7 +65,7 @@ export function AuthBackground({ children }: AuthBackgroundProps) {
 							href={siteUrl}
 							className="font-sans text-[18px] font-medium tracking-[-0.03em] text-white"
 						>
-							GigBlade
+							GigBlades
 						</a>
 						<a
 							href={`${siteUrl}/acceso`}

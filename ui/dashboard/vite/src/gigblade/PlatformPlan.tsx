@@ -101,7 +101,7 @@ export default function PlatformPlan() {
 			/>
 			<p className="text-sm text-tertiary-foreground leading-6 -mt-2 max-w-3xl">
 				Un solo plan. Página, seguridad y hosting. El dominio se cobra al
-				costo, a nombre de GigBlade.
+				costo, a nombre de GigBlades.
 			</p>
 
 			<div className="flex flex-col gap-8">

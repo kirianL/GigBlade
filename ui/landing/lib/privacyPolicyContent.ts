@@ -6,7 +6,7 @@ export const privacyPolicySections: LegalSection[] = [
 	{
 		title: "1. Introduction",
 		content:
-			'This Privacy Policy explains how GigBlade ("we," "us," or "our") collects, uses, and protects personal information when you use our website, waitlist, artist pages, and related services (the "Services").',
+			'This Privacy Policy explains how GigBlades ("we," "us," or "our") collects, uses, and protects personal information when you use our website, waitlist, artist pages, and related services (the "Services").',
 		isUppercase: false,
 	},
 	{
@@ -36,7 +36,7 @@ export const privacyPolicySections: LegalSection[] = [
 	{
 		title: "6. How We Share Information",
 		content:
-			"We share information with infrastructure providers that host the site and database, and only as needed to run the Services. We may also share information to comply with law or to protect GigBlade or others. Providers are bound to protect the data.",
+			"We share information with infrastructure providers that host the site and database, and only as needed to run the Services. We may also share information to comply with law or to protect GigBlades or others. Providers are bound to protect the data.",
 		isUppercase: false,
 	},
 	{
@@ -84,7 +84,7 @@ export const privacyPolicySections: LegalSection[] = [
 	{
 		title: "14. Contact Us",
 		content:
-			"Questions about this Policy: hola@gigblade.com — GigBlade, Costa Rica.",
+			"Questions about this Policy: hola@gigblade.com — GigBlades, Costa Rica.",
 		isUppercase: false,
 	},
 ];

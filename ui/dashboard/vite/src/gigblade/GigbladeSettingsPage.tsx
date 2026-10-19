@@ -66,7 +66,7 @@ export default function GigbladeSettingsPage() {
 					<div>
 						<dt className="text-xs text-subtle">Nombre</dt>
 						<dd className="mt-1 text-sm text-foreground">
-							{user?.name || "GigBlade"}
+							{user?.name || "GigBlades"}
 						</dd>
 					</div>
 					<div>
@@ -133,7 +133,7 @@ export default function GigbladeSettingsPage() {
 				<div>
 					<h2 className="text-sm font-medium text-foreground">Plan</h2>
 					<p className="mt-1 text-sm text-tertiary-foreground">
-						El plan de GigBlade y los DJs activos están en Plan.
+						El plan de GigBlades y los DJs activos están en Plan.
 					</p>
 				</div>
 				<Button variant="secondary" size="sm" asChild>

@@ -44,7 +44,7 @@ export default function SignInClient() {
 				const origin = dashboardOrigin(dashboard);
 				if (!origin || origin === window.location.origin) {
 					setMessage(
-						"No pudimos abrir el panel. Falta configurar la URL del dashboard en GigBlade.",
+						"No pudimos abrir el panel. Falta configurar la URL del dashboard en GigBlades.",
 					);
 					return;
 				}

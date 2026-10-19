@@ -10,13 +10,13 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "1. Acceptance of Terms",
 		content:
-			'By accessing or using GigBlade (the "Services"), you agree to these Terms of Service ("Terms"). If you do not agree, do not use the Services.',
+			'By accessing or using GigBlades (the "Services"), you agree to these Terms of Service ("Terms"). If you do not agree, do not use the Services.',
 		isUppercase: false,
 	},
 	{
 		title: "2. Description of Services",
 		content:
-			"GigBlade provides hosted artist pages for DJs: a public site with a custom domain, templates for events, and a panel to manage content. Hosting and platform security are included in the subscription.",
+			"GigBlades provides hosted artist pages for DJs: a public site with a custom domain, templates for events, and a panel to manage content. Hosting and platform security are included in the subscription.",
 		isUppercase: false,
 	},
 	{
@@ -46,7 +46,7 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "7. Intellectual Property",
 		content:
-			"The platform, templates, and software are owned by GigBlade. We grant you a limited, non-exclusive license to use the Services. Your music, photos, and bio remain yours.",
+			"The platform, templates, and software are owned by GigBlades. We grant you a limited, non-exclusive license to use the Services. Your music, photos, and bio remain yours.",
 		isUppercase: false,
 	},
 	{
@@ -64,19 +64,19 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "10. Limitation of Liability",
 		content:
-			"TO THE MAXIMUM EXTENT PERMITTED BY LAW, GIGBLADE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNTS PAID BY YOU TO GIGBLADE IN THE TWELVE MONTHS PRECEDING THE CLAIM.",
+			"TO THE MAXIMUM EXTENT PERMITTED BY LAW, GIGBLADES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNTS PAID BY YOU TO GIGBLADES IN THE TWELVE MONTHS PRECEDING THE CLAIM.",
 		isUppercase: true,
 	},
 	{
 		title: "11. Indemnification",
 		content:
-			"You agree to indemnify GigBlade and its team from claims arising from your content, your use of the Services, or your violation of these Terms.",
+			"You agree to indemnify GigBlades and its team from claims arising from your content, your use of the Services, or your violation of these Terms.",
 		isUppercase: false,
 	},
 	{
 		title: "12. Term and Termination",
 		content:
-			"These Terms remain in effect until terminated. Either party may end the subscription with notice as described at signup. Upon termination we will coordinate an exit so your public presence is not cut off without warning. The domain is administered by GigBlade while you are on the service.",
+			"These Terms remain in effect until terminated. Either party may end the subscription with notice as described at signup. Upon termination we will coordinate an exit so your public presence is not cut off without warning. The domain is administered by GigBlades while you are on the service.",
 		isUppercase: false,
 	},
 	{
@@ -94,13 +94,13 @@ export const termsSections: LegalSection[] = [
 	{
 		title: "15. General Provisions",
 		content:
-			"These Terms are the entire agreement between you and GigBlade regarding the Services. If a provision is unenforceable, the rest remains in effect. Failure to enforce a right is not a waiver.",
+			"These Terms are the entire agreement between you and GigBlades regarding the Services. If a provision is unenforceable, the rest remains in effect. Failure to enforce a right is not a waiver.",
 		isUppercase: false,
 	},
 	{
 		title: "16. Contact Information",
 		content:
-			"Questions about these Terms: hola@gigblade.com — GigBlade, Costa Rica.",
+			"Questions about these Terms: hola@gigblade.com — GigBlades, Costa Rica.",
 		isUppercase: false,
 	},
 ];

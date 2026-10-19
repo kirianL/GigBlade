@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "GigBlade",
-  "short_name": "GigBlade",
+  "name": "GigBlades",
+  "short_name": "GigBlades",
   "description": "Panel para la página del DJ.",
   "lang": "es",
   "start_url": "/",

@@ -70,10 +70,10 @@ export default function Footer() {
 								href="/"
 								className="mb-3 inline-block font-sans text-[24px] font-medium tracking-[-3%] text-white md:mb-6 md:text-[32px]"
 							>
-								GigBlade
+								GigBlades
 							</AppLink>
 							<p className="text-[14px] leading-[18px] font-light tracking-[-2%] text-[#FFFFFF99] md:text-[16px] md:leading-[20px]">
-								GigBlade es presencia digital para DJs: página y dominio, sin
+								GigBlades es presencia digital para DJs: página y dominio, sin
 								tocar lo técnico.
 							</p>
 						</div>
@@ -100,7 +100,7 @@ export default function Footer() {
 
 						<div className="flex h-12 min-w-0 flex-1 items-center md:h-14">
 							<p className="min-w-0 flex-1 truncate px-4 text-left text-[11px] leading-none font-mono tracking-[-0.02em] text-[#FFFFFF99] md:px-6 md:text-right md:text-[13px] lg:text-[14px]">
-								Copyright © 2026 GigBlade. Todos los derechos reservados
+								Copyright © 2026 GigBlades. Todos los derechos reservados
 							</p>
 							<div
 								aria-hidden="true"

@@ -34,31 +34,31 @@ const geistMono = Geist_Mono({
 const url = getSiteUrl();
 const description =
   "Presencia digital para DJs: dominio propio y plantilla para eventos. US$ 65 al mes cubre hosting y seguridad. El dominio se cobra aparte.";
-const title = "Página propia para DJs | GigBlade";
+const title = "Página propia para DJs | GigBlades";
 const previewDeploy = process.env.VERCEL_ENV === "preview";
 
 export const metadata: Metadata = {
   title: {
     default: title,
-    template: "%s | GigBlade",
+    template: "%s | GigBlades",
   },
   description,
-  applicationName: "GigBlade",
+  applicationName: "GigBlades",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "GigBlade",
+    title: "GigBlades",
   },
   keywords: [
     "página para DJs",
     "dominio para DJ",
     "sitio web DJ",
-    "GigBlade",
+    "GigBlades",
     "presencia digital",
     "plantillas DJ",
   ],
-  authors: [{ name: "GigBlade" }],
-  creator: "GigBlade",
+  authors: [{ name: "GigBlades" }],
+  creator: "GigBlades",
   metadataBase: new URL(url),
   icons: {
     icon: [
@@ -73,10 +73,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_CR",
     url,
-    siteName: "GigBlade",
+    siteName: "GigBlades",
     title: {
       default: title,
-      template: "%s | GigBlade",
+      template: "%s | GigBlades",
     },
     description,
     images: [
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
         url: "/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "GigBlade — Página propia para DJs",
+        alt: "GigBlades — Página propia para DJs",
       },
     ],
   },
@@ -92,7 +92,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: {
       default: title,
-      template: "%s | GigBlade",
+      template: "%s | GigBlades",
     },
     description,
     images: ["/images/og-image.png"],

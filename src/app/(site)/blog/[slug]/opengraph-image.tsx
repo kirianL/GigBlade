@@ -250,7 +250,7 @@ export default async function OgImage({
 					letterSpacing: -1,
 				}}
 			>
-				GigBlade
+				GigBlades
 			</div>
 			<div
 				style={{

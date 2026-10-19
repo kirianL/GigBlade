@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata = pageSeo({
 	title: "Privacy Policy",
-	description: "Política de privacidad de GigBlade: waitlist y páginas de DJ.",
+	description: "Política de privacidad de GigBlades: waitlist y páginas de DJ.",
 	path: "/privacy",
 });
 
@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
 					<div className="hidden w-1/8 border-r border-[#292929] md:block lg:w-1/6" />
 					<div className="flex-1 px-4 py-12 pb-32 font-sans text-[16px] leading-[1.6] font-light tracking-[-2%] text-white sm:px-8 md:py-16">
 						<p className="mb-10">
-							GigBlade
+							GigBlades
 							<br />
 							Effective Date: {PRIVACY_EFFECTIVE_DATE}
 						</p>

@@ -129,7 +129,7 @@ export const SignIn = () => {
 			<CustomToaster />
 			<div className="flex flex-col items-center text-center">
 				<h1 className="font-sans text-[20px] font-medium tracking-[-0.03em] text-white">
-					GigBlade
+					GigBlades
 				</h1>
 				<p
 					id={hintId}

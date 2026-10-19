@@ -5,7 +5,7 @@ import type { BlogPostSummary } from "@/lib/blogUtils";
 import { getSiteUrl } from "@/lib/site-url";
 
 export const SITE_URL = getSiteUrl();
-const ORG_NAME = "GigBlade";
+const ORG_NAME = "GigBlades";
 const LOGO_URL = `${SITE_URL}/favicon/favicon-192x192.png`;
 const SAME_AS: string[] = [];
 
@@ -17,7 +17,7 @@ const OG_IMAGE = {
 	url: "/images/og-image.png",
 	width: 1200,
 	height: 630,
-	alt: "GigBlade — Página propia para DJs",
+	alt: "GigBlades — Página propia para DJs",
 };
 
 export function pageSeo(input: {
@@ -75,7 +75,7 @@ export function websiteSchema() {
 		"@type": "WebSite",
 		"@id": `${SITE_URL}/#website`,
 		name: ORG_NAME,
-		alternateName: "GigBlade",
+		alternateName: "GigBlades",
 		url: SITE_URL,
 		publisher: { "@id": `${SITE_URL}/#organization` },
 	};

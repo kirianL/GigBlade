@@ -19,7 +19,7 @@ export default function Problem() {
 						seguridad.
 						<span className="text-white">
 							{" "}
-							GigBlade lo deja listo, sin que tengas que saber de eso.
+							GigBlades lo deja listo, sin que tengas que saber de eso.
 						</span>
 					</p>
 				</div>

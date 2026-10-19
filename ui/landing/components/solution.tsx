@@ -85,7 +85,7 @@ export default function Solution() {
 					<p className="max-w-2xl text-[14px] leading-[20px] font-light tracking-[-2%] text-[#A3A3A3] md:text-[16px] sm:text-base">
 						Elegís plan y dominio, una plantilla del catálogo y tu contenido.
 						<br className="hidden sm:block" />
-						GigBlade administra el resto.{" "}
+						GigBlades administra el resto.{" "}
 						<span className="text-white">
 							Tu página queda lista para que te encuentren.
 						</span>
@@ -111,7 +111,7 @@ export default function Solution() {
 							<div className="flex items-center gap-2 border-b border-brand-accent px-4 py-3">
 								<span className="h-2 w-2 bg-brand-glow" />
 								<span className="font-mono text-[12px] tracking-[0.16em] text-white">
-									GIGBLADE
+									GIGBLADES
 								</span>
 							</div>
 							<ul>

@@ -117,7 +117,7 @@ export default function LoginForm() {
 					href="/"
 					className="absolute bottom-6 left-6 z-10 font-sans text-[18px] font-medium tracking-[-3%] text-white"
 				>
-					GigBlade
+					GigBlades
 				</AppLink>
 			</div>
 
@@ -127,7 +127,7 @@ export default function LoginForm() {
 						href="/"
 						className="font-sans text-[18px] font-medium tracking-[-3%] text-white"
 					>
-						GigBlade
+						GigBlades
 					</AppLink>
 					<AppLink
 						href="/acceso"
@@ -141,7 +141,7 @@ export default function LoginForm() {
 					<div className="w-full max-w-[350px]">
 						<div className="flex flex-col items-center text-center">
 							<h1 className="font-sans text-[20px] font-medium tracking-[-0.03em] text-white">
-								GigBlade
+								GigBlades
 							</h1>
 							<p
 								id={hintId}

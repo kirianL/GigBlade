@@ -147,8 +147,8 @@ export default function DjStudioPage() {
 						</div>
 						<p className="text-sm text-tertiary-foreground leading-6">
 							{intendedDomain
-								? `GigBlade registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlade. La renovación se cobra al costo.`
-								: "El dominio propio se asigna después. GigBlade lo registra y administra a nombre de la plataforma."}
+								? `GigBlades registra y administra ${intendedDomain}. El sitio público no usa un subdominio de GigBlades. La renovación se cobra al costo.`
+								: "El dominio propio se asigna después. GigBlades lo registra y administra a nombre de la plataforma."}
 						</p>
 						<div className="flex flex-wrap gap-2">
 							<ConnectDomainModal
@@ -172,7 +172,7 @@ export default function DjStudioPage() {
 							<div className="min-w-0">
 								<p className="text-xs text-tertiary-foreground">Dominio Propio</p>
 								<p className="text-sm font-semibold text-foreground break-all">
-									{intendedDomain ?? (pageUrl ? "GigBlade Preview" : "Sin dominio asignado")}
+									{intendedDomain ?? (pageUrl ? "GigBlades Preview" : "Sin dominio asignado")}
 								</p>
 							</div>
 							{intendedDomain ? (
@@ -339,7 +339,7 @@ export default function DjStudioPage() {
 						<DjStatusCell status={dj.status} />
 					</div>
 					<p className="text-sm text-tertiary-foreground leading-6">
-						Incluye la página, el dominio administrado por GigBlade, hosting y este
+						Incluye la página, el dominio administrado por GigBlades, hosting y este
 						panel para el contenido.
 					</p>
 				</section>

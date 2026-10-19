@@ -33,7 +33,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 	});
 }
 
-document.title = "GigBlade";
+document.title = "GigBlades";
 
 const queryClient = new QueryClient({
 	defaultOptions: {

@@ -356,7 +356,7 @@ export async function fetchPlatformSiteHealth(
 		}
 		return {
 			report: null,
-			error: "No se pudo contactar la API de GigBlade.",
+			error: "No se pudo contactar la API de GigBlades.",
 		};
 	} finally {
 		timeout.cancel();

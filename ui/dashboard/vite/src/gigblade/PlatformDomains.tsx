@@ -216,7 +216,7 @@ export default function PlatformDomains() {
 
           const isGodaddy = auto?.provider === "godaddy";
           const isCloudflare = auto?.provider === "cloudflare";
-          const providerLabel = auto?.providerLabel ?? (row.publicDomain ? "Detectando..." : "GigBlade Preview");
+          const providerLabel = auto?.providerLabel ?? (row.publicDomain ? "Detectando..." : "GigBlades Preview");
 
           return (
             <li
@@ -258,7 +258,7 @@ export default function PlatformDomains() {
 
                   <p className="mt-1 text-xs text-tertiary-foreground">
                     {row.preview
-                      ? "Dominio en preparación · Servido temporalmente desde GigBlade"
+                      ? "Dominio en preparación · Servido temporalmente desde GigBlades"
                       : "Dominio propio conectado · Producción"}
                   </p>
                 </div>
@@ -282,7 +282,7 @@ export default function PlatformDomains() {
                     </span>
                     <span className="text-xs text-tertiary-foreground">
                       {auto?.pointsToGigBlade
-                        ? "Tráfico enrutado a GigBlade"
+                        ? "Tráfico enrutado a GigBlades"
                         : "Esperando propagación de DNS"}
                     </span>
                   </div>

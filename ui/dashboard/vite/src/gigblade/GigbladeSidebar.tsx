@@ -227,7 +227,7 @@ function GigbladeAccountMenu() {
 	const { mode, setMode } = useTheme();
 	const { language, setLanguage, t } = useLanguage();
 	const { data: session } = useSession();
-	const name = session?.user?.name || "GigBlade";
+	const name = session?.user?.name || "GigBlades";
 	const email = session?.user?.email || "";
 
 	return (

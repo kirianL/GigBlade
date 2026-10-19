@@ -245,7 +245,7 @@ export default function Navbar({
 						href="/"
 						className="nav-logo ml-1 shrink-0 font-sans text-[18px] font-medium tracking-[-3%] text-white sm:text-[20px]"
 					>
-						GigBlade
+						GigBlades
 					</AppLink>
 
 					<div className="hidden items-center gap-8 lg:flex">

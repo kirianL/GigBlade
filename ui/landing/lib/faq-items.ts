@@ -3,13 +3,13 @@ export const faqItems = [
 		id: 1,
 		question: "¿Necesito saber de tecnología?",
 		answer:
-			"No. Elegís plan, dominio y plantilla. Cargás bio, fotos y redes.\n\nGigBlade se ocupa del hosting y la seguridad. Vos no configurás DNS ni certificados.",
+			"No. Elegís plan, dominio y plantilla. Cargás bio, fotos y redes.\n\nGigBlades se ocupa del hosting y la seguridad. Vos no configurás DNS ni certificados.",
 	},
 	{
 		id: 7,
 		question: "¿El dominio es mío?",
 		answer:
-			"Lo registra y administra GigBlade. Vos no tocás el DNS.\n\nSe cobra aparte, al costo real, sin margen.",
+			"Lo registra y administra GigBlades. Vos no tocás el DNS.\n\nSe cobra aparte, al costo real, sin margen.",
 	},
 	{
 		id: 2,
