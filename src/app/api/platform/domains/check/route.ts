@@ -112,7 +112,9 @@ export async function POST(request: Request) {
           nameservers: scan.nameservers,
           targetIp,
           targetCname,
-          pointsToGigBlade: scan.pointsToGigBlade,
+          pointsToGigBlade:
+            scan.pointsToGigBlade ||
+            (Boolean(targetIp) && scan.ips.includes(targetIp)),
           oneClickUrl,
           recommendedRecords,
         },

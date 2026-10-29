@@ -330,7 +330,9 @@ export default function PlatformDomains() {
                         <p className="font-medium truncate">2. DNS Radar</p>
                         <p className="text-[10px] text-tertiary-foreground">
                           {auto?.pointsToGigBlade
-                            ? "76.76.21.21 OK"
+                            ? auto?.targetIp
+                              ? `${auto.targetIp} OK`
+                              : "DNS OK"
                             : "Falta apuntar"}
                         </p>
                       </div>

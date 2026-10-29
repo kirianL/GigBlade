@@ -39,6 +39,9 @@ export async function listPlatformDomains(
     if (customRoute && customRoute.canonicalHostname) {
       let vercelVerified = false;
       let verificationChallenges: import("@/application/ports/project-domains").ProjectDomainVerificationChallenge[] | undefined;
+      let targetIp: string | undefined;
+      let targetCname: string | undefined;
+
       try {
         const vercelStatus = await projectDomains.getStatus(
           customRoute.canonicalHostname,
@@ -49,6 +52,16 @@ export async function listPlatformDomains(
         vercelVerified = false;
       }
 
+      try {
+        const targets = await projectDomains.getDnsTargets(
+          customRoute.canonicalHostname,
+        );
+        targetIp = targets.a;
+        targetCname = targets.cname;
+      } catch {
+        // keep defaults
+      }
+
       const detail = await buildDomainAutomationDetail({
         hostname: customRoute.canonicalHostname,
         tenantSlug: tenant.slug,
@@ -56,6 +69,8 @@ export async function listPlatformDomains(
         vercelVerified,
         edgeConfigSynced: customRoute.status === "active",
         verificationChallenges,
+        targetIp,
+        targetCname,
       });
 
       results.push(detail);

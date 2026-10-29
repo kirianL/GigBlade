@@ -71,6 +71,16 @@ export async function verifyPlatformDomain(
     edgeConfigSynced = true;
   }
 
+  let targetIp: string | undefined;
+  let targetCname: string | undefined;
+  try {
+    const targets = await projectDomains.getDnsTargets(domain);
+    targetIp = targets.a;
+    targetCname = targets.cname;
+  } catch {
+    // keep defaults
+  }
+
   return buildDomainAutomationDetail({
     hostname: domain,
     tenantSlug: tenant?.slug ?? "dj",
@@ -78,5 +88,7 @@ export async function verifyPlatformDomain(
     vercelVerified,
     edgeConfigSynced,
     verificationChallenges,
+    targetIp,
+    targetCname,
   });
 }

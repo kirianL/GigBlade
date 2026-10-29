@@ -46,6 +46,21 @@ export type DomainAutomationDetail = {
 export const GIGBLADE_TARGET_IP = "76.76.21.21";
 export const GIGBLADE_TARGET_CNAME = "cname.vercel-dns.com";
 
+/** IPs Anycast asignadas por Vercel para dominios apex / clusters */
+export const VERCEL_TARGET_IPS = [
+  "76.76.21.21",
+  "216.198.79.1",
+] as const;
+
+export function isVercelIp(ip: string): boolean {
+  const clean = ip.trim();
+  if (VERCEL_TARGET_IPS.includes(clean as (typeof VERCEL_TARGET_IPS)[number])) {
+    return true;
+  }
+  // Rangos Anycast IPv4 de Vercel: 76.76.21.* y 216.198.79.*
+  return /^76\.76\.21\.\d+$/.test(clean) || /^216\.198\.79\.\d+$/.test(clean);
+}
+
 /** Vercel asigna CNAMEs como cname.vercel-dns.com o hash.vercel-dns-017.com. */
 export function cnamePointsToVercel(cname: string): boolean {
   const host = cname.trim().toLowerCase().replace(/\.$/, "");

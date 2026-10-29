@@ -92,11 +92,23 @@ export async function assignPlatformDomain(
     edgeConfigSynced = true;
   }
 
+  let targetIp: string | undefined;
+  let targetCname: string | undefined;
+  try {
+    const targets = await projectDomains.getDnsTargets(domain);
+    targetIp = targets.a;
+    targetCname = targets.cname;
+  } catch {
+    // keep defaults
+  }
+
   return buildDomainAutomationDetail({
     hostname: domain,
     tenantSlug: tenant.slug,
     tenantName: profile.displayName || tenant.slug,
     vercelVerified,
     edgeConfigSynced,
+    targetIp,
+    targetCname,
   });
 }

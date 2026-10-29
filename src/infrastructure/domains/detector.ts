@@ -6,6 +6,7 @@ import {
   generateProviderOneClickUrl,
   getProviderLabel,
   cnamePointsToVercel,
+  isVercelIp,
   GIGBLADE_TARGET_IP,
   isApexDomain,
   type DomainAutomationDetail,
@@ -135,7 +136,7 @@ export async function scanDomainDns(hostname: string): Promise<DomainDnsScan> {
   );
 
   const pointsToGigBlade =
-    ips.includes(GIGBLADE_TARGET_IP) || cnames.some(cnamePointsToVercel);
+    ips.some(isVercelIp) || cnames.some(cnamePointsToVercel);
 
   return {
     hostname: clean,
@@ -153,6 +154,8 @@ export async function buildDomainAutomationDetail(input: {
   vercelVerified: boolean;
   edgeConfigSynced: boolean;
   verificationChallenges?: Array<{ type: string; domain: string; value: string }>;
+  targetIp?: string;
+  targetCname?: string;
 }): Promise<DomainAutomationDetail> {
   const {
     hostname,
@@ -161,6 +164,8 @@ export async function buildDomainAutomationDetail(input: {
     vercelVerified,
     edgeConfigSynced,
     verificationChallenges,
+    targetIp: customTargetIp,
+    targetCname: customTargetCname,
   } = input;
   const scan = await scanDomainDns(hostname);
   const provider = detectProviderFromNameservers(scan.nameservers);
@@ -168,6 +173,9 @@ export async function buildDomainAutomationDetail(input: {
   const isApex = isApexDomain(hostname);
   const oneClickUrl = generateProviderOneClickUrl(hostname, provider);
   const recommendedRecords = calculateRecommendedDnsRecords(hostname);
+  const pointsToGigBlade =
+    scan.pointsToGigBlade ||
+    (customTargetIp ? scan.ips.includes(customTargetIp) : false);
 
   if (verificationChallenges && verificationChallenges.length > 0) {
     const clean = normalizeHostname(hostname);
@@ -204,9 +212,13 @@ export async function buildDomainAutomationDetail(input: {
   let status: DomainProvisionStatus = "pending_dns";
   if (vercelVerified && edgeConfigSynced) {
     status = "active";
-  } else if (scan.pointsToGigBlade) {
+  } else if (pointsToGigBlade) {
     status = "verifying";
   }
+
+  const resolvedTargetIp =
+    customTargetIp || scan.ips.find(isVercelIp) || GIGBLADE_TARGET_IP;
+  const resolvedTargetCname = customTargetCname || "cname.vercel-dns.com";
 
   return {
     hostname,
@@ -218,9 +230,9 @@ export async function buildDomainAutomationDetail(input: {
     currentIps: scan.ips,
     currentCnames: scan.cnames,
     nameservers: scan.nameservers,
-    targetIp: GIGBLADE_TARGET_IP,
-    targetCname: "cname.vercel-dns.com",
-    pointsToGigBlade: scan.pointsToGigBlade,
+    targetIp: resolvedTargetIp,
+    targetCname: resolvedTargetCname,
+    pointsToGigBlade,
     vercelVerified,
     edgeConfigSynced,
     sslActive: vercelVerified,
