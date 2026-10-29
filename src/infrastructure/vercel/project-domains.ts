@@ -9,6 +9,7 @@ import type {
 import {
   GIGBLADE_TARGET_CNAME,
   GIGBLADE_TARGET_IP,
+  isApexDomain,
 } from "@/domain/domain-automation";
 import { assertAllowedUrl } from "@/lib/http/allowed-url";
 import { getServerEnv } from "@/lib/env/server";
@@ -152,13 +153,70 @@ export class VercelProjectDomains implements ProjectDomains {
       }
     }
 
+    const verified = Boolean(data?.verified);
+
+    // When Vercel confirms the apex is verified, force a re-POST so Vercel
+    // re-evaluates the cert SAN. This fixes the case where the cert was issued
+    // only for www.domain due to a race condition during initial provisioning.
+    if (verified && isApexDomain(domain)) {
+      this.healApexCert(domain).catch(() => {
+        // Best-effort: if the heal fails the cert will eventually be
+        // re-issued on the next verification call.
+      });
+    }
+
     return {
       name: domain,
-      verified: Boolean(data?.verified),
+      verified,
       configured,
       verification,
       error: response.ok ? undefined : data?.error?.message,
     };
+  }
+
+  /**
+   * Heals the SSL cert for an apex domain after verification.
+   *
+   * Vercel has a race condition where, if `www.domain` is registered before or
+   * shortly after the apex, the Let's Encrypt cert is issued only for `www`.
+   * Fix: remove and re-add both apex and www so Vercel re-runs cert
+   * provisioning with the correct SAN (apex only; www handled via redirect).
+   *
+   * Called fire-and-forget from `verify()`; errors are swallowed so they
+   * never block the response to the DJ.
+   */
+  private async healApexCert(domain: string): Promise<void> {
+    const env = requireVercelConfig();
+    const wwwDomain = `www.${domain}`;
+    const authHeader = { Authorization: `Bearer ${env.PLATFORM_VERCEL_TOKEN}` };
+
+    const makeDelUrl = (d: string) => {
+      const url = assertAllowedUrl(
+        `https://api.vercel.com/v9/projects/${env.PLATFORM_VERCEL_PROJECT_ID}/domains/${encodeURIComponent(d)}`,
+      );
+      if (env.PLATFORM_VERCEL_TEAM_ID) url.searchParams.set("teamId", env.PLATFORM_VERCEL_TEAM_ID);
+      return url;
+    };
+
+    // 1. Remove www first (Vercel blocks apex removal when www redirects to it)
+    await fetch(makeDelUrl(wwwDomain), {
+      method: "DELETE",
+      headers: authHeader,
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    // 2. Remove apex
+    await fetch(makeDelUrl(domain), {
+      method: "DELETE",
+      headers: authHeader,
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    // 3. Re-add apex → Vercel issues a fresh cert scoped to the apex
+    await this.add(domain);
+
+    // 4. Re-add www redirect → Vercel handles www traffic via 308
+    await this.add(wwwDomain, { redirect: domain, redirectStatusCode: 308 });
   }
 
   async getDnsTargets(domain: string): Promise<ProjectDnsTargets> {
