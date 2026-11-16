@@ -173,7 +173,8 @@ export function createRealApp() {
         body,
       );
     },
-    joinWaitlist: (input: unknown) => joinWaitlist(waitlist, input, referrals),
+    joinWaitlist: (input: unknown, remoteIp?: string | null) =>
+      joinWaitlist(waitlist, input, referrals, remoteIp),
     listWaitlist: () => listWaitlist(waitlist),
     removeWaitlist: (
       actor: Parameters<typeof removeWaitlistSignup>[1],

@@ -39,6 +39,25 @@ export function buildWaitlistWhatsappMessage(
 		"• Hosting y seguridad",
 	];
 
+	if (signup.meetingAt?.trim()) {
+		const d = new Date(signup.meetingAt.trim());
+		if (!Number.isNaN(d.getTime())) {
+			const formatted = new Intl.DateTimeFormat("es-CR", {
+				weekday: "long",
+				day: "numeric",
+				month: "long",
+				hour: "numeric",
+				minute: "2-digit",
+				hour12: true,
+				timeZone: "America/Costa_Rica",
+			}).format(d);
+			lines.push(
+				"",
+				`📅 Reunión agendada: ${formatted} (Hora de Costa Rica).`,
+			);
+		}
+	}
+
 	if (signup.city?.trim()) {
 		lines.push("", `Ciudad que indicaste: ${signup.city.trim()}.`);
 	}

@@ -131,4 +131,42 @@ describe("joinWaitlist", () => {
       }),
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
+
+  it("guarda el día y hora de reunión y previene doble reserva en el mismo horario", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+    const futureSlot = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+    const first = await joinWaitlist(waitlist, {
+      artistName: "Nox",
+      email: "nox@example.com",
+      city: "San José",
+      meetingAt: futureSlot,
+    });
+
+    expect(first).toEqual({
+      alreadyJoined: false,
+      meetingAt: futureSlot,
+    });
+
+    await expect(
+      joinWaitlist(waitlist, {
+        artistName: "Luna",
+        email: "luna@example.com",
+        city: "Heredia",
+        meetingAt: futureSlot,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("descarta bots automatizados que envían el formulario en menos de 800ms", async () => {
+    const waitlist = new InMemoryWaitlistRepository();
+    const result = await joinWaitlist(waitlist, {
+      artistName: "FastBot",
+      email: "fastbot@example.com",
+      formStartedAt: Date.now() - 100,
+    });
+
+    expect(result).toEqual({ alreadyJoined: false });
+    await expect(waitlist.findByEmail("fastbot@example.com")).resolves.toBeNull();
+  });
 });

@@ -11,6 +11,7 @@ import {
 	PageHeader,
 } from "@autumn/ui";
 import {
+	CalendarCheckIcon,
 	EnvelopeSimpleIcon,
 	PlusIcon,
 	ShareNetworkIcon,
@@ -42,6 +43,48 @@ function formatSignupDate(value: string, lang = "es") {
 		month: "short",
 		year: "numeric",
 	}).format(date);
+}
+
+function formatMeetingDateTime(value: string, lang = "es") {
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return null;
+	const day = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-CR", {
+		weekday: "short",
+		day: "numeric",
+		month: "short",
+		timeZone: "America/Costa_Rica",
+	}).format(date);
+	const time = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-CR", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+		timeZone: "America/Costa_Rica",
+	}).format(date);
+	const capDay = day.charAt(0).toUpperCase() + day.slice(1).replace(/\./g, "");
+	return `${capDay} · ${time}`;
+}
+
+function buildAdminGoogleCalendarHref(signup: WaitlistSignup): string | null {
+	if (!signup.meetingAt) return null;
+	const start = new Date(signup.meetingAt);
+	if (Number.isNaN(start.getTime())) return null;
+	const end = new Date(start.getTime() + 15 * 60 * 1000);
+	const fmt = (d: Date) =>
+		d
+			.toISOString()
+			.replace(/[-:]/g, "")
+			.replace(/\.\d{3}Z$/, "Z");
+	const title = encodeURIComponent(`GigBlades Demo × ${signup.artistName}`);
+	const detailsLines = [
+		`Artista: ${signup.artistName}`,
+		`Correo: ${signup.email}`,
+		signup.phone ? `WhatsApp: ${signup.phone}` : "",
+		signup.instagram ? `Instagram: @${signup.instagram}` : "",
+		signup.city ? `Provincia: ${signup.city}` : "",
+	].filter(Boolean);
+	const details = encodeURIComponent(detailsLines.join("\n"));
+	const guest = encodeURIComponent(signup.email);
+	return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&add=${guest}`;
 }
 
 function DeleteSignupButton({
@@ -319,6 +362,13 @@ function SignupRow({
 		? `https://instagram.com/${signup.instagram}`
 		: null;
 	const whatsapp = waitlistWhatsappHref(signup, monthlyPriceUsd);
+	const meetingFormatted = signup.meetingAt
+		? formatMeetingDateTime(signup.meetingAt, language)
+		: null;
+	const gcalHref = buildAdminGoogleCalendarHref(signup);
+	const isUpcomingMeeting = signup.meetingAt
+		? new Date(signup.meetingAt).getTime() >= Date.now() - 30 * 60 * 1000
+		: false;
 
 	const statusLabel =
 		signup.status === "pending"
@@ -338,6 +388,19 @@ function SignupRow({
 							{signup.artistName}
 						</p>
 						<div className="flex flex-wrap items-center gap-1.5 shrink-0">
+							{meetingFormatted ? (
+								<span
+									className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-mono font-medium ${
+										isUpcomingMeeting
+											? "border-emerald-500/35 bg-emerald-500/10 text-emerald-500"
+											: "border-border bg-background/60 text-tertiary-foreground"
+									}`}
+									title="Reunión agendada por el DJ desde el formulario de acceso"
+								>
+									<CalendarCheckIcon size={12} weight="fill" aria-hidden />
+									{meetingFormatted}
+								</span>
+							) : null}
 							{signup.referralCode ? (
 								<span
 									className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-mono font-bold text-primary"
@@ -371,6 +434,19 @@ function SignupRow({
 					) : null}
 				</div>
 				<div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60 w-full sm:w-auto sm:justify-end">
+					{gcalHref ? (
+						<Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none justify-center" asChild>
+							<a
+								href={gcalHref}
+								target="_blank"
+								rel="noreferrer"
+								aria-label={`Agendar en Google Calendar: ${signup.artistName}`}
+							>
+								<CalendarCheckIcon size={16} weight="fill" className="text-primary" />
+								Calendario
+							</a>
+						</Button>
+					) : null}
 					{whatsapp ? (
 						<Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none justify-center" asChild>
 							<a
@@ -432,6 +508,9 @@ export default function PlatformWaitlist() {
 	const monthlyPriceUsd = referralsQuery.data?.settings.monthlyPriceUsd ?? 30;
 	const signups = query.data ?? [];
 	const pending = signups.filter((signup) => signup.status === "pending").length;
+	const scheduledMeetings = signups.filter(
+		(signup) => signup.status !== "declined" && Boolean(signup.meetingAt),
+	).length;
 
 	return (
 		<PageContainer>
@@ -451,9 +530,19 @@ export default function PlatformWaitlist() {
 					? t("waitlist.loading", "Cargando solicitudes…")
 					: query.isError
 						? t("waitlist.error", "No se pudieron cargar las solicitudes. Recargá la página.")
-						: pending === 1
-							? `1 ${t("waitlist.pendingSingular", "solicitud pendiente de cupo.")}`
-							: `${pending} ${t("waitlist.pendingPlural", "solicitudes pendientes de cupo.")}`}
+						: `${
+								pending === 1
+									? `1 ${t("waitlist.pendingSingular", "solicitud pendiente de cupo.")}`
+									: `${pending} ${t("waitlist.pendingPlural", "solicitudes pendientes de cupo.")}`
+							}${
+								scheduledMeetings > 0
+									? ` · ${scheduledMeetings} ${
+											scheduledMeetings === 1
+												? "reunión agendada"
+												: "reuniones agendadas"
+										}`
+									: ""
+							}`}
 			</p>
 			{query.isError ? null : signups.length === 0 && !query.isPending ? (
 				<p className="text-sm text-tertiary-foreground">{t("waitlist.empty", "Todavía no hay solicitudes.")}</p>

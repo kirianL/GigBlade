@@ -5,13 +5,17 @@ import { RadioGroup } from "@base-ui/react/radio-group";
 import { CR, US } from "country-flag-icons/react/3x2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { slotText } from "slot-text";
 import { IconArrowLeft, IconArrowRight } from "@/app/constant";
+import {
+	TurnstileWidget,
+	configuredTurnstileSiteKey,
+} from "@/lib/tenant/templates/turnstile-widget";
 import AppLink from "./app-link";
 
 type Country = "CR" | "US";
-type Step = 0 | 1 | 2 | 3 | 4 | 5;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 type Fields = {
 	artistName: string;
@@ -20,6 +24,7 @@ type Fields = {
 	country: Country;
 	city: string;
 	instagram: string;
+	meetingAt: string;
 	website: string;
 	referralCode: string;
 };
@@ -31,6 +36,7 @@ const QUESTIONS = [
 	"¿En qué país?",
 	"¿En qué provincia?",
 	"¿Tu Instagram?",
+	"¿Cuándo nos reunimos?",
 ] as const;
 
 const HINTS = [
@@ -40,6 +46,7 @@ const HINTS = [
 	"Empezamos en Costa Rica.",
 	"Así organizamos los primeros cupos.",
 	"Instagram es opcional.",
+	"Elegí día y hora para ver tu página en vivo (15 min · Hora CR).",
 ] as const;
 
 const PROVINCES = [
@@ -69,9 +76,62 @@ const EMPTY: Fields = {
 	country: "CR",
 	city: "",
 	instagram: "",
+	meetingAt: "",
 	website: "",
 	referralCode: "",
 };
+
+const MEETING_HOURS = [
+	"09:00",
+	"10:00",
+	"11:00",
+	"13:00",
+	"14:00",
+	"15:00",
+	"16:00",
+	"17:00",
+	"18:00",
+	"19:00",
+] as const;
+
+function formatMeetingSummary(iso: string): string {
+	if (!iso) return "";
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return "";
+	const dayStr = new Intl.DateTimeFormat("es-CR", {
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+		timeZone: "America/Costa_Rica",
+	}).format(date);
+	const timeStr = new Intl.DateTimeFormat("es-CR", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+		timeZone: "America/Costa_Rica",
+	}).format(date);
+	const cap = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+	return `${cap} · ${timeStr} (Hora CR)`;
+}
+
+function buildGoogleCalendarUrl(iso: string, artistName: string): string | null {
+	if (!iso) return null;
+	const start = new Date(iso);
+	if (Number.isNaN(start.getTime())) return null;
+	const end = new Date(start.getTime() + 15 * 60 * 1000);
+	const fmt = (d: Date) =>
+		d
+			.toISOString()
+			.replace(/[-:]/g, "")
+			.replace(/\.\d{3}Z$/, "Z");
+	const title = encodeURIComponent(
+		`Reunión GigBlades × ${artistName.trim() || "DJ"}`,
+	);
+	const details = encodeURIComponent(
+		"Reunión de bienvenida (15 min) con el equipo de GigBlades para ver tu página web oficial de DJ y activar tu cupo.",
+	);
+	return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}`;
+}
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -201,12 +261,37 @@ export default function AccesoForm() {
 	const [alreadyJoined, setAlreadyJoined] = useState(false);
 	const [introReady, setIntroReady] = useState(false);
 	const [direction, setDirection] = useState(1);
+	const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+	const [turnstileToken, setTurnstileToken] = useState<string>("");
+	const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+	const formStartedAtRef = useRef<number>(Date.now());
 	const formRef = useRef<HTMLFormElement>(null);
+	const turnstileSiteKey = configuredTurnstileSiteKey();
 
 	useEffect(() => {
+		formStartedAtRef.current = Date.now();
 		const timer = window.setTimeout(() => setIntroReady(true), 900);
 		return () => window.clearTimeout(timer);
 	}, []);
+
+	// Fetch already-booked meeting slots from the platform when approaching Step 6
+	useEffect(() => {
+		if (step < 4) return;
+		let active = true;
+		fetch("/api/waitlist", { cache: "no-store" })
+			.then((res) => (res.ok ? res.json() : null))
+			.then((data: { bookedSlots?: string[] } | null) => {
+				if (active && Array.isArray(data?.bookedSlots)) {
+					setBookedSlots(data.bookedSlots);
+				}
+			})
+			.catch(() => {
+				// Ignore network error, slots remain open
+			});
+		return () => {
+			active = false;
+		};
+	}, [step]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -307,14 +392,30 @@ export default function AccesoForm() {
 				return false;
 			}
 		}
+		if (step === 6) {
+			if (!fields.meetingAt.trim()) {
+				setError("Seleccioná un día y una hora para nuestra reunión.");
+				return false;
+			}
+			if (turnstileSiteKey && !turnstileToken) {
+				setError("Completá la verificación de seguridad de Cloudflare.");
+				return false;
+			}
+		}
 		return true;
 	};
 
-	const joinWaitlist = async (instagram: string) => {
+	const joinWaitlist = async (instagram: string, meetingAtOverride?: string) => {
+		if (turnstileSiteKey && !turnstileToken) {
+			setError("Completá la verificación de seguridad de Cloudflare.");
+			return;
+		}
 		setStatus("submitting");
 		setError(null);
 		const controller = new AbortController();
 		const timer = window.setTimeout(() => controller.abort(), 45_000);
+		const finalMeetingAt =
+			meetingAtOverride !== undefined ? meetingAtOverride : fields.meetingAt.trim();
 		try {
 			const response = await fetch("/api/waitlist", {
 				method: "POST",
@@ -326,26 +427,38 @@ export default function AccesoForm() {
 					country: fields.country,
 					city: fields.city.trim(),
 					instagram: instagram.trim() || undefined,
+					meetingAt: finalMeetingAt || undefined,
 					website: fields.website,
 					referralCode: fields.referralCode.trim() || undefined,
 					packageId: "all_inclusive",
+					turnstileToken: turnstileToken || undefined,
+					formStartedAt: formStartedAtRef.current,
 				}),
 				signal: controller.signal,
 			});
 			const payload = (await response.json().catch(() => null)) as {
 				alreadyJoined?: boolean;
+				meetingAt?: string | null;
 				message?: string;
 			} | null;
 			if (!response.ok) {
 				setStatus("idle");
 				setError(payload?.message ?? "No pudimos anotarte. Intentá de nuevo.");
+				if (turnstileSiteKey) {
+					setTurnstileToken("");
+					setTurnstileResetKey((k) => k + 1);
+				}
 				return;
 			}
 			try {
 				localStorage.removeItem("gb_ref");
 				document.cookie = "gb_ref=; path=/; max-age=0;";
 			} catch {}
-			setFields((current) => ({ ...current, referralCode: "" }));
+			setFields((current) => ({
+				...current,
+				referralCode: "",
+				meetingAt: finalMeetingAt,
+			}));
 			setAlreadyJoined(Boolean(payload?.alreadyJoined));
 			setStatus("done");
 		} catch (error) {
@@ -364,7 +477,7 @@ export default function AccesoForm() {
 		event.preventDefault();
 		if (!validate()) return;
 
-		if (step < 5) {
+		if (step < 6) {
 			moveTo((step + 1) as Step);
 			return;
 		}
@@ -413,17 +526,19 @@ export default function AccesoForm() {
 
 		event.preventDefault();
 		if (!validate()) return;
-		if (step < 5) {
+		if (step < 6) {
 			moveTo((step + 1) as Step);
 			return;
 		}
 		formRef.current?.requestSubmit();
 	};
 
-	const provinceHint =
+	const activeHint =
 		step === 4 && PROVINCES.includes(fields.city as (typeof PROVINCES)[number])
 			? PROVINCE_HINTS[fields.city as (typeof PROVINCES)[number]]
-			: HINTS[step];
+			: step === 6 && fields.meetingAt
+				? `Reunión: ${formatMeetingSummary(fields.meetingAt)}`
+				: HINTS[step];
 
 	return (
 		<div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#090A09]">
@@ -493,6 +608,8 @@ export default function AccesoForm() {
 						<Success
 							alreadyJoined={alreadyJoined}
 							country={fields.country}
+							artistName={fields.artistName}
+							meetingAt={fields.meetingAt}
 							reduceMotion={Boolean(reduceMotion)}
 						/>
 					) : (
@@ -521,13 +638,15 @@ export default function AccesoForm() {
 								{error ? (
 									<span className="access-error-copy">{error}</span>
 								) : (
-									<AccessRoll text={provinceHint} live={introReady} />
+									<AccessRoll text={activeHint} live={introReady} />
 								)}
 							</p>
 
 							<motion.div
 								layout="size"
-								className="relative mt-8 overflow-hidden sm:mt-10"
+								className={`relative overflow-hidden ${
+									step === 6 ? "mt-4 sm:mt-6" : "mt-8 sm:mt-10"
+								}`}
 								transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
 							>
 								<AnimatePresence
@@ -654,12 +773,65 @@ export default function AccesoForm() {
 												type="button"
 												onClick={() => {
 													if (status !== "idle") return;
-													void joinWaitlist("");
+													setError(null);
+													setFields((current) => ({ ...current, instagram: "" }));
+													moveTo(6);
 												}}
 												className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
 											>
 												Saltar
 											</button>
+										)}
+										{step === 6 && (
+											<div className="flex flex-col gap-3">
+												<MeetingScheduler
+													value={fields.meetingAt}
+													bookedSlots={bookedSlots}
+													reduceMotion={Boolean(reduceMotion)}
+													onChange={(meetingAt) => {
+														setError(null);
+														setFields((current) => ({ ...current, meetingAt }));
+													}}
+												/>
+												{turnstileSiteKey ? (
+													<div className="border border-white/10 bg-[#0D100D] px-3 py-2">
+														<TurnstileWidget
+															key={turnstileResetKey}
+															theme="dark"
+															bare
+															onSuccess={(token) => {
+																setTurnstileToken(token);
+																setError(null);
+															}}
+															onExpire={() => setTurnstileToken("")}
+															onError={() =>
+																setError(
+																	"La verificación de Cloudflare falló. Intentá de nuevo.",
+																)
+															}
+														/>
+													</div>
+												) : null}
+												<div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+													<button
+														type="button"
+														onClick={() => {
+															if (status !== "idle") return;
+															void joinWaitlist(
+																fields.instagram.replace(/^@+/, ""),
+																"",
+															);
+														}}
+														className="access-press cursor-pointer text-xs text-white/40 transition-colors duration-160 hover:text-white sm:text-sm"
+													>
+														Prefiero coordinar la hora luego por WhatsApp
+													</button>
+													<span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] text-white/35">
+														<span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+														Protegido con Cloudflare
+													</span>
+												</div>
+											</div>
 										)}
 									</motion.div>
 								</AnimatePresence>
@@ -706,7 +878,7 @@ export default function AccesoForm() {
 									type="submit"
 									disabled={status === "submitting"}
 									data-slot-hover-root
-									className="access-primary access-press flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 overflow-visible bg-brand px-5 text-sm font-medium text-white transition-[background-color] duration-160 hover:bg-brand-hover disabled:cursor-wait disabled:opacity-50 sm:min-w-44 sm:flex-none"
+									className="access-primary access-press flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 overflow-visible bg-brand px-5 text-sm font-medium text-white transition-[background-color] duration-160 hover:bg-brand-hover disabled:cursor-wait disabled:opacity-50 sm:min-w-52 sm:flex-none"
 								>
 									<AccessRoll
 										hover
@@ -715,8 +887,8 @@ export default function AccesoForm() {
 										text={
 											status === "submitting"
 												? "Enviando…"
-												: step === 5
-													? "Anotarme"
+												: step === 6
+													? "Agendar y anotarme"
 													: "Continuar"
 										}
 										className="whitespace-nowrap"
@@ -818,13 +990,19 @@ function Progress({
 function Success({
 	alreadyJoined,
 	country,
+	artistName,
+	meetingAt,
 	reduceMotion,
 }: {
 	alreadyJoined: boolean;
 	country: Country;
+	artistName: string;
+	meetingAt: string;
 	reduceMotion: boolean;
 }) {
 	const place = country === "US" ? "Estados Unidos" : "Costa Rica";
+	const meetingSummary = formatMeetingSummary(meetingAt);
+	const gcalUrl = buildGoogleCalendarUrl(meetingAt, artistName);
 
 	return (
 		<motion.section
@@ -832,7 +1010,7 @@ function Success({
 			initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(12px)" }}
 			animate={{ opacity: 1, transform: "translateY(0px)" }}
 			transition={{ duration: reduceMotion ? 0.25 : 0.7, ease: EASE }}
-			className="absolute inset-0 flex w-full flex-col items-center justify-center text-center"
+			className="absolute inset-0 flex w-full flex-col items-center justify-center px-5 text-center"
 			aria-live="polite"
 		>
 			<h1 className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.75rem)] leading-[1.08] tracking-[-0.045em] text-[#F5F7F5] sm:tracking-[-0.055em]">
@@ -841,9 +1019,35 @@ function Success({
 			<p className="mt-4 max-w-sm text-[15px] leading-6 text-white/50">
 				{alreadyJoined
 					? `Cuando abramos el próximo cupo en ${place}, te escribimos.`
-					: `Te escribiremos cuando abramos el próximo cupo en ${place}.`}
+					: meetingSummary
+						? "Tu reunión quedó agendada directamente en nuestra plataforma."
+						: `Te escribiremos cuando abramos el próximo cupo en ${place}.`}
 			</p>
-			<div className="mx-auto mt-8 w-[min(100%,18rem)] sm:mt-10 sm:w-[min(100%,20rem)]">
+			{meetingSummary ? (
+				<div className="mt-5 flex w-full max-w-sm flex-col items-center gap-2.5 border border-white/15 bg-[#101310] px-4 py-3.5 text-left">
+					<div className="flex w-full items-center justify-between gap-2">
+						<span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-accent">
+							<span className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
+							Reunión 1:1 confirmada
+						</span>
+						<span className="font-mono text-[10px] text-white/40">15 MIN</span>
+					</div>
+					<p className="w-full text-sm font-medium text-white">
+						{meetingSummary}
+					</p>
+					{gcalUrl ? (
+						<a
+							href={gcalUrl}
+							target="_blank"
+							rel="noreferrer"
+							className="access-press mt-0.5 inline-flex w-full items-center justify-center border border-white/15 bg-white/5 px-3 py-2 font-mono text-[11px] text-white/85 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+						>
+							+ Agregar a Google Calendar
+						</a>
+					) : null}
+				</div>
+			) : null}
+			<div className="mx-auto mt-6 w-[min(100%,15rem)] sm:mt-8 sm:w-[min(100%,18rem)]">
 				<div className="access-success-art">
 					<Image
 						src="/images/gigblade-access-signpost-blue.png"
@@ -865,12 +1069,484 @@ function Success({
 							document.cookie = "gb_ref=; path=/; max-age=0;";
 						} catch {}
 					}}
-					className="mt-8 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
+					className="mt-6 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
 				>
 					Volver a GigBlades
 				</AppLink>
 			</div>
 		</motion.section>
+	);
+}
+
+const WEEKDAYS_SHORT = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"] as const;
+
+function toCrDateKey(date: Date): string {
+	const parts = new Intl.DateTimeFormat("en-CA", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		timeZone: "America/Costa_Rica",
+	}).formatToParts(date);
+	const y = parts.find((p) => p.type === "year")?.value ?? "2026";
+	const m = parts.find((p) => p.type === "month")?.value ?? "01";
+	const d = parts.find((p) => p.type === "day")?.value ?? "01";
+	return `${y}-${m}-${d}`;
+}
+
+function buildSlotIso(dateKey: string, hour24: string): string {
+	return new Date(`${dateKey}T${hour24}:00-06:00`).toISOString();
+}
+
+function formatHourLabel(hour24: string, use24h: boolean): string {
+	if (use24h) return hour24;
+	const [hStr, mStr] = hour24.split(":");
+	const h = Number(hStr);
+	const suffix = h >= 12 ? "PM" : "AM";
+	const h12 = h % 12 === 0 ? 12 : h % 12;
+	return `${h12}:${mStr} ${suffix}`;
+}
+
+function isDayAvailable(dateKey: string, todayKey: string): boolean {
+	if (dateKey < todayKey) return false;
+	const d = new Date(`${dateKey}T12:00:00-06:00`);
+	// Sundays (0) closed
+	return d.getUTCDay() !== 0;
+}
+
+function getNextAvailableDateKeys(todayKey: string, count: number): string[] {
+	const result: string[] = [];
+	const cursor = new Date(`${todayKey}T12:00:00-06:00`);
+	for (let i = 0; i < 45 && result.length < count; i++) {
+		const key = toCrDateKey(cursor);
+		if (isDayAvailable(key, todayKey)) {
+			result.push(key);
+		}
+		cursor.setUTCDate(cursor.getUTCDate() + 1);
+	}
+	return result;
+}
+
+function MeetingScheduler({
+	value,
+	bookedSlots,
+	reduceMotion,
+	onChange,
+}: {
+	value: string;
+	bookedSlots: string[];
+	reduceMotion: boolean;
+	onChange: (iso: string) => void;
+}) {
+	const todayKey = useMemo(() => toCrDateKey(new Date()), []);
+	const quickDays = useMemo(
+		() => getNextAvailableDateKeys(todayKey, 6),
+		[todayKey],
+	);
+
+	const initialDateKey = useMemo(() => {
+		if (value) {
+			const parsed = new Date(value);
+			if (!Number.isNaN(parsed.getTime())) {
+				return toCrDateKey(parsed);
+			}
+		}
+		return quickDays[0] ?? todayKey;
+	}, [value, quickDays, todayKey]);
+
+	const [selectedDateKey, setSelectedDateKey] = useState<string>(initialDateKey);
+	const [use24h, setUse24h] = useState<boolean>(false);
+	const [monthOffset, setMonthOffset] = useState<number>(0);
+	const [monthDir, setMonthDir] = useState<number>(1);
+	const slotsContainerRef = useRef<HTMLDivElement>(null);
+
+	const baseYearMonth = useMemo(() => {
+		const [y, m] = todayKey.split("-").map(Number);
+		return { year: y, month: m - 1 };
+	}, [todayKey]);
+
+	const activeMonthDate = useMemo(() => {
+		return new Date(Date.UTC(baseYearMonth.year, baseYearMonth.month + monthOffset, 1, 12, 0, 0));
+	}, [baseYearMonth, monthOffset]);
+
+	const monthLabel = useMemo(() => {
+		const raw = new Intl.DateTimeFormat("es-CR", {
+			month: "long",
+			year: "numeric",
+			timeZone: "UTC",
+		}).format(activeMonthDate);
+		return raw.charAt(0).toUpperCase() + raw.slice(1);
+	}, [activeMonthDate]);
+
+	const calendarDays = useMemo(() => {
+		const year = activeMonthDate.getUTCFullYear();
+		const month = activeMonthDate.getUTCMonth();
+		const firstDay = new Date(Date.UTC(year, month, 1, 12, 0, 0));
+		// Convert Sunday=0..Saturday=6 into Monday=0..Sunday=6
+		const startPad = (firstDay.getUTCDay() + 6) % 7;
+		const daysInMonth = new Date(Date.UTC(year, month + 1, 0, 12, 0, 0)).getUTCDate();
+
+		const cells: Array<{ key: string; dayNumber: number; available: boolean; isToday: boolean } | null> = [];
+		for (let i = 0; i < startPad; i++) {
+			cells.push(null);
+		}
+		for (let d = 1; d <= daysInMonth; d++) {
+			const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+			cells.push({
+				key,
+				dayNumber: d,
+				available: isDayAvailable(key, todayKey),
+				isToday: key === todayKey,
+			});
+		}
+		return cells;
+	}, [activeMonthDate, todayKey]);
+
+	const bookedTimestamps = useMemo(() => {
+		return bookedSlots
+			.map((iso) => new Date(iso).getTime())
+			.filter((t) => !Number.isNaN(t));
+	}, [bookedSlots]);
+
+	const slotsForSelectedDay = useMemo(() => {
+		const nowPlusBuffer = Date.now() + 30 * 60 * 1000;
+		return MEETING_HOURS.map((hour24) => {
+			const iso = buildSlotIso(selectedDateKey, hour24);
+			const slotMs = new Date(iso).getTime();
+			const isPast = slotMs < nowPlusBuffer;
+			const isBooked = bookedTimestamps.some(
+				(bookedMs) => Math.abs(bookedMs - slotMs) < 25 * 60 * 1000,
+			);
+			return {
+				hour24,
+				iso,
+				disabled: isPast || isBooked,
+				isBooked,
+			};
+		});
+	}, [selectedDateKey, bookedTimestamps]);
+
+	const selectedDayHeaderLabel = useMemo(() => {
+		const d = new Date(`${selectedDateKey}T12:00:00-06:00`);
+		const formatted = new Intl.DateTimeFormat("es-CR", {
+			weekday: "short",
+			day: "numeric",
+			month: "short",
+			timeZone: "America/Costa_Rica",
+		}).format(d);
+		return formatted.replace(/\./g, "").toUpperCase();
+	}, [selectedDateKey]);
+
+	const handleSelectDay = (dateKey: string) => {
+		setSelectedDateKey(dateKey);
+		// If a slot was already selected at a specific hour, try to keep that hour on the new day if available
+		if (value) {
+			const prevDate = new Date(value);
+			if (!Number.isNaN(prevDate.getTime())) {
+				const crHour = new Intl.DateTimeFormat("en-GB", {
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: false,
+					timeZone: "America/Costa_Rica",
+				}).format(prevDate);
+				const candidateIso = buildSlotIso(dateKey, crHour);
+				const candidateMs = new Date(candidateIso).getTime();
+				const isBooked = bookedTimestamps.some(
+					(b) => Math.abs(b - candidateMs) < 25 * 60 * 1000,
+				);
+				if (candidateMs > Date.now() + 30 * 60 * 1000 && !isBooked) {
+					onChange(candidateIso);
+					return;
+				}
+			}
+			onChange("");
+		}
+	};
+
+	const changeMonth = (delta: number) => {
+		const next = monthOffset + delta;
+		if (next < 0 || next > 3) return;
+		setMonthDir(delta);
+		setMonthOffset(next);
+	};
+
+	const availableCount = slotsForSelectedDay.filter((s) => !s.disabled).length;
+
+	return (
+		<div
+			data-access-field
+			tabIndex={-1}
+			className="w-full overflow-hidden border border-white/14 bg-[#0C0E0C]/95 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.85)] outline-none"
+		>
+			{/* Cal.com-style Top Header Bar */}
+			<div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#101310] px-3.5 py-2.5 sm:px-4 sm:py-3">
+				<div className="flex min-w-0 items-center gap-2">
+					<span className="relative flex h-2 w-2 shrink-0">
+						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-accent opacity-75" />
+						<span className="relative inline-flex h-2 w-2 rounded-full bg-brand-accent" />
+					</span>
+					<span className="truncate text-xs font-medium text-white/90 sm:text-[13px]">
+						Demo 1:1 · GigBlades
+					</span>
+					<span className="shrink-0 border border-white/12 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/65">
+						15 min
+					</span>
+					<span className="hidden font-mono text-[10px] text-white/35 md:inline">
+						· GMT-6 (Costa Rica)
+					</span>
+				</div>
+
+				{/* 12h / 24h Segmented Toggle */}
+				<div
+					role="group"
+					aria-label="Formato de hora"
+					className="flex shrink-0 items-center border border-white/12 bg-[#080908] p-0.5 font-mono text-[10px]"
+				>
+					<button
+						type="button"
+						onClick={() => setUse24h(false)}
+						className={`cursor-pointer px-2 py-0.5 transition-colors ${
+							!use24h
+								? "bg-white/15 font-semibold text-white"
+								: "text-white/40 hover:text-white/75"
+						}`}
+					>
+						12h
+					</button>
+					<button
+						type="button"
+						onClick={() => setUse24h(true)}
+						className={`cursor-pointer px-2 py-0.5 transition-colors ${
+							use24h
+								? "bg-white/15 font-semibold text-white"
+								: "text-white/40 hover:text-white/75"
+						}`}
+					>
+						24h
+					</button>
+				</div>
+			</div>
+
+			{/* Mobile-First Quick Day Pills */}
+			<div className="flex items-center gap-1.5 overflow-x-auto border-b border-white/8 bg-[#0A0C0A] px-3.5 py-2 sm:px-4">
+				{quickDays.map((dayKey, idx) => {
+					const d = new Date(`${dayKey}T12:00:00-06:00`);
+					const isSelected = dayKey === selectedDateKey;
+					const shortLabel =
+						dayKey === todayKey
+							? "Hoy"
+							: idx === 1 &&
+								  new Date(`${todayKey}T12:00:00-06:00`).getTime() +
+										86_400_000 ===
+										d.getTime()
+								? "Mañana"
+								: new Intl.DateTimeFormat("es-CR", {
+										weekday: "short",
+										day: "numeric",
+										timeZone: "America/Costa_Rica",
+									})
+										.format(d)
+										.replace(/\./g, "");
+					return (
+						<button
+							key={dayKey}
+							type="button"
+							onClick={() => {
+								const [y, m] = dayKey.split("-").map(Number);
+								const targetOffset =
+									(y - baseYearMonth.year) * 12 + (m - 1 - baseYearMonth.month);
+								if (targetOffset >= 0 && targetOffset <= 3) {
+									setMonthOffset(targetOffset);
+								}
+								handleSelectDay(dayKey);
+							}}
+							className={`access-press shrink-0 cursor-pointer border px-2.5 py-1 font-mono text-[11px] capitalize transition-all duration-160 ${
+								isSelected
+									? "border-brand-accent bg-brand/25 font-semibold text-white"
+									: "border-white/10 bg-[#111411] text-white/55 hover:border-white/25 hover:text-white/90"
+							}`}
+						>
+							{shortLabel}
+						</button>
+					);
+				})}
+			</div>
+
+			{/* Main Cal.com Split View: Month Calendar + Time Slots */}
+			<div className="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-[1.15fr_0.85fr] sm:divide-x sm:divide-y-0">
+				{/* Left Column: Calendar Grid */}
+				<div className="p-3.5 sm:p-4">
+					<div className="mb-3 flex items-center justify-between">
+						<span className="text-sm font-medium tracking-[-0.02em] text-white">
+							{monthLabel}
+						</span>
+						<div className="flex items-center gap-1">
+							<button
+								type="button"
+								onClick={() => changeMonth(-1)}
+								disabled={monthOffset <= 0}
+								aria-label="Mes anterior"
+								className="access-press flex h-7 w-7 cursor-pointer items-center justify-center border border-white/12 bg-[#121512] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+							>
+								<IconArrowLeft className="h-3.5 w-3.5" />
+							</button>
+							<button
+								type="button"
+								onClick={() => changeMonth(1)}
+								disabled={monthOffset >= 3}
+								aria-label="Mes siguiente"
+								className="access-press flex h-7 w-7 cursor-pointer items-center justify-center border border-white/12 bg-[#121512] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+							>
+								<IconArrowRight className="h-3.5 w-3.5" />
+							</button>
+						</div>
+					</div>
+
+					<div className="mb-1.5 grid grid-cols-7 gap-1 text-center">
+						{WEEKDAYS_SHORT.map((wd) => (
+							<span
+								key={wd}
+								className="font-mono text-[10px] tracking-[0.08em] text-white/35"
+							>
+								{wd}
+							</span>
+						))}
+					</div>
+
+					<AnimatePresence mode="wait" initial={false} custom={monthDir}>
+						<motion.div
+							key={monthLabel}
+							custom={monthDir}
+							variants={{
+								enter: (dir: number) =>
+									reduceMotion ? { opacity: 0 } : { opacity: 0, x: dir * 10 },
+								center: { opacity: 1, x: 0 },
+								exit: (dir: number) =>
+									reduceMotion ? { opacity: 0 } : { opacity: 0, x: dir * -10 },
+							}}
+							initial="enter"
+							animate="center"
+							exit="exit"
+							transition={{ duration: reduceMotion ? 0 : 0.2, ease: EASE }}
+							className="grid grid-cols-7 gap-1"
+						>
+							{calendarDays.map((cell, index) => {
+								if (!cell) {
+									return <span key={`empty-${index}`} className="h-9 sm:h-9" />;
+								}
+								const isSelected = cell.key === selectedDateKey;
+								return (
+									<button
+										key={cell.key}
+										type="button"
+										disabled={!cell.available}
+										onClick={() => handleSelectDay(cell.key)}
+										aria-label={cell.key}
+										aria-pressed={isSelected}
+										className={`access-press relative flex h-9 w-full flex-col items-center justify-center font-mono text-xs tabular-nums transition-all duration-160 ${
+											!cell.available
+												? "cursor-not-allowed text-white/18"
+												: isSelected
+													? "bg-brand font-semibold text-white shadow-[0_0_20px_rgba(29,78,216,0.45)] ring-1 ring-brand-accent"
+													: "border border-white/6 bg-[#131713] text-white/85 hover:border-white/25 hover:bg-[#1A201A] hover:text-white"
+										}`}
+									>
+										<span>{cell.dayNumber}</span>
+										{cell.isToday && (
+											<span
+												className={`absolute bottom-1 h-1 w-1 rounded-full ${
+													isSelected ? "bg-white" : "bg-brand-accent"
+												}`}
+											/>
+										)}
+									</button>
+								);
+							})}
+						</motion.div>
+					</AnimatePresence>
+				</div>
+
+				{/* Right Column: Time Slots Panel */}
+				<div
+					ref={slotsContainerRef}
+					className="flex flex-col justify-between p-3.5 sm:p-4"
+				>
+					<div>
+						<div className="mb-3 flex items-center justify-between gap-2">
+							<span className="font-mono text-xs font-semibold tracking-[0.08em] text-white/90">
+								{selectedDayHeaderLabel}
+							</span>
+							<span className="font-mono text-[10px] text-white/40">
+								{availableCount} disp.
+							</span>
+						</div>
+
+						<AnimatePresence mode="wait" initial={false}>
+							<motion.div
+								key={selectedDateKey}
+								initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+								transition={{ duration: reduceMotion ? 0 : 0.2, ease: EASE }}
+								className="grid max-h-48 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5 sm:max-h-56"
+							>
+								{slotsForSelectedDay.map((slot) => {
+									const isSelected = value === slot.iso;
+									return (
+										<button
+											key={slot.hour24}
+											type="button"
+											disabled={slot.disabled}
+											onClick={() => onChange(slot.iso)}
+											aria-pressed={isSelected}
+											className={`access-press flex h-9 items-center justify-between border px-2.5 font-mono text-xs tabular-nums transition-all duration-160 ${
+												slot.disabled
+													? "cursor-not-allowed border-white/5 bg-white/[0.02] text-white/20 line-through"
+													: isSelected
+														? "border-brand-accent bg-brand font-semibold text-white shadow-[0_0_16px_rgba(29,78,216,0.4)]"
+														: "border-white/12 bg-[#121612] text-white/85 hover:border-brand-accent/60 hover:bg-[#171D17] hover:text-white"
+											}`}
+										>
+											<span>{formatHourLabel(slot.hour24, use24h)}</span>
+											{slot.isBooked ? (
+												<span className="text-[9px] uppercase no-underline opacity-60">
+													Ocupado
+												</span>
+											) : isSelected ? (
+												<span className="h-1.5 w-1.5 rounded-full bg-white" />
+											) : (
+												<span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
+											)}
+										</button>
+									);
+								})}
+							</motion.div>
+						</AnimatePresence>
+					</div>
+
+					{/* Selected Slot Summary Footer */}
+					<div className="mt-3 border-t border-white/8 pt-2.5">
+						{value ? (
+							<div className="flex items-center justify-between gap-2 text-xs">
+								<span className="truncate font-medium text-brand-accent">
+									✓ {formatMeetingSummary(value)}
+								</span>
+								<button
+									type="button"
+									onClick={() => onChange("")}
+									className="shrink-0 cursor-pointer font-mono text-[10px] text-white/40 hover:text-white"
+								>
+									Cambiar
+								</button>
+							</div>
+						) : (
+							<p className="font-mono text-[11px] text-white/40">
+								Tocá una hora disponible para confirmar tu espacio.
+							</p>
+						)}
+					</div>
+				</div>
+			</div>
+		</div>
 	);
 }
 

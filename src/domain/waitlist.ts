@@ -14,6 +14,9 @@ export const waitlistRequestSchema = z
     website: z.string().optional(),
     referralCode: z.string().optional(),
     packageId: z.string().optional(),
+    meetingAt: z.string().optional(),
+    turnstileToken: z.string().optional(),
+    formStartedAt: z.number().optional(),
   })
   .strict();
 
@@ -27,8 +30,10 @@ export type WaitlistDraft = {
   instagram: string | null;
   phone: string | null;
   note: string | null;
+  meetingAt?: string | null;
   referralCode?: string | null;
   packageId?: string | null;
+  turnstileToken?: string | null;
 };
 
 export type WaitlistSignup = WaitlistDraft & {
@@ -39,6 +44,7 @@ export type WaitlistSignup = WaitlistDraft & {
 
 export type WaitlistJoinResult = {
   alreadyJoined: boolean;
+  meetingAt?: string | null;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,6 +91,61 @@ function normalizePhone(value: unknown): string | null {
   return phone;
 }
 
+const MEETING_NOTE_PREFIX_RE = /^\[MEETING:([^\]]+)\]\s*/;
+
+export function normalizeMeetingAt(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (raw.length > 64) {
+    throw validationError("La fecha de reunión no es válida");
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw validationError("La fecha y hora de la reunión no son válidas");
+  }
+
+  const now = Date.now();
+  const minAllowed = now - 24 * 60 * 60 * 1000;
+  const maxAllowed = now + 120 * 24 * 60 * 60 * 1000;
+
+  if (parsed.getTime() < minAllowed) {
+    throw validationError("Elegí una fecha y hora futura para la reunión");
+  }
+  if (parsed.getTime() > maxAllowed) {
+    throw validationError("La reunión debe agendarse dentro de los próximos 4 meses");
+  }
+
+  return parsed.toISOString();
+}
+
+export function encodeMeetingInNote(
+  note: string | null | undefined,
+  meetingAt: string | null | undefined,
+): string | null {
+  const cleanNote = note?.replace(MEETING_NOTE_PREFIX_RE, "").trim() ?? "";
+  if (!meetingAt) {
+    return cleanNote || null;
+  }
+  const prefix = `[MEETING:${meetingAt}]`;
+  if (!cleanNote) return prefix;
+  return `${prefix} ${cleanNote}`.slice(0, 280);
+}
+
+export function decodeMeetingFromNote(
+  note: string | null | undefined,
+  explicitMeetingAt?: string | null,
+): { meetingAt: string | null; note: string | null } {
+  const rawNote = note ?? "";
+  const match = rawNote.match(MEETING_NOTE_PREFIX_RE);
+  const embeddedMeetingAt = match?.[1]?.trim() || null;
+  const cleanedNote = rawNote.replace(MEETING_NOTE_PREFIX_RE, "").trim() || null;
+  return {
+    meetingAt: explicitMeetingAt || embeddedMeetingAt || null,
+    note: cleanedNote,
+  };
+}
+
 export function normalizeWaitlistDraft(input: {
   artistName?: unknown;
   email?: unknown;
@@ -96,9 +157,24 @@ export function normalizeWaitlistDraft(input: {
   website?: unknown;
   referralCode?: unknown;
   packageId?: unknown;
+  meetingAt?: unknown;
+  turnstileToken?: unknown;
+  formStartedAt?: unknown;
 }): WaitlistDraft | { discarded: true } {
   if (asTrimmedString(input.website)) {
     return { discarded: true };
+  }
+
+  if (
+    typeof input.formStartedAt === "number" &&
+    Number.isFinite(input.formStartedAt) &&
+    input.formStartedAt > 0
+  ) {
+    const elapsedMs = Date.now() - input.formStartedAt;
+    // Automated bots submitting faster than 800ms are silently discarded like honeypot
+    if (elapsedMs >= 0 && elapsedMs < 800) {
+      return { discarded: true };
+    }
   }
 
   const artistName = asTrimmedString(input.artistName);
@@ -119,6 +195,8 @@ export function normalizeWaitlistDraft(input: {
 
   const referralCode = optionalText(input.referralCode, 30, "El código de referido");
   const packageId = optionalText(input.packageId, 40, "El paquete") || "all_inclusive";
+  const meetingAt = normalizeMeetingAt(input.meetingAt);
+  const turnstileToken = optionalText(input.turnstileToken, 4096, "El token de seguridad");
 
   return {
     artistName,
@@ -128,8 +206,10 @@ export function normalizeWaitlistDraft(input: {
     instagram: normalizeInstagram(input.instagram),
     phone: normalizePhone(input.phone),
     note: optionalText(input.note, 280, "La nota"),
+    meetingAt,
     referralCode: referralCode ? referralCode.toUpperCase() : null,
     packageId,
+    turnstileToken,
   };
 }
 
