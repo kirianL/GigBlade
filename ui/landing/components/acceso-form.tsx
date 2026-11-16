@@ -826,8 +826,7 @@ export default function AccesoForm() {
 													>
 														Prefiero coordinar la hora luego por WhatsApp
 													</button>
-													<span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] text-white/35">
-														<span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+													<span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/35">
 														Protegido con Cloudflare
 													</span>
 												</div>
@@ -1078,8 +1077,6 @@ function Success({
 	);
 }
 
-const WEEKDAYS_SHORT = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"] as const;
-
 function toCrDateKey(date: Date): string {
 	const parts = new Intl.DateTimeFormat("en-CA", {
 		year: "numeric",
@@ -1109,7 +1106,7 @@ function formatHourLabel(hour24: string, use24h: boolean): string {
 function isDayAvailable(dateKey: string, todayKey: string): boolean {
 	if (dateKey < todayKey) return false;
 	const d = new Date(`${dateKey}T12:00:00-06:00`);
-	// Sundays (0) closed
+	// Domingos cerrado (0)
 	return d.getUTCDay() !== 0;
 }
 
@@ -1138,7 +1135,7 @@ function MeetingScheduler({
 	onChange: (iso: string) => void;
 }) {
 	const todayKey = useMemo(() => toCrDateKey(new Date()), []);
-	const quickDays = useMemo(
+	const availableDays = useMemo(
 		() => getNextAvailableDateKeys(todayKey, 6),
 		[todayKey],
 	);
@@ -1147,59 +1144,15 @@ function MeetingScheduler({
 		if (value) {
 			const parsed = new Date(value);
 			if (!Number.isNaN(parsed.getTime())) {
-				return toCrDateKey(parsed);
+				const key = toCrDateKey(parsed);
+				if (availableDays.includes(key)) return key;
 			}
 		}
-		return quickDays[0] ?? todayKey;
-	}, [value, quickDays, todayKey]);
+		return availableDays[0] ?? todayKey;
+	}, [value, availableDays, todayKey]);
 
 	const [selectedDateKey, setSelectedDateKey] = useState<string>(initialDateKey);
 	const [use24h, setUse24h] = useState<boolean>(false);
-	const [monthOffset, setMonthOffset] = useState<number>(0);
-	const [monthDir, setMonthDir] = useState<number>(1);
-	const slotsContainerRef = useRef<HTMLDivElement>(null);
-
-	const baseYearMonth = useMemo(() => {
-		const [y, m] = todayKey.split("-").map(Number);
-		return { year: y, month: m - 1 };
-	}, [todayKey]);
-
-	const activeMonthDate = useMemo(() => {
-		return new Date(Date.UTC(baseYearMonth.year, baseYearMonth.month + monthOffset, 1, 12, 0, 0));
-	}, [baseYearMonth, monthOffset]);
-
-	const monthLabel = useMemo(() => {
-		const raw = new Intl.DateTimeFormat("es-CR", {
-			month: "long",
-			year: "numeric",
-			timeZone: "UTC",
-		}).format(activeMonthDate);
-		return raw.charAt(0).toUpperCase() + raw.slice(1);
-	}, [activeMonthDate]);
-
-	const calendarDays = useMemo(() => {
-		const year = activeMonthDate.getUTCFullYear();
-		const month = activeMonthDate.getUTCMonth();
-		const firstDay = new Date(Date.UTC(year, month, 1, 12, 0, 0));
-		// Convert Sunday=0..Saturday=6 into Monday=0..Sunday=6
-		const startPad = (firstDay.getUTCDay() + 6) % 7;
-		const daysInMonth = new Date(Date.UTC(year, month + 1, 0, 12, 0, 0)).getUTCDate();
-
-		const cells: Array<{ key: string; dayNumber: number; available: boolean; isToday: boolean } | null> = [];
-		for (let i = 0; i < startPad; i++) {
-			cells.push(null);
-		}
-		for (let d = 1; d <= daysInMonth; d++) {
-			const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-			cells.push({
-				key,
-				dayNumber: d,
-				available: isDayAvailable(key, todayKey),
-				isToday: key === todayKey,
-			});
-		}
-		return cells;
-	}, [activeMonthDate, todayKey]);
 
 	const bookedTimestamps = useMemo(() => {
 		return bookedSlots
@@ -1225,20 +1178,8 @@ function MeetingScheduler({
 		});
 	}, [selectedDateKey, bookedTimestamps]);
 
-	const selectedDayHeaderLabel = useMemo(() => {
-		const d = new Date(`${selectedDateKey}T12:00:00-06:00`);
-		const formatted = new Intl.DateTimeFormat("es-CR", {
-			weekday: "short",
-			day: "numeric",
-			month: "short",
-			timeZone: "America/Costa_Rica",
-		}).format(d);
-		return formatted.replace(/\./g, "").toUpperCase();
-	}, [selectedDateKey]);
-
 	const handleSelectDay = (dateKey: string) => {
 		setSelectedDateKey(dateKey);
-		// If a slot was already selected at a specific hour, try to keep that hour on the new day if available
 		if (value) {
 			const prevDate = new Date(value);
 			if (!Number.isNaN(prevDate.getTime())) {
@@ -1262,290 +1203,139 @@ function MeetingScheduler({
 		}
 	};
 
-	const changeMonth = (delta: number) => {
-		const next = monthOffset + delta;
-		if (next < 0 || next > 3) return;
-		setMonthDir(delta);
-		setMonthOffset(next);
-	};
-
-	const availableCount = slotsForSelectedDay.filter((s) => !s.disabled).length;
-
 	return (
 		<div
 			data-access-field
 			tabIndex={-1}
-			className="w-full overflow-hidden border border-white/14 bg-[#0C0E0C]/95 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.85)] outline-none"
+			className="w-full flex flex-col gap-3.5 outline-none"
 		>
-			{/* Cal.com-style Top Header Bar */}
-			<div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#101310] px-3.5 py-2.5 sm:px-4 sm:py-3">
-				<div className="flex min-w-0 items-center gap-2">
-					<span className="relative flex h-2 w-2 shrink-0">
-						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-accent opacity-75" />
-						<span className="relative inline-flex h-2 w-2 rounded-full bg-brand-accent" />
-					</span>
-					<span className="truncate text-xs font-medium text-white/90 sm:text-[13px]">
-						Demo 1:1 · GigBlades
-					</span>
-					<span className="shrink-0 border border-white/12 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/65">
-						15 min
-					</span>
-					<span className="hidden font-mono text-[10px] text-white/35 md:inline">
-						· GMT-6 (Costa Rica)
-					</span>
+			{/* Top Meta Line: Format + Duration */}
+			<div className="flex items-center justify-between text-[11px] font-mono tracking-[0.14em] text-white/40 uppercase">
+				<div className="flex items-center gap-2">
+					<span>Día</span>
+					<span className="text-white/20">·</span>
+					<span className="text-white/30">15 min · Costa Rica</span>
 				</div>
-
-				{/* 12h / 24h Segmented Toggle */}
-				<div
-					role="group"
-					aria-label="Formato de hora"
-					className="flex shrink-0 items-center border border-white/12 bg-[#080908] p-0.5 font-mono text-[10px]"
-				>
+				<div className="flex items-center gap-1 text-[10px]">
 					<button
 						type="button"
 						onClick={() => setUse24h(false)}
-						className={`cursor-pointer px-2 py-0.5 transition-colors ${
-							!use24h
-								? "bg-white/15 font-semibold text-white"
-								: "text-white/40 hover:text-white/75"
+						className={`cursor-pointer px-1 py-0.5 transition-colors ${
+							!use24h ? "text-white font-semibold" : "text-white/30 hover:text-white/60"
 						}`}
 					>
-						12h
+						12H
 					</button>
+					<span className="text-white/20">/</span>
 					<button
 						type="button"
 						onClick={() => setUse24h(true)}
-						className={`cursor-pointer px-2 py-0.5 transition-colors ${
-							use24h
-								? "bg-white/15 font-semibold text-white"
-								: "text-white/40 hover:text-white/75"
+						className={`cursor-pointer px-1 py-0.5 transition-colors ${
+							use24h ? "text-white font-semibold" : "text-white/30 hover:text-white/60"
 						}`}
 					>
-						24h
+						24H
 					</button>
 				</div>
 			</div>
 
-			{/* Mobile-First Quick Day Pills */}
-			<div className="flex items-center gap-1.5 overflow-x-auto border-b border-white/8 bg-[#0A0C0A] px-3.5 py-2 sm:px-4">
-				{quickDays.map((dayKey, idx) => {
+			{/* Minimalist Day Strip (6 Days) */}
+			<div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2">
+				{availableDays.map((dayKey) => {
 					const d = new Date(`${dayKey}T12:00:00-06:00`);
 					const isSelected = dayKey === selectedDateKey;
-					const shortLabel =
-						dayKey === todayKey
-							? "Hoy"
-							: idx === 1 &&
-								  new Date(`${todayKey}T12:00:00-06:00`).getTime() +
-										86_400_000 ===
-										d.getTime()
-								? "Mañana"
-								: new Intl.DateTimeFormat("es-CR", {
-										weekday: "short",
-										day: "numeric",
-										timeZone: "America/Costa_Rica",
-									})
-										.format(d)
-										.replace(/\./g, "");
+					const isToday = dayKey === todayKey;
+					const weekdayName = isToday
+						? "HOY"
+						: new Intl.DateTimeFormat("es-CR", {
+								weekday: "short",
+								timeZone: "America/Costa_Rica",
+							})
+								.format(d)
+								.replace(/\./g, "")
+								.toUpperCase();
+					const dayNumber = new Intl.DateTimeFormat("es-CR", {
+						day: "numeric",
+						timeZone: "America/Costa_Rica",
+					}).format(d);
+
 					return (
 						<button
 							key={dayKey}
 							type="button"
-							onClick={() => {
-								const [y, m] = dayKey.split("-").map(Number);
-								const targetOffset =
-									(y - baseYearMonth.year) * 12 + (m - 1 - baseYearMonth.month);
-								if (targetOffset >= 0 && targetOffset <= 3) {
-									setMonthOffset(targetOffset);
-								}
-								handleSelectDay(dayKey);
-							}}
-							className={`access-press shrink-0 cursor-pointer border px-2.5 py-1 font-mono text-[11px] capitalize transition-all duration-160 ${
+							onClick={() => handleSelectDay(dayKey)}
+							aria-pressed={isSelected}
+							className={`access-press group flex flex-col items-center justify-center py-2 px-1 transition-all duration-160 cursor-pointer ${
 								isSelected
-									? "border-brand-accent bg-brand/25 font-semibold text-white"
-									: "border-white/10 bg-[#111411] text-white/55 hover:border-white/25 hover:text-white/90"
+									? "bg-white text-black font-semibold shadow-sm"
+									: "border border-white/12 bg-transparent text-white/60 hover:border-white/30 hover:text-white"
 							}`}
 						>
-							{shortLabel}
+							<span
+								className={`font-mono text-[10px] tracking-[0.14em] uppercase ${
+									isSelected ? "text-black/60 font-medium" : "text-white/40 group-hover:text-white/70"
+								}`}
+							>
+								{weekdayName}
+							</span>
+							<span
+								className={`mt-0.5 text-base sm:text-[17px] tabular-nums ${
+									isSelected ? "text-black font-semibold" : "text-white"
+								}`}
+							>
+								{dayNumber}
+							</span>
 						</button>
 					);
 				})}
 			</div>
 
-			{/* Main Cal.com Split View: Month Calendar + Time Slots */}
-			<div className="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-[1.15fr_0.85fr] sm:divide-x sm:divide-y-0">
-				{/* Left Column: Calendar Grid */}
-				<div className="p-3.5 sm:p-4">
-					<div className="mb-3 flex items-center justify-between">
-						<span className="text-sm font-medium tracking-[-0.02em] text-white">
-							{monthLabel}
-						</span>
-						<div className="flex items-center gap-1">
-							<button
-								type="button"
-								onClick={() => changeMonth(-1)}
-								disabled={monthOffset <= 0}
-								aria-label="Mes anterior"
-								className="access-press flex h-7 w-7 cursor-pointer items-center justify-center border border-white/12 bg-[#121512] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-							>
-								<IconArrowLeft className="h-3.5 w-3.5" />
-							</button>
-							<button
-								type="button"
-								onClick={() => changeMonth(1)}
-								disabled={monthOffset >= 3}
-								aria-label="Mes siguiente"
-								className="access-press flex h-7 w-7 cursor-pointer items-center justify-center border border-white/12 bg-[#121512] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-							>
-								<IconArrowRight className="h-3.5 w-3.5" />
-							</button>
-						</div>
-					</div>
-
-					<div className="mb-1.5 grid grid-cols-7 gap-1 text-center">
-						{WEEKDAYS_SHORT.map((wd) => (
-							<span
-								key={wd}
-								className="font-mono text-[10px] tracking-[0.08em] text-white/35"
-							>
-								{wd}
-							</span>
-						))}
-					</div>
-
-					<AnimatePresence mode="wait" initial={false} custom={monthDir}>
-						<motion.div
-							key={monthLabel}
-							custom={monthDir}
-							variants={{
-								enter: (dir: number) =>
-									reduceMotion ? { opacity: 0 } : { opacity: 0, x: dir * 10 },
-								center: { opacity: 1, x: 0 },
-								exit: (dir: number) =>
-									reduceMotion ? { opacity: 0 } : { opacity: 0, x: dir * -10 },
-							}}
-							initial="enter"
-							animate="center"
-							exit="exit"
-							transition={{ duration: reduceMotion ? 0 : 0.2, ease: EASE }}
-							className="grid grid-cols-7 gap-1"
-						>
-							{calendarDays.map((cell, index) => {
-								if (!cell) {
-									return <span key={`empty-${index}`} className="h-9 sm:h-9" />;
-								}
-								const isSelected = cell.key === selectedDateKey;
-								return (
-									<button
-										key={cell.key}
-										type="button"
-										disabled={!cell.available}
-										onClick={() => handleSelectDay(cell.key)}
-										aria-label={cell.key}
-										aria-pressed={isSelected}
-										className={`access-press relative flex h-9 w-full flex-col items-center justify-center font-mono text-xs tabular-nums transition-all duration-160 ${
-											!cell.available
-												? "cursor-not-allowed text-white/18"
-												: isSelected
-													? "bg-brand font-semibold text-white shadow-[0_0_20px_rgba(29,78,216,0.45)] ring-1 ring-brand-accent"
-													: "border border-white/6 bg-[#131713] text-white/85 hover:border-white/25 hover:bg-[#1A201A] hover:text-white"
-										}`}
-									>
-										<span>{cell.dayNumber}</span>
-										{cell.isToday && (
-											<span
-												className={`absolute bottom-1 h-1 w-1 rounded-full ${
-													isSelected ? "bg-white" : "bg-brand-accent"
-												}`}
-											/>
-										)}
-									</button>
-								);
-							})}
-						</motion.div>
-					</AnimatePresence>
-				</div>
-
-				{/* Right Column: Time Slots Panel */}
-				<div
-					ref={slotsContainerRef}
-					className="flex flex-col justify-between p-3.5 sm:p-4"
-				>
-					<div>
-						<div className="mb-3 flex items-center justify-between gap-2">
-							<span className="font-mono text-xs font-semibold tracking-[0.08em] text-white/90">
-								{selectedDayHeaderLabel}
-							</span>
-							<span className="font-mono text-[10px] text-white/40">
-								{availableCount} disp.
-							</span>
-						</div>
-
-						<AnimatePresence mode="wait" initial={false}>
-							<motion.div
-								key={selectedDateKey}
-								initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-								transition={{ duration: reduceMotion ? 0 : 0.2, ease: EASE }}
-								className="grid max-h-48 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5 sm:max-h-56"
-							>
-								{slotsForSelectedDay.map((slot) => {
-									const isSelected = value === slot.iso;
-									return (
-										<button
-											key={slot.hour24}
-											type="button"
-											disabled={slot.disabled}
-											onClick={() => onChange(slot.iso)}
-											aria-pressed={isSelected}
-											className={`access-press flex h-9 items-center justify-between border px-2.5 font-mono text-xs tabular-nums transition-all duration-160 ${
-												slot.disabled
-													? "cursor-not-allowed border-white/5 bg-white/[0.02] text-white/20 line-through"
-													: isSelected
-														? "border-brand-accent bg-brand font-semibold text-white shadow-[0_0_16px_rgba(29,78,216,0.4)]"
-														: "border-white/12 bg-[#121612] text-white/85 hover:border-brand-accent/60 hover:bg-[#171D17] hover:text-white"
-											}`}
-										>
-											<span>{formatHourLabel(slot.hour24, use24h)}</span>
-											{slot.isBooked ? (
-												<span className="text-[9px] uppercase no-underline opacity-60">
-													Ocupado
-												</span>
-											) : isSelected ? (
-												<span className="h-1.5 w-1.5 rounded-full bg-white" />
-											) : (
-												<span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
-											)}
-										</button>
-									);
-								})}
-							</motion.div>
-						</AnimatePresence>
-					</div>
-
-					{/* Selected Slot Summary Footer */}
-					<div className="mt-3 border-t border-white/8 pt-2.5">
-						{value ? (
-							<div className="flex items-center justify-between gap-2 text-xs">
-								<span className="truncate font-medium text-brand-accent">
-									✓ {formatMeetingSummary(value)}
-								</span>
-								<button
-									type="button"
-									onClick={() => onChange("")}
-									className="shrink-0 cursor-pointer font-mono text-[10px] text-white/40 hover:text-white"
-								>
-									Cambiar
-								</button>
-							</div>
-						) : (
-							<p className="font-mono text-[11px] text-white/40">
-								Tocá una hora disponible para confirmar tu espacio.
-							</p>
-						)}
-					</div>
-				</div>
+			{/* Time Slots Label */}
+			<div className="flex items-center justify-between pt-1 text-[11px] font-mono tracking-[0.14em] text-white/40 uppercase">
+				<span>Hora</span>
 			</div>
+
+			{/* Minimalist Time Slot Grid (5 cols desktop, 2 rows total) */}
+			<div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-2">
+				{slotsForSelectedDay.map((slot) => {
+					const isSelected = value === slot.iso;
+					const label = formatHourLabel(slot.hour24, use24h);
+					return (
+						<button
+							key={slot.hour24}
+							type="button"
+							disabled={slot.disabled}
+							onClick={() => onChange(slot.iso)}
+							aria-pressed={isSelected}
+							className={`access-press py-2 px-2 text-center font-mono text-xs tabular-nums transition-all duration-160 ${
+								slot.disabled
+									? "cursor-not-allowed border border-transparent text-white/20 line-through bg-transparent"
+									: isSelected
+										? "border border-white bg-white text-black font-semibold shadow-sm cursor-pointer"
+										: "border border-white/12 bg-transparent text-white/80 hover:border-white/40 hover:text-white cursor-pointer"
+							}`}
+						>
+							{label}
+						</button>
+					);
+				})}
+			</div>
+
+			{/* Selected confirmation */}
+			{value && (
+				<div className="flex items-center justify-between border-t border-white/10 pt-2 text-xs">
+					<span className="font-mono text-white/90">
+						Reunión: <strong className="text-white font-semibold">{formatMeetingSummary(value)}</strong>
+					</span>
+					<button
+						type="button"
+						onClick={() => onChange("")}
+						className="font-mono text-[10px] uppercase tracking-wider text-white/40 hover:text-white cursor-pointer"
+					>
+						Cambiar
+					</button>
+				</div>
+			)}
 		</div>
 	);
 }
