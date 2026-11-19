@@ -331,6 +331,19 @@ export default function AccesoForm({
   const formRef = useRef<HTMLFormElement>(null);
   const tilopayCheckoutRef = useRef<TilopayCheckoutHandle>(null);
   const sessionCacheKeyRef = useRef<string>("");
+  const confirmPromiseRef = useRef<Promise<{
+    ok: boolean;
+    payload: {
+      confirmed?: boolean;
+      alreadyJoined?: boolean;
+      artistName?: string;
+      country?: Country;
+      meetingAt?: string;
+      payment?: PaymentReceipt;
+      message?: string;
+      draft?: Partial<Fields> | null;
+    } | null;
+  }> | null>(null);
   const turnstileSiteKey = configuredTurnstileSiteKey();
 
   useEffect(() => {
@@ -422,9 +435,6 @@ export default function AccesoForm({
         const tilopayTransactionId =
           params.get("tilopay-transaction") || params.get("tpt");
 
-        // Strip callback query params cleanly
-        window.history.replaceState({}, "", window.location.pathname);
-
         // Hydrate non-sensitive draft while confirming server-to-server
         try {
           const rawSaved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
@@ -436,20 +446,21 @@ export default function AccesoForm({
 
         setStatus("verifying");
 
-        void fetch("/api/payments/tilopay/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order: orderParam,
-            returnData: params.get("returnData") || orderParam,
-            code,
-            description,
-            auth,
-            "tilopay-transaction": tilopayTransactionId,
-          }),
-        })
-          .then(async (res) => {
-            const payload = (await res.json().catch(() => null)) as {
+        if (!confirmPromiseRef.current) {
+          confirmPromiseRef.current = fetch("/api/payments/tilopay/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              order: orderParam,
+              returnData: params.get("returnData") || orderParam,
+              code,
+              description,
+              auth,
+              "tilopay-transaction": tilopayTransactionId,
+            }),
+          }).then(async (res) => ({
+            ok: res.ok,
+            payload: (await res.json().catch(() => null)) as {
               confirmed?: boolean;
               alreadyJoined?: boolean;
               artistName?: string;
@@ -458,11 +469,18 @@ export default function AccesoForm({
               payment?: PaymentReceipt;
               message?: string;
               draft?: Partial<Fields> | null;
-            } | null;
+            } | null,
+          }));
+        }
 
+        void confirmPromiseRef.current
+          .then(({ ok, payload }) => {
             if (!active) return;
 
-            if (res.ok && payload?.confirmed) {
+            // Strip callback query params cleanly only after active mount handles result
+            window.history.replaceState({}, "", window.location.pathname);
+
+            if (ok && payload?.confirmed) {
               try {
                 sessionStorage.removeItem(DRAFT_STORAGE_KEY);
                 localStorage.removeItem("gb_ref");
@@ -1046,16 +1064,17 @@ export default function AccesoForm({
                 >
                   <motion.div
                     className="h-full w-16 rounded-full bg-gradient-to-r from-transparent via-grayscale-12 to-transparent"
-                    initial={{ x: "-100%" }}
+                    initial={{ x: -16 }}
                     animate={
-                      reduceMotion ? { x: "75%" } : { x: ["-100%", "260%"] }
+                      reduceMotion ? { x: 48 } : { x: [-16, 112] }
                     }
                     transition={
                       reduceMotion
                         ? { duration: 0 }
                         : {
-                            duration: 1.35,
+                            duration: 0.9,
                             repeat: Number.POSITIVE_INFINITY,
+                            repeatType: "mirror",
                             ease: "easeInOut",
                           }
                     }
