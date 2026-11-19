@@ -1477,13 +1477,13 @@ function Success({
       }
       animate={{ opacity: 1, transform: "translateY(0px)" }}
       transition={{ duration: reduceMotion ? 0.25 : 0.7, ease: EASE }}
-      className="flex w-full flex-col items-center justify-center px-5 py-6 text-center"
+      className="flex w-full max-w-lg flex-col items-center justify-center px-5 py-8 text-center"
       aria-live="polite"
     >
-      <h1 className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-grayscale-12">
+      <h1 className="text-[clamp(2rem,7vw,3.1rem)] font-semibold leading-[1.1] tracking-[-0.035em] text-grayscale-12">
         {alreadyJoined ? "Ya estabas en la lista." : "Estás en la lista."}
       </h1>
-      <p className="mt-3 max-w-sm text-[14.5px] leading-6 text-grayscale-9">
+      <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-grayscale-9">
         {alreadyJoined
           ? `Cuando abramos el próximo cupo en ${place}, te escribimos.`
           : meetingSummary
@@ -1491,50 +1491,49 @@ function Success({
             : `Te escribiremos cuando abramos el próximo cupo en ${place}.`}
       </p>
       {meetingSummary ? (
-        <div className="card mt-5 flex w-full max-w-sm flex-col items-center gap-2.5 px-4 py-3.5 text-left">
+        <div className="mt-7 flex w-full max-w-sm flex-col items-center gap-3 rounded-xl border border-grayscale-4/60 bg-grayscale-1/70 px-4 py-4 text-left backdrop-blur-xs dark:border-white/[0.08] dark:bg-white/[0.025]">
           <div className="flex w-full items-center justify-between gap-2">
             <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-green-10">
-              Reunión 1:1 confirmada
+              Reunión confirmada
             </span>
             <span className="font-mono text-[10px] text-grayscale-8">
               15 MIN
             </span>
           </div>
-          <p className="w-full text-sm font-semibold text-grayscale-12">
+          <p className="w-full text-[14px] font-semibold text-grayscale-12">
             {meetingSummary}
           </p>
           {paymentReceipt ? (
-            <p className="w-full border-t border-grayscale-3/80 pt-2 font-mono text-[11px] text-grayscale-10 dark:border-white/[0.08]">
-              Pago confirmado · {paymentReceipt.amountFormatted}
-              {paymentReceipt.authCode
-                ? ` · Aut. ${paymentReceipt.authCode}`
-                : ""}
-            </p>
+            <div className="flex w-full items-center justify-between border-t border-grayscale-3/80 pt-2.5 font-mono text-[11px] text-grayscale-9 dark:border-white/[0.07]">
+              <span>Pago confirmado</span>
+              <span className="text-grayscale-11">
+                {paymentReceipt.amountFormatted}
+                {paymentReceipt.authCode ? ` (${paymentReceipt.authCode})` : ""}
+              </span>
+            </div>
           ) : null}
           {gcalUrl ? (
             <a
               href={gcalUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-0.5 inline-flex h-9 w-full items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 px-3 font-mono text-[11px] font-medium text-grayscale-11 transition-[background-color,border-color,color,transform] duration-150 hover:border-grayscale-5 hover:bg-grayscale-2 hover:text-grayscale-12 active:scale-[0.96] dark:bg-grayscale-2 dark:hover:bg-grayscale-3"
+              className="mt-0.5 inline-flex h-9 w-full items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 px-3 font-mono text-[11px] font-medium text-grayscale-11 transition-[background-color,border-color,color,transform] duration-150 hover:border-grayscale-5 hover:bg-grayscale-2 hover:text-grayscale-12 active:scale-[0.96] dark:border-white/[0.1] dark:bg-[#1a1a19] dark:hover:bg-[#222220]"
             >
               + Agregar a Google Calendar
             </a>
           ) : null}
         </div>
       ) : null}
-      <div className="mx-auto mt-6 w-[min(100%,14rem)] sm:mt-8 sm:w-[min(100%,16rem)]">
-        <div className="access-success-art overflow-hidden rounded-xl border border-grayscale-4/80 bg-grayscale-1 dark:border-white/[0.1] dark:bg-[#1b1b1a]">
-          <Image
-            src="/images/gigblade-access-signpost-blue.png"
-            width={706}
-            height={706}
-            alt="Un DJ en un cruce de caminos elige la flecha azul"
-            className="mx-auto h-auto w-full"
-            sizes="(max-width: 768px) 100vw, 706px"
-            priority
-          />
-        </div>
+      <div className="mx-auto mt-8 w-44 sm:mt-10 sm:w-52">
+        <Image
+          src="/images/gigblade-access-signpost-blue.png"
+          width={706}
+          height={706}
+          alt="Un DJ en un cruce de caminos elige la flecha azul"
+          className="mx-auto h-auto w-full select-none"
+          sizes="(max-width: 768px) 176px, 208px"
+          priority
+        />
       </div>
       <div>
         <AppLink
@@ -1545,7 +1544,7 @@ function Success({
               document.cookie = "gb_ref=; path=/; max-age=0;";
             } catch {}
           }}
-          className="mt-6 inline-block text-[13px] font-medium text-grayscale-9 transition-colors duration-150 hover:text-grayscale-12"
+          className="mt-7 inline-block text-[13px] font-medium text-grayscale-9 transition-colors duration-150 hover:text-grayscale-12"
         >
           ← Volver a GigBlades
         </AppLink>
