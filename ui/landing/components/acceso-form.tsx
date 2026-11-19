@@ -946,46 +946,46 @@ export default function AccesoForm() {
         className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0"
       />
 
-			<motion.div
-				className="relative z-10 flex min-h-0 flex-1 flex-col"
-				initial={reduceMotion ? "show" : "hidden"}
-				animate="show"
-				variants={reduceMotion ? pageEnterStill : pageEnter}
-				onAnimationComplete={() => setIntroReady(true)}
-			>
-			<header className="mx-auto flex h-14 w-full max-w-5xl shrink-0 items-center justify-between gap-3 px-5 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
-				<AppLink
-					href="/"
-					className="group inline-flex items-center gap-2 text-grayscale-12 transition-opacity duration-150 hover:opacity-80"
-				>
-					<span className="icon-tile flex size-7 items-center justify-center rounded-lg">
-						<DiscIcon size={14} weight="bold" />
-					</span>
-					<span className="text-[13.5px] font-semibold tracking-[-0.02em]">
-						GigBlades
-					</span>
-				</AppLink>
-				<div className="flex items-center gap-3 sm:gap-4">
-					{!isPaymentStep && fields.referralCode ? (
-						<div className="hidden sm:flex items-center gap-1.5 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-[11px] text-grayscale-10 select-none dark:bg-[#1b1b1a]">
-							<span>Código:</span>
-							<span className="font-mono font-semibold tracking-wider text-grayscale-12">
-								{fields.referralCode}
-							</span>
-						</div>
-					) : null}
-					{!isPaymentStep && status !== "verifying" ? (
-						<Progress
-							step={step}
-							totalSteps={totalSteps}
-							done={status === "done"}
-							reduceMotion={Boolean(reduceMotion)}
-							live={introReady}
-						/>
-					) : null}
-					<ThemeToggle />
-				</div>
-			</header>
+      <motion.div
+        className="relative z-10 flex min-h-0 flex-1 flex-col"
+        initial={reduceMotion ? "show" : "hidden"}
+        animate="show"
+        variants={reduceMotion ? pageEnterStill : pageEnter}
+        onAnimationComplete={() => setIntroReady(true)}
+      >
+        <header className="mx-auto flex h-14 w-full max-w-5xl shrink-0 items-center justify-between gap-3 px-5 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
+          <AppLink
+            href="/"
+            className="group inline-flex items-center gap-2 text-grayscale-12 transition-opacity duration-150 hover:opacity-80"
+          >
+            <span className="icon-tile flex size-7 items-center justify-center rounded-lg">
+              <DiscIcon size={14} weight="bold" />
+            </span>
+            <span className="text-[13.5px] font-semibold tracking-[-0.02em]">
+              GigBlades
+            </span>
+          </AppLink>
+          <div className="flex items-center gap-3 sm:gap-4">
+            {!isPaymentStep && fields.referralCode ? (
+              <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-[11px] text-grayscale-10 select-none dark:bg-[#1b1b1a]">
+                <span>Código:</span>
+                <span className="font-mono font-semibold tracking-wider text-grayscale-12">
+                  {fields.referralCode}
+                </span>
+              </div>
+            ) : null}
+            {!isPaymentStep && status !== "verifying" ? (
+              <Progress
+                step={step}
+                totalSteps={totalSteps}
+                done={status === "done"}
+                reduceMotion={Boolean(reduceMotion)}
+                live={introReady}
+              />
+            ) : null}
+            <ThemeToggle />
+          </div>
+        </header>
 
         {!isPaymentStep ? (
           <div className="relative z-10 h-px bg-grayscale-3 dark:bg-white/[0.08]">
@@ -1023,126 +1023,105 @@ export default function AccesoForm() {
 							className="flex w-full max-w-[340px] flex-col items-center justify-center px-4 text-center"
 							aria-live="polite"
 						>
-							{/* Minimalist full Tilopay logo */}
-							<div
-								className="inline-flex items-center gap-2.5 select-none"
-								aria-label="Tilopay"
-							>
-								<svg
-									width="28"
-									height="28"
-									viewBox="0 0 32 32"
-									fill="none"
-									aria-hidden="true"
-								>
-									<rect
-										width="32"
-										height="32"
-										rx="9"
-										fill="#E11D48"
-									/>
-									<path
-										d="M11 11.5H21M16 11.5V21.5"
-										stroke="#FFFFFF"
-										strokeWidth="2.8"
-										strokeLinecap="round"
-									/>
-									<circle cx="20.5" cy="20.5" r="2" fill="#FFFFFF" />
-								</svg>
-								<span className="text-[22px] font-semibold tracking-[-0.03em] text-grayscale-12">
-									tilopay
-								</span>
-							</div>
-
-							{/* Modern minimalist gliding beam loader */}
-							<div
-								aria-hidden="true"
-								className="mt-6 h-[2px] w-40 overflow-hidden rounded-full bg-grayscale-4/70 dark:bg-white/[0.1]"
-							>
-								<motion.div
-									className="h-full w-16 rounded-full bg-gradient-to-r from-transparent via-grayscale-12 to-transparent"
-									initial={{ x: "-100%" }}
-									animate={
-										reduceMotion
-											? { x: "75%" }
-											: { x: ["-100%", "260%"] }
-									}
-									transition={
-										reduceMotion
-											? { duration: 0 }
-											: {
-													duration: 1.35,
-													repeat: Number.POSITIVE_INFINITY,
-													ease: "easeInOut",
-												}
-									}
+							{/* Official minimalist Tilopay logo */}
+							<div className="select-none">
+								<Image
+									src="/images/tilopay-logo.png"
+									width={140}
+									height={42}
+									alt="Tilopay"
+									priority
+									className="h-7 w-auto sm:h-8"
 								/>
 							</div>
 
-							<h1 className="mt-6 text-[clamp(1.35rem,5vw,1.75rem)] font-semibold leading-[1.2] tracking-[-0.025em] text-grayscale-12">
-								Verificando pago
-							</h1>
-							<p className="mt-2 text-[13.5px] leading-relaxed text-grayscale-9 sm:text-[14px]">
-								Confirmando tu reserva de forma segura
-							</p>
-						</motion.section>
-					) : status === "done" ? (
-						<Success
-							alreadyJoined={alreadyJoined}
-							country={fields.country}
-							artistName={fields.artistName}
-							meetingAt={fields.meetingAt}
-							paymentReceipt={paymentReceipt}
-							reduceMotion={Boolean(reduceMotion)}
-						/>
-					) : isPaymentStep && tilopaySession ? (
-						<motion.form
-							key="payment-form"
-							ref={formRef}
-							onSubmit={submit}
-							onKeyDown={onFormKeyDown}
-							noValidate
-							initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0 }}
-							transition={{ duration: reduceMotion ? 0 : 0.3, ease: EASE }}
-							className="min-w-0 w-full max-w-[540px]"
-						>
-							<TilopaySdkCheckout
-								ref={tilopayCheckoutRef}
-								session={tilopaySession}
-								artistName={fields.artistName}
-								error={error}
-								onCancel={() => {
-									if (tilopayPaying) return;
-									moveTo(6);
-								}}
-								onBeforeRedirect={saveDraftBeforeRedirect}
-								onPayingChange={setTilopayPaying}
-								onError={setError}
-							/>
-						</motion.form>
-					) : (
-						<motion.form
-							key="form"
-							ref={formRef}
-							onSubmit={submit}
-							onKeyDown={onFormKeyDown}
-							noValidate
-							className="min-w-0 w-full max-w-2xl py-2 sm:py-0"
-							initial={false}
-							exit={{ opacity: 0 }}
-							transition={{ duration: reduceMotion ? 0 : 0.35, ease: EASE }}
-						>
-							<h1
-								className={`max-w-full font-semibold leading-[1.15] tracking-[-0.03em] text-grayscale-12 ${
-									step >= 6
-										? "min-h-10 text-[clamp(24px,6vw,30px)] sm:max-w-2xl sm:text-[clamp(1.75rem,3.4vw,2.25rem)]"
-										: "min-h-12 text-[clamp(26px,8vw,32px)] sm:min-h-16 sm:max-w-xl sm:text-[clamp(2.15rem,4.5vw,3rem)]"
-								}`}
-							>
-								<AccessRoll text={QUESTIONS[step]} live={introReady} />
-							</h1>
+                {/* Modern minimalist gliding beam loader */}
+                <div
+                  aria-hidden="true"
+                  className="mt-6 h-[2px] w-40 overflow-hidden rounded-full bg-grayscale-4/70 dark:bg-white/[0.1]"
+                >
+                  <motion.div
+                    className="h-full w-16 rounded-full bg-gradient-to-r from-transparent via-grayscale-12 to-transparent"
+                    initial={{ x: "-100%" }}
+                    animate={
+                      reduceMotion ? { x: "75%" } : { x: ["-100%", "260%"] }
+                    }
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : {
+                            duration: 1.35,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: "easeInOut",
+                          }
+                    }
+                  />
+                </div>
+
+                <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.75rem)] font-semibold leading-[1.2] tracking-[-0.025em] text-grayscale-12">
+                  Verificando pago
+                </h1>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-grayscale-9 sm:text-[14px]">
+                  Confirmando tu reserva de forma segura
+                </p>
+              </motion.section>
+            ) : status === "done" ? (
+              <Success
+                alreadyJoined={alreadyJoined}
+                country={fields.country}
+                artistName={fields.artistName}
+                meetingAt={fields.meetingAt}
+                paymentReceipt={paymentReceipt}
+                reduceMotion={Boolean(reduceMotion)}
+              />
+            ) : isPaymentStep && tilopaySession ? (
+              <motion.form
+                key="payment-form"
+                ref={formRef}
+                onSubmit={submit}
+                onKeyDown={onFormKeyDown}
+                noValidate
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.3, ease: EASE }}
+                className="min-w-0 w-full max-w-[540px]"
+              >
+                <TilopaySdkCheckout
+                  ref={tilopayCheckoutRef}
+                  session={tilopaySession}
+                  artistName={fields.artistName}
+                  error={error}
+                  onCancel={() => {
+                    if (tilopayPaying) return;
+                    moveTo(6);
+                  }}
+                  onBeforeRedirect={saveDraftBeforeRedirect}
+                  onPayingChange={setTilopayPaying}
+                  onError={setError}
+                />
+              </motion.form>
+            ) : (
+              <motion.form
+                key="form"
+                ref={formRef}
+                onSubmit={submit}
+                onKeyDown={onFormKeyDown}
+                noValidate
+                className="min-w-0 w-full max-w-2xl py-2 sm:py-0"
+                initial={false}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.35, ease: EASE }}
+              >
+                <h1
+                  className={`max-w-full font-semibold leading-[1.15] tracking-[-0.03em] text-grayscale-12 ${
+                    step >= 6
+                      ? "min-h-10 text-[clamp(24px,6vw,30px)] sm:max-w-2xl sm:text-[clamp(1.75rem,3.4vw,2.25rem)]"
+                      : "min-h-12 text-[clamp(26px,8vw,32px)] sm:min-h-16 sm:max-w-xl sm:text-[clamp(2.15rem,4.5vw,3rem)]"
+                  }`}
+                >
+                  <AccessRoll text={QUESTIONS[step]} live={introReady} />
+                </h1>
 
                 <p
                   id={`${id}-hint`}
