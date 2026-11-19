@@ -293,7 +293,11 @@ const pageEnterStill = {
   show: { opacity: 1, transition: { duration: 0.35 } },
 };
 
-export default function AccesoForm() {
+export default function AccesoForm({
+  initialVerifying = false,
+}: {
+  initialVerifying?: boolean;
+}) {
   const id = useId();
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState<Step>(0);
@@ -301,7 +305,7 @@ export default function AccesoForm() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<
     "idle" | "submitting" | "verifying" | "done"
-  >("idle");
+  >(initialVerifying ? "verifying" : "idle");
   const [alreadyJoined, setAlreadyJoined] = useState(false);
   const [introReady, setIntroReady] = useState(false);
   const [direction, setDirection] = useState(1);
@@ -948,7 +952,7 @@ export default function AccesoForm() {
 
       <motion.div
         className="relative z-10 flex min-h-0 flex-1 flex-col"
-        initial={reduceMotion ? "show" : "hidden"}
+        initial={reduceMotion || initialVerifying ? "show" : "hidden"}
         animate="show"
         variants={reduceMotion ? pageEnterStill : pageEnter}
         onAnimationComplete={() => setIntroReady(true)}
@@ -1003,37 +1007,37 @@ export default function AccesoForm() {
           </div>
         ) : null}
 
-			<main
-				className={`flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto ${
-					isPaymentStep
-						? "items-start sm:items-center px-4 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8"
-						: status === "done" || status === "verifying"
-							? "items-center px-5 py-8 sm:px-8 sm:py-10"
-							: "items-start sm:items-center px-5 py-8 sm:px-8 sm:py-10"
-				}`}
-			>
-				<AnimatePresence initial={false} mode="wait">
-					{status === "verifying" ? (
-						<motion.section
-							key="verifying"
-							initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0 }}
-							transition={{ duration: reduceMotion ? 0 : 0.25, ease: EASE }}
-							className="flex w-full max-w-[340px] flex-col items-center justify-center px-4 text-center"
-							aria-live="polite"
-						>
-							{/* Official minimalist Tilopay logo */}
-							<div className="select-none">
-								<Image
-									src="/images/tilopay-logo.png"
-									width={140}
-									height={42}
-									alt="Tilopay"
-									priority
-									className="h-7 w-auto sm:h-8"
-								/>
-							</div>
+        <main
+          className={`flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto ${
+            isPaymentStep
+              ? "items-start sm:items-center px-4 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8"
+              : status === "done" || status === "verifying"
+                ? "items-center px-5 py-8 sm:px-8 sm:py-10"
+                : "items-start sm:items-center px-5 py-8 sm:px-8 sm:py-10"
+          }`}
+        >
+          <AnimatePresence initial={false} mode="wait">
+            {status === "verifying" ? (
+              <motion.section
+                key="verifying"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.25, ease: EASE }}
+                className="flex w-full max-w-[340px] flex-col items-center justify-center px-4 text-center"
+                aria-live="polite"
+              >
+                {/* Official minimalist Tilopay logo */}
+                <div className="select-none">
+                  <Image
+                    src="/images/tilopay-logo.png"
+                    width={140}
+                    height={42}
+                    alt="Tilopay"
+                    priority
+                    className="h-7 w-auto sm:h-8"
+                  />
+                </div>
 
                 {/* Modern minimalist gliding beam loader */}
                 <div

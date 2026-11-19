@@ -22,13 +22,26 @@ export const metadata = pageSeo({
 	path: "/acceso",
 });
 
-export default function AccesoPage() {
+export default async function AccesoPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+	const params = await searchParams;
+	const hasOrder = Boolean(params.order || params.returnData);
+	const initialVerifying =
+		hasOrder &&
+		("code" in params ||
+			"OrderHash" in params ||
+			"tilopay-transaction" in params ||
+			"tpt" in params);
+
 	return (
 		<ThemeProvider>
 			<div
 				className={`${inter.variable} ${jetbrainsMono.variable} app-canvas min-h-dvh overflow-x-hidden text-grayscale-12`}
 			>
-				<AccesoForm />
+				<AccesoForm initialVerifying={initialVerifying} />
 			</div>
 		</ThemeProvider>
 	);
