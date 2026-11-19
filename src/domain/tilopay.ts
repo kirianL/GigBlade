@@ -156,17 +156,24 @@ export function isApprovedTilopayTransaction(
 ): boolean {
   if (!tx) return false;
   if (String(tx.code ?? "").trim() !== "1") return false;
-  if (String(tx.orderNumber ?? "").trim() !== expectedOrderNumber.trim()) {
+
+  const txOrder = String(tx.orderNumber ?? "").trim();
+  if (txOrder && txOrder !== expectedOrderNumber.trim()) {
     return false;
   }
 
-  const txAmount = Number(tx.amount);
-  if (!Number.isFinite(txAmount) || Math.abs(txAmount - expectedAmount) >= 0.01) {
-    return false;
+  if (tx.amount != null && String(tx.amount).trim() !== "") {
+    const txAmount = Number(tx.amount);
+    if (
+      !Number.isFinite(txAmount) ||
+      Math.abs(txAmount - expectedAmount) >= 0.01
+    ) {
+      return false;
+    }
   }
 
   const txCurrency = String(tx.currency ?? "").trim().toUpperCase();
-  if (txCurrency !== expectedCurrency) {
+  if (txCurrency && txCurrency !== expectedCurrency) {
     return false;
   }
 

@@ -70,7 +70,8 @@ function failureMessage(
     !cleanDetail ||
     normalized === "ok" ||
     normalized === "approved" ||
-    normalized === "transacción aprobada"
+    normalized === "transacción aprobada" ||
+    normalized === "transaction is approved"
   ) {
     if (rawCode && rawCode !== "1") {
       return "El pago no fue aprobado por el emisor. Podés intentar con otra tarjeta.";
@@ -158,8 +159,9 @@ export async function confirmTilopayWaitlistPayment(
   }
 
   // Always verify transaction server-to-server via POST /api/v1/consult
-  const transactions = await tilopay.consultOrder(order.orderNumber);
-  const approvedTx = transactions.find((tx) =>
+  // Retry briefly if Tilopay redirected with code=1 before /consult indexes it.
+  let transactions = await tilopay.consultOrder(order.orderNumber);
+  let approvedTx = transactions.find((tx) =>
     isApprovedTilopayTransaction(
       tx,
       order.orderNumber,
@@ -167,6 +169,22 @@ export async function confirmTilopayWaitlistPayment(
       order.currency,
     ),
   );
+
+  if (!approvedTx && input.callbackCode === "1") {
+    for (const delayMs of [900, 1200]) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      transactions = await tilopay.consultOrder(order.orderNumber);
+      approvedTx = transactions.find((tx) =>
+        isApprovedTilopayTransaction(
+          tx,
+          order.orderNumber,
+          order.amount,
+          order.currency,
+        ),
+      );
+      if (approvedTx) break;
+    }
+  }
 
   if (!approvedTx) {
     const latestTx = transactions[0];
