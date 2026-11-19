@@ -51,7 +51,7 @@ function contentSecurityPolicy(
 const TILOPAY_SCRIPT_SRC =
   "https://app.tilopay.com https://*.tilopay.com https://api.tokenex.com https://storage.googleapis.com https://h.online-metrix.net https://pay.google.com https://applepay.cdn-apple.com";
 const TILOPAY_CONNECT_SRC =
-  "https://app.tilopay.com https://*.tilopay.com https://api.tokenex.com https://*.kount.net https://h.online-metrix.net https://pay.google.com";
+  "https://app.tilopay.com https://*.tilopay.com https://api.tokenex.com https://*.kount.net https://h.online-metrix.net https://pay.google.com https://google.com https://www.google.com";
 
 const sharedSecurityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },

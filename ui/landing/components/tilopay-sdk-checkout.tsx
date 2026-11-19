@@ -595,11 +595,6 @@ export function TilopaySdkCheckout({
 		return () => {
 			cancelled = true;
 			window.clearTimeout(timer);
-			const input = paymentMethodInputRef.current;
-			if (input && input.value) {
-				input.value = "";
-				input.dispatchEvent(new Event("change", { bubbles: true }));
-			}
 		};
 	}, [session, selectMethod]);
 
@@ -685,6 +680,16 @@ export function TilopaySdkCheckout({
 				billToLastName: lastName,
 			});
 
+			const methodId =
+				selectedMethodId ||
+				paymentMethodInputRef.current?.value ||
+				methods.find((m) => methodProcessorType(m.id) !== "4")?.id ||
+				methods[0]?.id ||
+				"";
+			if (paymentMethodInputRef.current && methodId) {
+				paymentMethodInputRef.current.value = methodId;
+			}
+
 			onBeforeRedirect();
 			const result = await tlpy.startPayment();
 			if (result?.message) {
@@ -709,7 +714,7 @@ export function TilopaySdkCheckout({
 					: "No pudimos procesar el pago. Intentá nuevamente.",
 			);
 		}
-	}, [ready, paying, selectedMethodId, artistName, onBeforeRedirect]);
+	}, [ready, paying, selectedMethodId, methods, artistName, onBeforeRedirect]);
 
 	useImperativeHandle(
 		ref,
@@ -913,7 +918,8 @@ export function TilopaySdkCheckout({
 						type="hidden"
 						id="tlpy_payment_method"
 						name="tlpy_payment_method"
-						defaultValue=""
+						value={selectedMethodId}
+						onChange={() => {}}
 					/>
 					<input
 						ref={savedCardsInputRef}
