@@ -13,6 +13,7 @@ const platformAliases = {
   "@/lib/tenant": path.join(srcRoot, "lib", "tenant"),
   "@/lib/env": path.join(srcRoot, "lib", "env"),
   "@/lib/http": path.join(srcRoot, "lib", "http"),
+  "@/panel": path.join(srcRoot, "panel"),
   "@": landingRoot,
 };
 
@@ -21,23 +22,36 @@ const devFrameSources =
     ? ""
     : " http://localhost:3000 http://127.0.0.1:3000";
 
-function contentSecurityPolicy(frameAncestors: string, frameSrc: string) {
+function contentSecurityPolicy(
+  frameAncestors: string,
+  frameSrc: string,
+  extra?: {
+    scriptSrc?: string;
+    connectSrc?: string;
+    formAction?: string;
+  },
+) {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com${extra?.scriptSrc ? ` ${extra.scriptSrc}` : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://*.challenges.cloudflare.com",
+    `connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://*.challenges.cloudflare.com${extra?.connectSrc ? ` ${extra.connectSrc}` : ""}`,
     "worker-src 'self' blob:",
     `frame-src ${frameSrc}`,
     `frame-ancestors ${frameAncestors}`,
     "base-uri 'self'",
-    "form-action 'self'",
+    `form-action ${extra?.formAction ?? "'self'"}`,
     "object-src 'none'",
     "upgrade-insecure-requests",
   ].join("; ");
 }
+
+const TILOPAY_SCRIPT_SRC =
+  "https://app.tilopay.com https://*.tilopay.com https://api.tokenex.com https://storage.googleapis.com https://h.online-metrix.net https://pay.google.com https://applepay.cdn-apple.com";
+const TILOPAY_CONNECT_SRC =
+  "https://app.tilopay.com https://*.tilopay.com https://api.tokenex.com https://*.kount.net https://h.online-metrix.net https://pay.google.com";
 
 const sharedSecurityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -55,7 +69,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: contentSecurityPolicy(
       "'none'",
-      `https://challenges.cloudflare.com https://gigblades.com https://www.gigblades.com 'self'${devFrameSources}`,
+      `https://challenges.cloudflare.com https://gigblades.com https://www.gigblades.com 'self' https:${devFrameSources}`,
+      {
+        scriptSrc: TILOPAY_SCRIPT_SRC,
+        connectSrc: TILOPAY_CONNECT_SRC,
+        formAction: "'self' https:",
+      },
     ),
   },
 ];
@@ -93,6 +112,7 @@ const nextConfig: NextConfig = {
   ],
   images: {
     formats: ["image/avif", "image/webp"],
+    qualities: [75, 90],
   },
   turbopack: {
     root: process.cwd(),
@@ -104,6 +124,7 @@ const nextConfig: NextConfig = {
       "@/lib/tenant": "./src/lib/tenant",
       "@/lib/env": "./src/lib/env",
       "@/lib/http": "./src/lib/http",
+      "@/panel": "./src/panel",
       "@": "./ui/landing",
     },
   },
@@ -127,9 +148,6 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    const dashboard =
-      process.env.NEXT_PUBLIC_DASHBOARD_URL?.replace(/\/$/, "") ||
-      "http://localhost:3001";
     return [
       {
         source: "/:path*",
@@ -145,12 +163,22 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/dashboard",
-        destination: dashboard,
+        destination: "/overview",
         permanent: false,
       },
       {
         source: "/dashboard/:path*",
-        destination: dashboard,
+        destination: "/overview",
+        permanent: false,
+      },
+      {
+        source: "/login",
+        destination: "/sign-in",
+        permanent: false,
+      },
+      {
+        source: "/pw-sign-in",
+        destination: "/sign-in",
         permanent: false,
       },
     ];

@@ -11,6 +11,13 @@ export class InMemoryWaitlistRepository implements WaitlistRepository {
   async insert(draft: WaitlistDraft): Promise<WaitlistSignup> {
     const signup: WaitlistSignup = {
       ...draft,
+      paymentStatus: draft.paymentStatus ?? "unpaid",
+      paymentAmount: draft.paymentAmount ?? null,
+      paymentCurrency: draft.paymentCurrency ?? null,
+      tilopayOrderNumber: draft.tilopayOrderNumber ?? null,
+      tilopayTransactionId: draft.tilopayTransactionId ?? null,
+      tilopayAuthCode: draft.tilopayAuthCode ?? null,
+      paidAt: draft.paidAt ?? null,
       id: crypto.randomUUID(),
       status: "pending",
       createdAt: new Date().toISOString(),

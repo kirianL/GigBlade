@@ -21,6 +21,7 @@ export const waitlistRequestSchema = z
   .strict();
 
 export type WaitlistStatus = "pending" | "contacted" | "onboarded" | "declined";
+export type WaitlistPaymentSummaryStatus = "unpaid" | "paid";
 
 export type WaitlistDraft = {
   artistName: string;
@@ -34,6 +35,13 @@ export type WaitlistDraft = {
   referralCode?: string | null;
   packageId?: string | null;
   turnstileToken?: string | null;
+  paymentStatus?: WaitlistPaymentSummaryStatus;
+  paymentAmount?: number | null;
+  paymentCurrency?: "USD" | "CRC" | null;
+  tilopayOrderNumber?: string | null;
+  tilopayTransactionId?: string | null;
+  tilopayAuthCode?: string | null;
+  paidAt?: string | null;
 };
 
 export type WaitlistSignup = WaitlistDraft & {
@@ -91,7 +99,18 @@ function normalizePhone(value: unknown): string | null {
   return phone;
 }
 
-const MEETING_NOTE_PREFIX_RE = /^\[MEETING:([^\]]+)\]\s*/;
+const MEETING_NOTE_TAG_RE = /\[MEETING:([^\]]+)\]\s*/;
+const PAYMENT_NOTE_TAG_RE = /\[PAY:([^\]]+)\]\s*/;
+
+export type WaitlistFallbackPayment = {
+  paymentStatus: WaitlistPaymentSummaryStatus;
+  paymentAmount: number | null;
+  paymentCurrency: "USD" | "CRC" | null;
+  tilopayOrderNumber: string | null;
+  tilopayTransactionId: string | null;
+  tilopayAuthCode: string | null;
+  paidAt: string | null;
+};
 
 export function normalizeMeetingAt(value: unknown): string | null {
   const raw = asTrimmedString(value);
@@ -123,7 +142,7 @@ export function encodeMeetingInNote(
   note: string | null | undefined,
   meetingAt: string | null | undefined,
 ): string | null {
-  const cleanNote = note?.replace(MEETING_NOTE_PREFIX_RE, "").trim() ?? "";
+  const cleanNote = note?.replace(MEETING_NOTE_TAG_RE, "").trim() ?? "";
   if (!meetingAt) {
     return cleanNote || null;
   }
@@ -137,13 +156,78 @@ export function decodeMeetingFromNote(
   explicitMeetingAt?: string | null,
 ): { meetingAt: string | null; note: string | null } {
   const rawNote = note ?? "";
-  const match = rawNote.match(MEETING_NOTE_PREFIX_RE);
+  const match = rawNote.match(MEETING_NOTE_TAG_RE);
   const embeddedMeetingAt = match?.[1]?.trim() || null;
-  const cleanedNote = rawNote.replace(MEETING_NOTE_PREFIX_RE, "").trim() || null;
+  const cleanedNote = rawNote.replace(MEETING_NOTE_TAG_RE, "").trim() || null;
   return {
     meetingAt: explicitMeetingAt || embeddedMeetingAt || null,
     note: cleanedNote,
   };
+}
+
+export function encodePaymentInNote(
+  note: string | null | undefined,
+  payment: Partial<WaitlistFallbackPayment> | null | undefined,
+): string | null {
+  const withoutPay = note?.replace(PAYMENT_NOTE_TAG_RE, "").trim() ?? "";
+  if (!payment || payment.paymentStatus !== "paid") {
+    return withoutPay || null;
+  }
+  const safeField = (v: string | number | null | undefined) =>
+    v === null || v === undefined ? "" : String(v).replace(/[\]|]/g, "").trim();
+  const tag = `[PAY:${safeField(payment.paymentAmount)}|${safeField(payment.paymentCurrency)}|${safeField(payment.tilopayOrderNumber)}|${safeField(payment.tilopayTransactionId)}|${safeField(payment.tilopayAuthCode)}|${safeField(payment.paidAt)}]`;
+  if (!withoutPay) return tag.slice(0, 280);
+  return `${withoutPay} ${tag}`.slice(0, 280);
+}
+
+export function decodePaymentFromNote(
+  note: string | null | undefined,
+  explicit?: Partial<WaitlistFallbackPayment> | null,
+): { payment: WaitlistFallbackPayment; note: string | null } {
+  const rawNote = note ?? "";
+  const match = rawNote.match(PAYMENT_NOTE_TAG_RE);
+  const cleanedNote = rawNote.replace(PAYMENT_NOTE_TAG_RE, "").trim() || null;
+
+  let embedded: WaitlistFallbackPayment | null = null;
+  if (match?.[1]) {
+    const [rawAmount, rawCurrency, rawOrder, rawTx, rawAuth, rawPaidAt] =
+      match[1].split("|");
+    const parsedAmount = rawAmount ? Number(rawAmount) : null;
+    const currency =
+      rawCurrency === "USD" || rawCurrency === "CRC" ? rawCurrency : null;
+    embedded = {
+      paymentStatus: "paid",
+      paymentAmount:
+        parsedAmount !== null && Number.isFinite(parsedAmount)
+          ? parsedAmount
+          : null,
+      paymentCurrency: currency,
+      tilopayOrderNumber: rawOrder || null,
+      tilopayTransactionId: rawTx || null,
+      tilopayAuthCode: rawAuth || null,
+      paidAt: rawPaidAt || null,
+    };
+  }
+
+  const payment: WaitlistFallbackPayment = {
+    paymentStatus:
+      explicit?.paymentStatus === "paid"
+        ? "paid"
+        : (embedded?.paymentStatus ?? "unpaid"),
+    paymentAmount:
+      explicit?.paymentAmount ?? embedded?.paymentAmount ?? null,
+    paymentCurrency:
+      explicit?.paymentCurrency ?? embedded?.paymentCurrency ?? null,
+    tilopayOrderNumber:
+      explicit?.tilopayOrderNumber ?? embedded?.tilopayOrderNumber ?? null,
+    tilopayTransactionId:
+      explicit?.tilopayTransactionId ?? embedded?.tilopayTransactionId ?? null,
+    tilopayAuthCode:
+      explicit?.tilopayAuthCode ?? embedded?.tilopayAuthCode ?? null,
+    paidAt: explicit?.paidAt ?? embedded?.paidAt ?? null,
+  };
+
+  return { payment, note: cleanedNote };
 }
 
 export function normalizeWaitlistDraft(input: {

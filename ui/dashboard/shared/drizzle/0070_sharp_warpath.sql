@@ -1,1 +1,0 @@
-ALTER TABLE "customer_entitlements" ADD COLUMN "usage_attribution" jsonb DEFAULT '{}'::jsonb NOT NULL;

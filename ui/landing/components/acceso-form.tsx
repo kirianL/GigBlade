@@ -2,6 +2,7 @@
 
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
+import { DiscIcon } from "@phosphor-icons/react";
 import { CR, US } from "country-flag-icons/react/3x2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
@@ -9,13 +10,41 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type Keybo
 import { slotText } from "slot-text";
 import { IconArrowLeft, IconArrowRight } from "@/app/constant";
 import {
+	DEFAULT_MEETING_AVAILABILITY,
+	isDateAvailableForMeeting,
+	normalizeMeetingAvailability,
+	type MeetingAvailability,
+} from "@/domain/meeting-availability";
+import {
 	TurnstileWidget,
 	configuredTurnstileSiteKey,
 } from "@/lib/tenant/templates/turnstile-widget";
+import { useTheme } from "@/panel/ThemeProvider";
+import { ThemeToggle } from "@/panel/ThemeToggle";
 import AppLink from "./app-link";
+import {
+	TilopaySdkCheckout,
+	type TilopayCheckoutHandle,
+	type TilopayCheckoutSession,
+} from "./tilopay-sdk-checkout";
 
 type Country = "CR" | "US";
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+type PaymentConfig = {
+	required: boolean;
+	amount: number;
+	currency: "USD" | "CRC";
+	amountFormatted: string;
+};
+
+type PaymentReceipt = {
+	orderNumber: string;
+	amountFormatted: string;
+	authCode: string | null;
+};
+
+const DRAFT_STORAGE_KEY = "gb_acceso_draft";
 
 type Fields = {
 	artistName: string;
@@ -37,6 +66,7 @@ const QUESTIONS = [
 	"¿En qué provincia?",
 	"¿Tu Instagram?",
 	"¿Cuándo nos reunimos?",
+	"Confirmá tu reserva.",
 ] as const;
 
 const HINTS = [
@@ -46,7 +76,8 @@ const HINTS = [
 	"Empezamos en Costa Rica.",
 	"Así organizamos los primeros cupos.",
 	"Instagram es opcional.",
-	"Elegí día y hora para ver tu página en vivo (15 min · Hora CR).",
+	"Elegí día y hora (Hora Costa Rica).",
+	"Realizá el pago para asegurar tu espacio.",
 ] as const;
 
 const PROVINCES = [
@@ -111,7 +142,7 @@ function formatMeetingSummary(iso: string): string {
 		timeZone: "America/Costa_Rica",
 	}).format(date);
 	const cap = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
-	return `${cap} · ${timeStr} (Hora CR)`;
+	return `${cap}, ${timeStr}`;
 }
 
 function buildGoogleCalendarUrl(iso: string, artistName: string): string | null {
@@ -257,15 +288,29 @@ export default function AccesoForm() {
 	const [step, setStep] = useState<Step>(0);
 	const [fields, setFields] = useState<Fields>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
-	const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
+	const [status, setStatus] = useState<"idle" | "submitting" | "verifying" | "done">("idle");
 	const [alreadyJoined, setAlreadyJoined] = useState(false);
 	const [introReady, setIntroReady] = useState(false);
 	const [direction, setDirection] = useState(1);
 	const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+	const [availability, setAvailability] = useState<MeetingAvailability>(
+		DEFAULT_MEETING_AVAILABILITY,
+	);
+	const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({
+		required: false,
+		amount: 10,
+		currency: "USD",
+		amountFormatted: "US$ 10",
+	});
+	const [tilopaySession, setTilopaySession] = useState<TilopayCheckoutSession | null>(null);
+	const [tilopayPaying, setTilopayPaying] = useState(false);
+	const [paymentReceipt, setPaymentReceipt] = useState<PaymentReceipt | null>(null);
 	const [turnstileToken, setTurnstileToken] = useState<string>("");
 	const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 	const formStartedAtRef = useRef<number>(Date.now());
 	const formRef = useRef<HTMLFormElement>(null);
+	const tilopayCheckoutRef = useRef<TilopayCheckoutHandle>(null);
+	const sessionCacheKeyRef = useRef<string>("");
 	const turnstileSiteKey = configuredTurnstileSiteKey();
 
 	useEffect(() => {
@@ -274,35 +319,192 @@ export default function AccesoForm() {
 		return () => window.clearTimeout(timer);
 	}, []);
 
-	// Fetch already-booked meeting slots from the platform when approaching Step 6
-	useEffect(() => {
-		if (step < 4) return;
-		let active = true;
-		fetch("/api/waitlist", { cache: "no-store" })
+	const refreshSlotsAndConfig = () => {
+		return fetch("/api/waitlist", { cache: "no-store" })
 			.then((res) => (res.ok ? res.json() : null))
-			.then((data: { bookedSlots?: string[] } | null) => {
-				if (active && Array.isArray(data?.bookedSlots)) {
-					setBookedSlots(data.bookedSlots);
-				}
-			})
+			.then(
+				(
+					data: {
+						bookedSlots?: string[];
+						availability?: unknown;
+						payment?: PaymentConfig;
+					} | null,
+				) => {
+					if (Array.isArray(data?.bookedSlots)) {
+						setBookedSlots(data.bookedSlots);
+					}
+					if (data?.availability) {
+						setAvailability(normalizeMeetingAvailability(data.availability));
+					}
+					if (data?.payment) {
+						setPaymentConfig(data.payment);
+					}
+				},
+			)
 			.catch(() => {
 				// Ignore network error, slots remain open
+			});
+	};
+
+	// Fetch booked slots + Tilopay requirement on mount and when approaching scheduler
+	useEffect(() => {
+		let active = true;
+		if (step > 0 && step < 4) return;
+		fetch("/api/waitlist", { cache: "no-store" })
+			.then((res) => (res.ok ? res.json() : null))
+			.then(
+				(
+					data: {
+						bookedSlots?: string[];
+						availability?: unknown;
+						payment?: PaymentConfig;
+					} | null,
+				) => {
+					if (!active) return;
+					if (Array.isArray(data?.bookedSlots)) {
+						setBookedSlots(data.bookedSlots);
+					}
+					if (data?.availability) {
+						setAvailability(normalizeMeetingAvailability(data.availability));
+					}
+					if (data?.payment) {
+						setPaymentConfig(data.payment);
+					}
+				},
+			)
+			.catch(() => {
+				// Ignore network error
 			});
 		return () => {
 			active = false;
 		};
 	}, [step]);
 
+	// Handle referral param + return redirect from Tilopay checkout
 	useEffect(() => {
 		if (typeof window === "undefined") return;
+		let active = true;
+
 		try {
 			const params = new URLSearchParams(window.location.search);
+			const orderParam = params.get("order") || params.get("returnData") || "";
+			const hasTilopayCallback =
+				Boolean(orderParam) &&
+				(params.has("code") ||
+					params.has("OrderHash") ||
+					params.has("tilopay-transaction") ||
+					params.has("tpt"));
+
+			if (hasTilopayCallback) {
+				const code = params.get("code");
+				const description = params.get("description");
+				const auth = params.get("auth");
+				const tilopayTransactionId =
+					params.get("tilopay-transaction") || params.get("tpt");
+
+				// Strip callback query params cleanly
+				window.history.replaceState({}, "", window.location.pathname);
+
+				// Hydrate non-sensitive draft while confirming server-to-server
+				try {
+					const rawSaved = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+					if (rawSaved) {
+						const parsed = JSON.parse(rawSaved) as Partial<Fields>;
+						setFields((current) => ({ ...current, ...parsed }));
+					}
+				} catch {}
+
+				setStatus("verifying");
+
+				void fetch("/api/payments/tilopay/confirm", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						order: orderParam,
+						returnData: params.get("returnData") || orderParam,
+						code,
+						description,
+						auth,
+						"tilopay-transaction": tilopayTransactionId,
+					}),
+				})
+					.then(async (res) => {
+						const payload = (await res.json().catch(() => null)) as {
+							confirmed?: boolean;
+							alreadyJoined?: boolean;
+							artistName?: string;
+							country?: Country;
+							meetingAt?: string;
+							payment?: PaymentReceipt;
+							message?: string;
+							draft?: Partial<Fields> | null;
+						} | null;
+
+						if (!active) return;
+
+						if (res.ok && payload?.confirmed) {
+							try {
+								sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+								localStorage.removeItem("gb_ref");
+								document.cookie = "gb_ref=; path=/; max-age=0;";
+							} catch {}
+							setFields((current) => ({
+								...current,
+								artistName: payload.artistName ?? current.artistName,
+								country: payload.country ?? current.country,
+								meetingAt: payload.meetingAt ?? current.meetingAt,
+								referralCode: "",
+							}));
+							setPaymentReceipt(payload.payment ?? null);
+							setAlreadyJoined(Boolean(payload.alreadyJoined));
+							setStatus("done");
+							return;
+						}
+
+						if (payload?.draft) {
+							const restored = payload.draft;
+							setFields((current) => ({
+								...current,
+								artistName: restored.artistName ?? current.artistName,
+								email: restored.email ?? current.email,
+								phone: restored.phone ?? current.phone,
+								country: restored.country ?? current.country,
+								city: restored.city ?? current.city,
+								instagram: restored.instagram ?? current.instagram,
+								meetingAt: restored.meetingAt ?? current.meetingAt,
+								referralCode: restored.referralCode ?? current.referralCode,
+							}));
+						}
+
+						void refreshSlotsAndConfig();
+						setTilopaySession(null);
+						sessionCacheKeyRef.current = "";
+						setStep(6);
+						setStatus("idle");
+						setError(
+							payload?.message ??
+								"El pago no pudo completarse. Podés intentar nuevamente.",
+						);
+					})
+					.catch(() => {
+						if (!active) return;
+						setTilopaySession(null);
+						sessionCacheKeyRef.current = "";
+						setStep(6);
+						setStatus("idle");
+						setError("No pudimos verificar el pago. Intentá de nuevo.");
+					});
+
+				return () => {
+					active = false;
+				};
+			}
+
 			const ref = params.get("ref") || params.get("referral") || params.get("r");
 			if (ref) {
 				const clean = ref.trim().toUpperCase();
 				setFields((current) => ({ ...current, referralCode: clean }));
 			} else {
-				// Solo sale en el form si tiene el link de referido; si entra normal desde la página no debe salir
 				try {
 					localStorage.removeItem("gb_ref");
 					document.cookie = "gb_ref=; path=/; max-age=0;";
@@ -312,7 +514,27 @@ export default function AccesoForm() {
 		} catch {
 			// Ignorar si hay error leyendo search params
 		}
+
+		return () => {
+			active = false;
+		};
 	}, []);
+
+	const saveDraftBeforeRedirect = () => {
+		try {
+			const draftToSave: Partial<Fields> = {
+				artistName: fields.artistName.trim(),
+				email: fields.email.trim(),
+				phone: fields.phone.trim(),
+				country: fields.country,
+				city: fields.city.trim(),
+				instagram: fields.instagram.trim(),
+				meetingAt: fields.meetingAt.trim(),
+				referralCode: fields.referralCode.trim(),
+			};
+			sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+		} catch {}
+	};
 
 	const moveTo = (next: Step) => {
 		setDirection(next > step ? 1 : -1);
@@ -405,6 +627,112 @@ export default function AccesoForm() {
 		return true;
 	};
 
+	const startPaymentSession = async () => {
+		const instagram = fields.instagram.replace(/^@+/, "").trim();
+		const cacheKey = `${fields.email.trim().toLowerCase()}|${fields.meetingAt.trim()}|${fields.artistName.trim()}|${fields.city.trim()}`;
+		if (tilopaySession && sessionCacheKeyRef.current === cacheKey) {
+			moveTo(7);
+			return;
+		}
+
+		setStatus("submitting");
+		setError(null);
+		const controller = new AbortController();
+		const timer = window.setTimeout(() => controller.abort(), 30_000);
+		try {
+			const response = await fetch("/api/payments/tilopay/session", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					artistName: fields.artistName.trim(),
+					email: fields.email.trim(),
+					phone: fields.phone.trim() || undefined,
+					country: fields.country,
+					city: fields.city.trim(),
+					instagram: instagram || undefined,
+					meetingAt: fields.meetingAt.trim(),
+					website: fields.website,
+					referralCode: fields.referralCode.trim() || undefined,
+					packageId: "all_inclusive",
+					turnstileToken: turnstileToken || undefined,
+					formStartedAt: formStartedAtRef.current,
+				}),
+				signal: controller.signal,
+			});
+
+			const payload = (await response.json().catch(() => null)) as
+				| ({
+						alreadyJoined?: boolean;
+						meetingAt?: string | null;
+						message?: string;
+				  } & Partial<TilopayCheckoutSession>)
+				| null;
+
+			if (!response.ok) {
+				setStatus("idle");
+				setError(payload?.message ?? "No pudimos iniciar el cobro. Intentá de nuevo.");
+				if (response.status === 400) {
+					void refreshSlotsAndConfig();
+				}
+				if (turnstileSiteKey) {
+					setTurnstileToken("");
+					setTurnstileResetKey((k) => k + 1);
+				}
+				return;
+			}
+
+			if (payload?.alreadyJoined) {
+				try {
+					sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+					localStorage.removeItem("gb_ref");
+					document.cookie = "gb_ref=; path=/; max-age=0;";
+				} catch {}
+				setFields((current) => ({
+					...current,
+					referralCode: "",
+					meetingAt: payload.meetingAt ?? current.meetingAt,
+				}));
+				setAlreadyJoined(true);
+				setStatus("done");
+				return;
+			}
+
+			if (!payload?.sdkToken || !payload?.orderNumber || !payload?.billingDefaults) {
+				setStatus("idle");
+				setError("La respuesta de Tilopay vino incompleta. Intentá de nuevo.");
+				return;
+			}
+
+			const session: TilopayCheckoutSession = {
+				sdkToken: payload.sdkToken,
+				orderNumber: payload.orderNumber,
+				amount: payload.amount ?? paymentConfig.amount,
+				currency: payload.currency ?? paymentConfig.currency,
+				amountFormatted: payload.amountFormatted ?? paymentConfig.amountFormatted,
+				redirectUrl: payload.redirectUrl ?? `${window.location.origin}/acceso`,
+				webhookUrl:
+					payload.webhookUrl ??
+					`${window.location.origin}/api/payments/tilopay/webhook`,
+				billingDefaults: payload.billingDefaults,
+			};
+
+			setTilopaySession(session);
+			sessionCacheKeyRef.current = cacheKey;
+			setTilopayPaying(false);
+			setStatus("idle");
+			moveTo(7);
+		} catch (caught) {
+			setStatus("idle");
+			setError(
+				caught instanceof DOMException && caught.name === "AbortError"
+					? "La conexión con Tilopay tardó demasiado. Intentá de nuevo."
+					: "No hay conexión. Intentá de nuevo.",
+			);
+		} finally {
+			window.clearTimeout(timer);
+		}
+	};
+
 	const joinWaitlist = async (instagram: string, meetingAtOverride?: string) => {
 		if (turnstileSiteKey && !turnstileToken) {
 			setError("Completá la verificación de seguridad de Cloudflare.");
@@ -482,13 +810,24 @@ export default function AccesoForm() {
 			return;
 		}
 
-		await joinWaitlist(fields.instagram.replace(/^@+/, ""));
+		if (step === 6) {
+			if (paymentConfig.required) {
+				await startPaymentSession();
+				return;
+			}
+			await joinWaitlist(fields.instagram.replace(/^@+/, ""));
+			return;
+		}
+
+		if (step === 7) {
+			await tilopayCheckoutRef.current?.submitPayment();
+		}
 	};
 
 	const skipFocusDelay = useRef(true);
 
 	useEffect(() => {
-		if (status === "done") return;
+		if (status === "done" || status === "verifying") return;
 		if (!introReady) return;
 		const wait = skipFocusDelay.current || reduceMotion ? 0 : 240;
 		skipFocusDelay.current = false;
@@ -513,6 +852,8 @@ export default function AccesoForm() {
 
 	const onFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
 		if (event.key !== "Tab" || status !== "idle") return;
+		// Native Tab navigation inside Step 7 card inputs
+		if (step === 7) return;
 		if (typeof window !== "undefined" && !window.matchMedia("(pointer: fine)").matches) {
 			return;
 		}
@@ -537,12 +878,27 @@ export default function AccesoForm() {
 		step === 4 && PROVINCES.includes(fields.city as (typeof PROVINCES)[number])
 			? PROVINCE_HINTS[fields.city as (typeof PROVINCES)[number]]
 			: step === 6 && fields.meetingAt
-				? `Reunión: ${formatMeetingSummary(fields.meetingAt)}`
-				: HINTS[step];
+				? formatMeetingSummary(fields.meetingAt)
+				: step === 7 && fields.meetingAt
+					? `${formatMeetingSummary(fields.meetingAt)} — ${tilopaySession?.amountFormatted ?? paymentConfig.amountFormatted}`
+					: HINTS[step];
+
+	const totalSteps = paymentConfig.required ? QUESTIONS.length : QUESTIONS.length - 1;
+	const { resolvedTheme } = useTheme();
+	const isPaymentStep =
+		(status === "idle" || status === "submitting") &&
+		step === 7 &&
+		Boolean(tilopaySession);
 
 	return (
-		<div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#090A09]">
-			<StepBlade step={step} reduceMotion={Boolean(reduceMotion)} />
+		<div className="app-canvas relative flex min-h-dvh flex-col overflow-hidden text-grayscale-12">
+			<div
+				aria-hidden
+				className="aurora-wrapper pointer-events-none fixed inset-0 overflow-hidden"
+			>
+				<div className="aurora-top" />
+				<div className="aurora-bottom" />
+			</div>
 			<Image
 				src="/images/gigblade-access-signpost-blue.png"
 				width={706}
@@ -560,58 +916,118 @@ export default function AccesoForm() {
 				variants={reduceMotion ? pageEnterStill : pageEnter}
 				onAnimationComplete={() => setIntroReady(true)}
 			>
-			<header className="flex h-14 shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8 gap-3">
+			<header className="mx-auto flex h-14 w-full max-w-5xl shrink-0 items-center justify-between gap-3 px-5 pt-[env(safe-area-inset-top)] sm:h-16 sm:px-8">
 				<AppLink
 					href="/"
-					className="access-logo access-press cursor-pointer font-sans text-[18px] font-medium tracking-[-3%] text-white"
+					className="group inline-flex items-center gap-2 text-grayscale-12 transition-opacity duration-150 hover:opacity-80"
 				>
-					<span className="access-logo-mark">GigBlades</span>
+					<span className="icon-tile flex size-7 items-center justify-center rounded-lg">
+						<DiscIcon size={14} weight="bold" />
+					</span>
+					<span className="text-[13.5px] font-semibold tracking-[-0.02em]">
+						GigBlades
+					</span>
 				</AppLink>
-				<div className="flex items-center gap-2.5 sm:gap-3.5">
-					{fields.referralCode && (
-						<div className="flex items-center gap-1.5 text-xs text-white/40 select-none">
-							<span className="hidden sm:inline">Recomendado por código:</span>
-							<span className="sm:hidden">Código:</span>
-							<span className="font-mono text-xs font-semibold tracking-wider text-white/90">
+				<div className="flex items-center gap-3 sm:gap-4">
+					{!isPaymentStep && fields.referralCode ? (
+						<div className="hidden sm:flex items-center gap-1.5 rounded-md border border-grayscale-4 bg-grayscale-1 px-2.5 py-1 text-[11px] text-grayscale-10 select-none dark:bg-[#1b1b1a]">
+							<span>Código:</span>
+							<span className="font-mono font-semibold tracking-wider text-grayscale-12">
 								{fields.referralCode}
 							</span>
 						</div>
-					)}
-					<Progress
-						step={step}
-						done={status === "done"}
-						reduceMotion={Boolean(reduceMotion)}
-						live={introReady}
-					/>
+					) : null}
+					{!isPaymentStep ? (
+						<Progress
+							step={step}
+							totalSteps={totalSteps}
+							done={status === "done"}
+							reduceMotion={Boolean(reduceMotion)}
+							live={introReady}
+						/>
+					) : null}
+					<ThemeToggle />
 				</div>
 			</header>
 
-			<div className="relative z-10 h-px bg-white/8">
-				<motion.div
-					className="h-full origin-left bg-brand-accent"
-					animate={{
-						transform: `scaleX(${
-							status === "done" ? 1 : (step + 1) / QUESTIONS.length
-						})`,
-					}}
-					transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
-				/>
-			</div>
+			{!isPaymentStep ? (
+				<div className="relative z-10 h-px bg-grayscale-3 dark:bg-white/[0.08]">
+					<motion.div
+						className="h-full origin-left bg-grayscale-12"
+						animate={{
+							transform: `scaleX(${
+								status === "done" || status === "verifying"
+									? 1
+									: Math.min(1, (step + 1) / totalSteps)
+							})`,
+						}}
+						transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
+					/>
+				</div>
+			) : null}
 
 			<main
-				className={`flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 ${
-					status === "done" ? "items-center" : "items-start sm:items-center"
+				className={`flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto ${
+					isPaymentStep
+						? "items-start sm:items-center px-4 py-6 pb-[calc(2rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8"
+						: status === "done" || status === "verifying"
+							? "items-center px-5 py-8 sm:px-8 sm:py-10"
+							: "items-start sm:items-center px-5 py-8 sm:px-8 sm:py-10"
 				}`}
 			>
-				<AnimatePresence initial={false}>
-					{status === "done" ? (
+				<AnimatePresence initial={false} mode="wait">
+					{status === "verifying" ? (
+						<motion.section
+							key="verifying"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="flex flex-col items-center justify-center px-5 text-center"
+							aria-live="polite"
+						>
+							<h1 className="text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.15] tracking-[-0.03em] text-grayscale-12">
+								Verificando pago con Tilopay…
+							</h1>
+							<p className="mt-3 font-mono text-xs uppercase tracking-[0.14em] text-grayscale-9">
+								Confirmando tu reserva de forma segura
+							</p>
+						</motion.section>
+					) : status === "done" ? (
 						<Success
 							alreadyJoined={alreadyJoined}
 							country={fields.country}
 							artistName={fields.artistName}
 							meetingAt={fields.meetingAt}
+							paymentReceipt={paymentReceipt}
 							reduceMotion={Boolean(reduceMotion)}
 						/>
+					) : isPaymentStep && tilopaySession ? (
+						<motion.form
+							key="payment-form"
+							ref={formRef}
+							onSubmit={submit}
+							onKeyDown={onFormKeyDown}
+							noValidate
+							initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: reduceMotion ? 0 : 0.3, ease: EASE }}
+							className="min-w-0 w-full max-w-[540px]"
+						>
+							<TilopaySdkCheckout
+								ref={tilopayCheckoutRef}
+								session={tilopaySession}
+								artistName={fields.artistName}
+								error={error}
+								onCancel={() => {
+									if (tilopayPaying) return;
+									moveTo(6);
+								}}
+								onBeforeRedirect={saveDraftBeforeRedirect}
+								onPayingChange={setTilopayPaying}
+								onError={setError}
+							/>
+						</motion.form>
 					) : (
 						<motion.form
 							key="form"
@@ -624,19 +1040,25 @@ export default function AccesoForm() {
 							exit={{ opacity: 0 }}
 							transition={{ duration: reduceMotion ? 0 : 0.35, ease: EASE }}
 						>
-							<h1 className="min-h-12 max-w-full text-[clamp(28px,8.5vw,32px)] leading-[1.3] tracking-[-0.04em] text-[#F5F7F5] sm:min-h-20 sm:max-w-xl sm:text-[clamp(2.25rem,5.5vw,3.75rem)] sm:tracking-[-0.055em]">
+							<h1
+								className={`max-w-full font-semibold leading-[1.15] tracking-[-0.03em] text-grayscale-12 ${
+									step >= 6
+										? "min-h-10 text-[clamp(24px,6vw,30px)] sm:max-w-2xl sm:text-[clamp(1.75rem,3.4vw,2.25rem)]"
+										: "min-h-12 text-[clamp(26px,8vw,32px)] sm:min-h-16 sm:max-w-xl sm:text-[clamp(2.15rem,4.5vw,3rem)]"
+								}`}
+							>
 								<AccessRoll text={QUESTIONS[step]} live={introReady} />
 							</h1>
 
 							<p
 								id={`${id}-hint`}
-								className={`mt-3 min-h-10 text-sm leading-6 transition-colors duration-200 sm:min-h-11 sm:text-[15px] ${
-									error ? "text-[#E8A49C]" : "text-[#9CA19D]"
+								className={`mt-2 min-h-6 text-sm leading-5 transition-colors duration-150 sm:text-[14px] ${
+									error ? "font-medium text-red-11" : "text-grayscale-9"
 								}`}
 								aria-live="polite"
 							>
 								{error ? (
-									<span className="access-error-copy">{error}</span>
+									<span className="shake inline-block">{error}</span>
 								) : (
 									<AccessRoll text={activeHint} live={introReady} />
 								)}
@@ -645,7 +1067,7 @@ export default function AccesoForm() {
 							<motion.div
 								layout="size"
 								className={`relative overflow-hidden ${
-									step === 6 ? "mt-4 sm:mt-6" : "mt-8 sm:mt-10"
+									step >= 6 ? "mt-3 sm:mt-4" : "mt-8 sm:mt-10"
 								}`}
 								transition={{ duration: reduceMotion ? 0 : 0.28, ease: EASE }}
 							>
@@ -731,7 +1153,7 @@ export default function AccesoForm() {
 													setFields((current) => ({ ...current, phone: "" }));
 													moveTo(3);
 												}}
-												className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
+												className="mt-3 cursor-pointer text-[13px] font-medium text-grayscale-9 transition-colors duration-150 hover:text-grayscale-12"
 											>
 												Saltar
 											</button>
@@ -777,7 +1199,7 @@ export default function AccesoForm() {
 													setFields((current) => ({ ...current, instagram: "" }));
 													moveTo(6);
 												}}
-												className="access-press mt-3 cursor-pointer text-sm text-white/40 transition-colors duration-160 hover:text-white"
+												className="mt-3 cursor-pointer text-[13px] font-medium text-grayscale-9 transition-colors duration-150 hover:text-grayscale-12"
 											>
 												Saltar
 											</button>
@@ -787,6 +1209,7 @@ export default function AccesoForm() {
 												<MeetingScheduler
 													value={fields.meetingAt}
 													bookedSlots={bookedSlots}
+													availability={availability}
 													reduceMotion={Boolean(reduceMotion)}
 													onChange={(meetingAt) => {
 														setError(null);
@@ -794,10 +1217,10 @@ export default function AccesoForm() {
 													}}
 												/>
 												{turnstileSiteKey ? (
-													<div className="border border-white/10 bg-[#0D100D] px-3 py-2">
+													<div className="pt-1">
 														<TurnstileWidget
-															key={turnstileResetKey}
-															theme="dark"
+															key={`${turnstileResetKey}-${resolvedTheme}`}
+															theme={resolvedTheme}
 															bare
 															onSuccess={(token) => {
 																setTurnstileToken(token);
@@ -812,24 +1235,6 @@ export default function AccesoForm() {
 														/>
 													</div>
 												) : null}
-												<div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-													<button
-														type="button"
-														onClick={() => {
-															if (status !== "idle") return;
-															void joinWaitlist(
-																fields.instagram.replace(/^@+/, ""),
-																"",
-															);
-														}}
-														className="access-press cursor-pointer text-xs text-white/40 transition-colors duration-160 hover:text-white sm:text-sm"
-													>
-														Prefiero coordinar la hora luego por WhatsApp
-													</button>
-													<span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/35">
-														Protegido con Cloudflare
-													</span>
-												</div>
 											</div>
 										)}
 									</motion.div>
@@ -845,6 +1250,7 @@ export default function AccesoForm() {
 										<motion.button
 											key="back"
 											type="button"
+											disabled={status === "submitting" || tilopayPaying}
 											onClick={() => moveTo((step - 1) as Step)}
 											aria-label="Volver"
 											initial={{
@@ -865,10 +1271,10 @@ export default function AccesoForm() {
 												duration: reduceMotion ? 0 : 0.28,
 												ease: EASE,
 											}}
-											className="access-back access-press flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-[#343734] bg-[#101210] text-white/70 transition-[border-color,color,background-color] duration-160 hover:border-white/30 hover:bg-[#151815] hover:text-white"
+											className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 text-grayscale-11 shadow-[0_1px_2px_rgba(28,22,16,0.04)] transition-[border-color,color,background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:border-grayscale-5 hover:bg-grayscale-2 hover:text-grayscale-12 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-grayscale-2 dark:hover:bg-grayscale-3"
 										>
 											<span className="access-back-icon">
-												<IconArrowLeft className="h-5 w-5" />
+												<IconArrowLeft className="h-4 w-4" />
 											</span>
 										</motion.button>
 									)}
@@ -876,25 +1282,20 @@ export default function AccesoForm() {
 								<button
 									type="submit"
 									disabled={status === "submitting"}
-									data-slot-hover-root
-									className="access-primary access-press flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 overflow-visible bg-brand px-5 text-sm font-medium text-white transition-[background-color] duration-160 hover:bg-brand-hover disabled:cursor-wait disabled:opacity-50 sm:min-w-52 sm:flex-none"
+									className="flex h-11 min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 rounded-md border border-transparent bg-grayscale-12 px-5 text-[13.5px] font-medium text-grayscale-1 shadow-[0_1px_2px_rgba(28,22,16,0.14)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:bg-grayscale-11 active:scale-[0.96] disabled:cursor-wait disabled:opacity-50 sm:min-w-52 sm:flex-none"
 								>
-									<AccessRoll
-										hover
-										play={introReady}
-										options={SLOT_BUTTON}
-										text={
-											status === "submitting"
-												? "Enviando…"
-												: step === 6
-													? "Agendar y anotarme"
-													: "Continuar"
-										}
-										className="whitespace-nowrap"
-									/>
-									<span className="access-next-icon shrink-0">
-										<IconArrowRight className="h-5 w-5" />
+									<span className="whitespace-nowrap">
+										{status === "submitting"
+											? step === 6 && paymentConfig.required
+												? "Preparando pago…"
+												: "Enviando…"
+											: step === 6
+												? paymentConfig.required
+													? "Continuar al pago"
+													: "Agendar y anotarme"
+												: "Continuar"}
 									</span>
+									<IconArrowRight className="h-4 w-4 shrink-0" />
 								</button>
 							</motion.div>
 
@@ -920,62 +1321,36 @@ export default function AccesoForm() {
 	);
 }
 
-function StepBlade({
-	step,
-	reduceMotion,
-}: {
-	step: Step;
-	reduceMotion: boolean;
-}) {
-	const shift = step * 1.6;
-	const scale = 0.9 + step * 0.025;
-
-	return (
-		<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-			<div className="absolute right-[-18%] bottom-[15%] h-px w-[82vw] origin-right rotate-[-18deg] bg-white/4 sm:right-[-8%] sm:bottom-[18%] sm:w-[48vw]" />
-			<div className="absolute right-[-16%] bottom-[12%] h-px w-[70vw] origin-right rotate-[-18deg] bg-white/3 sm:right-[-6%] sm:bottom-[14%] sm:w-[42vw]" />
-			<motion.div
-				className="absolute right-[-14%] bottom-[18%] h-px w-[76vw] origin-right bg-linear-to-l from-brand-accent/70 via-brand/28 to-transparent sm:right-[-4%] sm:bottom-[22%] sm:w-[44vw]"
-				initial={false}
-				animate={{
-					opacity: 0.55 + step * 0.09,
-					transform: reduceMotion
-						? "rotate(-18deg)"
-						: `translate3d(${shift}%, 0, 0) rotate(-18deg) scaleX(${scale})`,
-				}}
-				transition={{ duration: reduceMotion ? 0.16 : 0.28, ease: EASE }}
-			/>
-		</div>
-	);
-}
-
 function Progress({
 	step,
+	totalSteps,
 	done,
 	reduceMotion,
 	live = true,
 }: {
 	step: Step;
+	totalSteps: number;
 	done: boolean;
 	reduceMotion: boolean;
 	live?: boolean;
 }) {
+	const visibleQuestions = QUESTIONS.slice(0, totalSteps);
 	return (
-		<div className="flex items-center gap-3" aria-label={done ? "Completado" : `Paso ${step + 1} de ${QUESTIONS.length}`}>
+		<div className="flex items-center gap-2.5" aria-label={done ? "Completado" : `Paso ${step + 1} de ${totalSteps}`}>
 			<div className="flex gap-1" aria-hidden="true">
-				{QUESTIONS.map((question, index) => {
+				{visibleQuestions.map((question, index) => {
 					const active = done || index <= step;
 					return (
 						<motion.span
 							key={question}
-							className="h-1 w-1 bg-brand-accent"
+							className="h-1 w-1 rounded-full bg-grayscale-12"
 							animate={{ opacity: active ? 1 : 0.2 }}
 							transition={{ duration: reduceMotion ? 0 : 0.16, ease: EASE }}
 						/>
 					);
 				})}
 			</div>
-			<span className="font-mono text-[10px] tabular-nums tracking-[0.12em] text-white/45">
+			<span className="font-mono text-[10.5px] tabular-nums tracking-[0.12em] text-grayscale-9">
 				<AccessRoll
 					text={done ? "LISTO" : `0${step + 1}`}
 					live={live}
@@ -991,12 +1366,14 @@ function Success({
 	country,
 	artistName,
 	meetingAt,
+	paymentReceipt,
 	reduceMotion,
 }: {
 	alreadyJoined: boolean;
 	country: Country;
 	artistName: string;
 	meetingAt: string;
+	paymentReceipt?: PaymentReceipt | null;
 	reduceMotion: boolean;
 }) {
 	const place = country === "US" ? "Estados Unidos" : "Costa Rica";
@@ -1009,13 +1386,13 @@ function Success({
 			initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(12px)" }}
 			animate={{ opacity: 1, transform: "translateY(0px)" }}
 			transition={{ duration: reduceMotion ? 0.25 : 0.7, ease: EASE }}
-			className="absolute inset-0 flex w-full flex-col items-center justify-center px-5 text-center"
+			className="flex w-full flex-col items-center justify-center px-5 py-6 text-center"
 			aria-live="polite"
 		>
-			<h1 className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.75rem)] leading-[1.08] tracking-[-0.045em] text-[#F5F7F5] sm:tracking-[-0.055em]">
+			<h1 className="max-w-[14ch] text-[clamp(2.15rem,8vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-grayscale-12">
 				{alreadyJoined ? "Ya estabas en la lista." : "Estás en la lista."}
 			</h1>
-			<p className="mt-4 max-w-sm text-[15px] leading-6 text-white/50">
+			<p className="mt-3 max-w-sm text-[14.5px] leading-6 text-grayscale-9">
 				{alreadyJoined
 					? `Cuando abramos el próximo cupo en ${place}, te escribimos.`
 					: meetingSummary
@@ -1023,31 +1400,36 @@ function Success({
 						: `Te escribiremos cuando abramos el próximo cupo en ${place}.`}
 			</p>
 			{meetingSummary ? (
-				<div className="mt-5 flex w-full max-w-sm flex-col items-center gap-2.5 border border-white/15 bg-[#101310] px-4 py-3.5 text-left">
+				<div className="card mt-5 flex w-full max-w-sm flex-col items-center gap-2.5 px-4 py-3.5 text-left">
 					<div className="flex w-full items-center justify-between gap-2">
-						<span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-brand-accent">
-							<span className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
+						<span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-green-10">
 							Reunión 1:1 confirmada
 						</span>
-						<span className="font-mono text-[10px] text-white/40">15 MIN</span>
+						<span className="font-mono text-[10px] text-grayscale-8">15 MIN</span>
 					</div>
-					<p className="w-full text-sm font-medium text-white">
+					<p className="w-full text-sm font-semibold text-grayscale-12">
 						{meetingSummary}
 					</p>
+					{paymentReceipt ? (
+						<p className="w-full border-t border-grayscale-3/80 pt-2 font-mono text-[11px] text-grayscale-10 dark:border-white/[0.08]">
+							Pago confirmado · {paymentReceipt.amountFormatted}
+							{paymentReceipt.authCode ? ` · Aut. ${paymentReceipt.authCode}` : ""}
+						</p>
+					) : null}
 					{gcalUrl ? (
 						<a
 							href={gcalUrl}
 							target="_blank"
 							rel="noreferrer"
-							className="access-press mt-0.5 inline-flex w-full items-center justify-center border border-white/15 bg-white/5 px-3 py-2 font-mono text-[11px] text-white/85 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+							className="mt-0.5 inline-flex h-9 w-full items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 px-3 font-mono text-[11px] font-medium text-grayscale-11 transition-[background-color,border-color,color,transform] duration-150 hover:border-grayscale-5 hover:bg-grayscale-2 hover:text-grayscale-12 active:scale-[0.96] dark:bg-grayscale-2 dark:hover:bg-grayscale-3"
 						>
 							+ Agregar a Google Calendar
 						</a>
 					) : null}
 				</div>
 			) : null}
-			<div className="mx-auto mt-6 w-[min(100%,15rem)] sm:mt-8 sm:w-[min(100%,18rem)]">
-				<div className="access-success-art">
+			<div className="mx-auto mt-6 w-[min(100%,14rem)] sm:mt-8 sm:w-[min(100%,16rem)]">
+				<div className="access-success-art overflow-hidden rounded-xl border border-grayscale-4/80 bg-grayscale-1 dark:border-white/[0.1] dark:bg-[#1b1b1a]">
 					<Image
 						src="/images/gigblade-access-signpost-blue.png"
 						width={706}
@@ -1068,9 +1450,9 @@ function Success({
 							document.cookie = "gb_ref=; path=/; max-age=0;";
 						} catch {}
 					}}
-					className="mt-6 inline-block text-sm text-white/40 transition-colors duration-160 hover:text-white"
+					className="mt-6 inline-block text-[13px] font-medium text-grayscale-9 transition-colors duration-150 hover:text-grayscale-12"
 				>
-					Volver a GigBlades
+					← Volver a GigBlades
 				</AppLink>
 			</div>
 		</motion.section>
@@ -1126,33 +1508,56 @@ function getNextAvailableDateKeys(todayKey: string, count: number): string[] {
 function MeetingScheduler({
 	value,
 	bookedSlots,
+	availability,
 	reduceMotion,
 	onChange,
 }: {
 	value: string;
 	bookedSlots: string[];
+	availability: MeetingAvailability;
 	reduceMotion: boolean;
 	onChange: (iso: string) => void;
 }) {
 	const todayKey = useMemo(() => toCrDateKey(new Date()), []);
-	const availableDays = useMemo(
-		() => getNextAvailableDateKeys(todayKey, 6),
-		[todayKey],
-	);
+	const [monthCursor, setMonthCursor] = useState(() => {
+		const [y, m] = todayKey.split("-").map(Number);
+		return { year: y, month: m - 1 };
+	});
+	const [monthDirection, setMonthDirection] = useState(1);
+
+	const firstAvailableKey = useMemo(() => {
+		const cursor = new Date(`${todayKey}T12:00:00-06:00`);
+		for (let i = 0; i < 60; i++) {
+			const key = toCrDateKey(cursor);
+			if (isDateAvailableForMeeting(key, todayKey, availability)) {
+				return key;
+			}
+			cursor.setUTCDate(cursor.getUTCDate() + 1);
+		}
+		return todayKey;
+	}, [todayKey, availability]);
 
 	const initialDateKey = useMemo(() => {
 		if (value) {
 			const parsed = new Date(value);
 			if (!Number.isNaN(parsed.getTime())) {
 				const key = toCrDateKey(parsed);
-				if (availableDays.includes(key)) return key;
+				if (isDateAvailableForMeeting(key, todayKey, availability)) return key;
 			}
 		}
-		return availableDays[0] ?? todayKey;
-	}, [value, availableDays, todayKey]);
+		return firstAvailableKey;
+	}, [value, todayKey, availability, firstAvailableKey]);
 
 	const [selectedDateKey, setSelectedDateKey] = useState<string>(initialDateKey);
 	const [use24h, setUse24h] = useState<boolean>(false);
+
+	const effectiveDateKey = isDateAvailableForMeeting(
+		selectedDateKey,
+		todayKey,
+		availability,
+	)
+		? selectedDateKey
+		: firstAvailableKey;
 
 	const bookedTimestamps = useMemo(() => {
 		return bookedSlots
@@ -1162,8 +1567,13 @@ function MeetingScheduler({
 
 	const slotsForSelectedDay = useMemo(() => {
 		const nowPlusBuffer = Date.now() + 30 * 60 * 1000;
-		return MEETING_HOURS.map((hour24) => {
-			const iso = buildSlotIso(selectedDateKey, hour24);
+		const dayAvailable = isDateAvailableForMeeting(
+			effectiveDateKey,
+			todayKey,
+			availability,
+		);
+		return availability.hours.map((hour24) => {
+			const iso = buildSlotIso(effectiveDateKey, hour24);
 			const slotMs = new Date(iso).getTime();
 			const isPast = slotMs < nowPlusBuffer;
 			const isBooked = bookedTimestamps.some(
@@ -1172,11 +1582,59 @@ function MeetingScheduler({
 			return {
 				hour24,
 				iso,
-				disabled: isPast || isBooked,
+				disabled: !dayAvailable || isPast || isBooked,
 				isBooked,
 			};
 		});
-	}, [selectedDateKey, bookedTimestamps]);
+	}, [effectiveDateKey, todayKey, availability, bookedTimestamps]);
+
+	const monthLabel = useMemo(() => {
+		const d = new Date(Date.UTC(monthCursor.year, monthCursor.month, 15));
+		const text = new Intl.DateTimeFormat("es-CR", {
+			month: "long",
+			year: "numeric",
+			timeZone: "UTC",
+		}).format(d);
+		return text.charAt(0).toUpperCase() + text.slice(1);
+	}, [monthCursor]);
+
+	const calendarDays = useMemo(() => {
+		const first = new Date(Date.UTC(monthCursor.year, monthCursor.month, 1));
+		const daysInMonth = new Date(
+			Date.UTC(monthCursor.year, monthCursor.month + 1, 0),
+		).getUTCDate();
+		const firstOffset = (first.getUTCDay() + 6) % 7;
+		const cells: (string | null)[] = Array.from(
+			{ length: firstOffset },
+			() => null,
+		);
+		for (let day = 1; day <= daysInMonth; day++) {
+			const mm = String(monthCursor.month + 1).padStart(2, "0");
+			const dd = String(day).padStart(2, "0");
+			cells.push(`${monthCursor.year}-${mm}-${dd}`);
+		}
+		while (cells.length < 42) {
+			cells.push(null);
+		}
+		return cells;
+	}, [monthCursor]);
+
+	const canGoPrevMonth = useMemo(() => {
+		const [ty, tm] = todayKey.split("-").map(Number);
+		return (
+			monthCursor.year > ty ||
+			(monthCursor.year === ty && monthCursor.month > tm - 1)
+		);
+	}, [monthCursor, todayKey]);
+
+	const shiftMonth = (delta: number) => {
+		if (delta < 0 && !canGoPrevMonth) return;
+		setMonthDirection(delta);
+		setMonthCursor((prev) => {
+			const d = new Date(Date.UTC(prev.year, prev.month + delta, 1));
+			return { year: d.getUTCFullYear(), month: d.getUTCMonth() };
+		});
+	};
 
 	const handleSelectDay = (dateKey: string) => {
 		setSelectedDateKey(dateKey);
@@ -1189,153 +1647,180 @@ function MeetingScheduler({
 					hour12: false,
 					timeZone: "America/Costa_Rica",
 				}).format(prevDate);
-				const candidateIso = buildSlotIso(dateKey, crHour);
-				const candidateMs = new Date(candidateIso).getTime();
-				const isBooked = bookedTimestamps.some(
-					(b) => Math.abs(b - candidateMs) < 25 * 60 * 1000,
-				);
-				if (candidateMs > Date.now() + 30 * 60 * 1000 && !isBooked) {
-					onChange(candidateIso);
-					return;
+				if (availability.hours.includes(crHour)) {
+					const candidateIso = buildSlotIso(dateKey, crHour);
+					const candidateMs = new Date(candidateIso).getTime();
+					const isBooked = bookedTimestamps.some(
+						(b) => Math.abs(b - candidateMs) < 25 * 60 * 1000,
+					);
+					if (candidateMs > Date.now() + 30 * 60 * 1000 && !isBooked) {
+						onChange(candidateIso);
+						return;
+					}
 				}
 			}
 			onChange("");
 		}
 	};
 
+	const monthKey = `${monthCursor.year}-${monthCursor.month}`;
+
 	return (
 		<div
 			data-access-field
 			tabIndex={-1}
-			className="w-full flex flex-col gap-3.5 outline-none"
+			className="grid w-full grid-cols-1 gap-4 outline-none md:grid-cols-[292px_1fr] md:items-start md:gap-5"
 		>
-			{/* Top Meta Line: Format + Duration */}
-			<div className="flex items-center justify-between text-[11px] font-mono tracking-[0.14em] text-white/40 uppercase">
-				<div className="flex items-center gap-2">
-					<span>Día</span>
-					<span className="text-white/20">·</span>
-					<span className="text-white/30">15 min · Costa Rica</span>
-				</div>
-				<div className="flex items-center gap-1 text-[10px]">
-					<button
-						type="button"
-						onClick={() => setUse24h(false)}
-						className={`cursor-pointer px-1 py-0.5 transition-colors ${
-							!use24h ? "text-white font-semibold" : "text-white/30 hover:text-white/60"
-						}`}
-					>
-						12H
-					</button>
-					<span className="text-white/20">/</span>
-					<button
-						type="button"
-						onClick={() => setUse24h(true)}
-						className={`cursor-pointer px-1 py-0.5 transition-colors ${
-							use24h ? "text-white font-semibold" : "text-white/30 hover:text-white/60"
-						}`}
-					>
-						24H
-					</button>
-				</div>
-			</div>
-
-			{/* Minimalist Day Strip (6 Days) */}
-			<div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2">
-				{availableDays.map((dayKey) => {
-					const d = new Date(`${dayKey}T12:00:00-06:00`);
-					const isSelected = dayKey === selectedDateKey;
-					const isToday = dayKey === todayKey;
-					const weekdayName = isToday
-						? "HOY"
-						: new Intl.DateTimeFormat("es-CR", {
-								weekday: "short",
-								timeZone: "America/Costa_Rica",
-							})
-								.format(d)
-								.replace(/\./g, "")
-								.toUpperCase();
-					const dayNumber = new Intl.DateTimeFormat("es-CR", {
-						day: "numeric",
-						timeZone: "America/Costa_Rica",
-					}).format(d);
-
-					return (
-						<button
-							key={dayKey}
-							type="button"
-							onClick={() => handleSelectDay(dayKey)}
-							aria-pressed={isSelected}
-							className={`access-press group flex flex-col items-center justify-center py-2 px-1 transition-all duration-160 cursor-pointer ${
-								isSelected
-									? "bg-white text-black font-semibold shadow-sm"
-									: "border border-white/12 bg-transparent text-white/60 hover:border-white/30 hover:text-white"
-							}`}
-						>
-							<span
-								className={`font-mono text-[10px] tracking-[0.14em] uppercase ${
-									isSelected ? "text-black/60 font-medium" : "text-white/40 group-hover:text-white/70"
-								}`}
-							>
-								{weekdayName}
-							</span>
-							<span
-								className={`mt-0.5 text-base sm:text-[17px] tabular-nums ${
-									isSelected ? "text-black font-semibold" : "text-white"
-								}`}
-							>
-								{dayNumber}
-							</span>
-						</button>
-					);
-				})}
-			</div>
-
-			{/* Time Slots Label */}
-			<div className="flex items-center justify-between pt-1 text-[11px] font-mono tracking-[0.14em] text-white/40 uppercase">
-				<span>Hora</span>
-			</div>
-
-			{/* Minimalist Time Slot Grid (5 cols desktop, 2 rows total) */}
-			<div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-2">
-				{slotsForSelectedDay.map((slot) => {
-					const isSelected = value === slot.iso;
-					const label = formatHourLabel(slot.hour24, use24h);
-					return (
-						<button
-							key={slot.hour24}
-							type="button"
-							disabled={slot.disabled}
-							onClick={() => onChange(slot.iso)}
-							aria-pressed={isSelected}
-							className={`access-press py-2 px-2 text-center font-mono text-xs tabular-nums transition-all duration-160 ${
-								slot.disabled
-									? "cursor-not-allowed border border-transparent text-white/20 line-through bg-transparent"
-									: isSelected
-										? "border border-white bg-white text-black font-semibold shadow-sm cursor-pointer"
-										: "border border-white/12 bg-transparent text-white/80 hover:border-white/40 hover:text-white cursor-pointer"
-							}`}
-						>
-							{label}
-						</button>
-					);
-				})}
-			</div>
-
-			{/* Selected confirmation */}
-			{value && (
-				<div className="flex items-center justify-between border-t border-white/10 pt-2 text-xs">
-					<span className="font-mono text-white/90">
-						Reunión: <strong className="text-white font-semibold">{formatMeetingSummary(value)}</strong>
+			{/* Minimalist Full-Month Square Grid Calendar (compact, zero scroll) */}
+			<div className="card p-3">
+				<div className="mb-2.5 flex items-center justify-between gap-2">
+					<span className="text-[12.5px] font-semibold tracking-tight text-grayscale-12">
+						{monthLabel}
 					</span>
-					<button
-						type="button"
-						onClick={() => onChange("")}
-						className="font-mono text-[10px] uppercase tracking-wider text-white/40 hover:text-white cursor-pointer"
-					>
-						Cambiar
-					</button>
+					<div className="flex items-center gap-1">
+						<button
+							type="button"
+							disabled={!canGoPrevMonth}
+							onClick={() => shiftMonth(-1)}
+							aria-label="Mes anterior"
+							className="flex size-7 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 text-[11px] text-grayscale-11 transition-[background-color,transform] duration-150 hover:bg-grayscale-2 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-35 dark:bg-[#1b1b1a]"
+						>
+							←
+						</button>
+						<button
+							type="button"
+							onClick={() => shiftMonth(1)}
+							aria-label="Mes siguiente"
+							className="flex size-7 cursor-pointer items-center justify-center rounded-md border border-grayscale-4 bg-grayscale-1 text-[11px] text-grayscale-11 transition-[background-color,transform] duration-150 hover:bg-grayscale-2 active:scale-[0.94] dark:bg-[#1b1b1a]"
+						>
+							→
+						</button>
+					</div>
 				</div>
-			)}
+
+				<div className="mb-1 grid grid-cols-7 gap-1 text-center font-mono text-[9.5px] font-medium uppercase tracking-wider text-grayscale-8">
+					<span>L</span>
+					<span>M</span>
+					<span>X</span>
+					<span>J</span>
+					<span>V</span>
+					<span>S</span>
+					<span>D</span>
+				</div>
+
+				<AnimatePresence mode="wait" initial={false}>
+					<motion.div
+						key={monthKey}
+						initial={
+							reduceMotion
+								? { opacity: 0 }
+								: { opacity: 0, x: monthDirection * 8 }
+						}
+						animate={{ opacity: 1, x: 0 }}
+						exit={
+							reduceMotion
+								? { opacity: 0 }
+								: { opacity: 0, x: monthDirection * -8 }
+						}
+						transition={{ duration: reduceMotion ? 0 : 0.16, ease: EASE }}
+						className="grid grid-cols-7 gap-1"
+					>
+						{calendarDays.map((dateKey, idx) => {
+							if (!dateKey) {
+								return <div key={`empty-${idx}`} className="h-8 sm:h-8.5" />;
+							}
+							const available = isDateAvailableForMeeting(
+								dateKey,
+								todayKey,
+								availability,
+							);
+							const isSelected = dateKey === effectiveDateKey;
+							const isToday = dateKey === todayKey;
+							const dayNumber = Number(dateKey.slice(-2));
+
+							return (
+								<button
+									key={dateKey}
+									type="button"
+									disabled={!available}
+									onClick={() => handleSelectDay(dateKey)}
+									aria-pressed={isSelected}
+									className={`relative flex h-8 sm:h-8.5 items-center justify-center rounded-md border font-mono text-[11.5px] tabular-nums transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] ${
+										!available
+											? "cursor-not-allowed border-transparent text-grayscale-6/70 dark:text-grayscale-7"
+											: isSelected
+												? "cursor-pointer border-grayscale-12 bg-grayscale-12 font-semibold text-grayscale-1 shadow-xs active:scale-[0.94]"
+												: "cursor-pointer border-grayscale-4/80 bg-grayscale-1 text-grayscale-11 hover:border-grayscale-7 hover:text-grayscale-12 active:scale-[0.94] dark:border-white/[0.08] dark:bg-[#161615] dark:hover:border-white/[0.2]"
+									}`}
+								>
+									<span>{dayNumber}</span>
+									{isToday ? (
+										<span
+											aria-hidden="true"
+											className={`absolute bottom-1 h-0.5 w-0.5 rounded-full ${
+												isSelected ? "bg-grayscale-1" : "bg-grayscale-9"
+											}`}
+										/>
+									) : null}
+								</button>
+							);
+						})}
+					</motion.div>
+				</AnimatePresence>
+			</div>
+
+			{/* Time Slots */}
+			<div className="flex flex-col">
+				<div className="mb-2 flex items-center justify-between text-[11px] font-mono uppercase tracking-[0.1em] text-grayscale-9">
+					<span>Hora</span>
+					<div className="flex items-center gap-1 text-[10px]">
+						<button
+							type="button"
+							onClick={() => setUse24h(false)}
+							className={`cursor-pointer px-1 py-0.5 transition-colors ${
+								!use24h ? "text-grayscale-12 font-semibold" : "text-grayscale-8 hover:text-grayscale-11"
+							}`}
+						>
+							12H
+						</button>
+						<span className="text-grayscale-6">/</span>
+						<button
+							type="button"
+							onClick={() => setUse24h(true)}
+							className={`cursor-pointer px-1 py-0.5 transition-colors ${
+								use24h ? "text-grayscale-12 font-semibold" : "text-grayscale-8 hover:text-grayscale-11"
+							}`}
+						>
+							24H
+						</button>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-2 gap-1.5 sm:grid-cols-2">
+					{slotsForSelectedDay.map((slot) => {
+						const isSelected = value === slot.iso;
+						const label = formatHourLabel(slot.hour24, use24h);
+						return (
+							<button
+								key={slot.hour24}
+								type="button"
+								disabled={slot.disabled}
+								onClick={() => onChange(slot.iso)}
+								aria-pressed={isSelected}
+								className={`h-9 rounded-md px-2 text-center font-mono text-xs tabular-nums transition-[background-color,border-color,color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+									slot.disabled
+										? "cursor-not-allowed border border-transparent text-grayscale-7 line-through bg-transparent"
+										: isSelected
+											? "border border-grayscale-12 bg-grayscale-12 text-grayscale-1 font-semibold shadow-xs cursor-pointer"
+											: "border border-grayscale-4 bg-grayscale-1 dark:bg-[#1b1b1a] text-grayscale-11 hover:border-grayscale-6 hover:text-grayscale-12 cursor-pointer"
+								}`}
+							>
+								{label}
+							</button>
+						);
+					})}
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -1352,14 +1837,14 @@ function ProvinceSelect({
 			aria-label="Provincia"
 			value={value || null}
 			onValueChange={(next) => next && onChange(next)}
-			className="grid w-full grid-cols-2 gap-x-4"
+			className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2"
 		>
 			{PROVINCES.map((province) => (
 				<div key={province} className="min-w-0">
 					<Radio.Root
 						value={province}
 						data-access-field
-						className="access-country relative flex min-h-12 w-full cursor-pointer items-center border-b border-white/20 bg-transparent text-left text-[17px] tracking-[-0.03em] text-white/45 outline-none transition-colors duration-200 data-checked:text-white sm:min-h-14 sm:text-xl"
+						className="relative flex min-h-11 w-full cursor-pointer items-center rounded-lg border border-grayscale-4 bg-grayscale-1 px-4 text-left text-[15px] font-medium text-grayscale-10 outline-none transition-[background-color,border-color,color,transform] duration-150 hover:border-grayscale-6 hover:text-grayscale-12 active:scale-[0.98] data-checked:border-grayscale-12 data-checked:bg-grayscale-12 data-checked:text-grayscale-1 dark:bg-[#1b1b1a] dark:data-checked:bg-grayscale-12 dark:data-checked:text-grayscale-1 sm:min-h-12 sm:text-[16px]"
 					>
 						{province}
 					</Radio.Root>
@@ -1388,12 +1873,12 @@ function CountrySelect({
 			aria-label="País"
 			value={value}
 			onValueChange={(next) => next && onChange(next as Country)}
-			className="flex w-full flex-col"
+			className="flex w-full flex-col gap-2.5"
 		>
 			{COUNTRIES.map((country) => {
 				const Flag = country.Flag;
 				const rowClass =
-					"access-country relative flex h-16 w-full items-center gap-3 border-b border-white/20 bg-transparent text-left outline-none transition-[border-color,color] duration-200";
+					"relative flex h-14 w-full items-center gap-3 rounded-lg border px-4 text-left outline-none transition-[border-color,background-color,color,transform] duration-150";
 
 				if (country.disabled) {
 					return (
@@ -1401,17 +1886,17 @@ function CountrySelect({
 							key={country.value}
 							type="button"
 							onClick={onUnavailable}
-							className={`${rowClass} cursor-pointer`}
+							className={`${rowClass} cursor-pointer border-grayscale-3/80 bg-grayscale-2/50 text-grayscale-8 dark:border-white/[0.06] dark:bg-[#141413]`}
 						>
 							<Flag
 								title={country.name}
-								className="h-3.5 w-5 shrink-0 opacity-35 sm:h-4 sm:w-6"
+								className="h-3.5 w-5 shrink-0 rounded-[2px] opacity-45 sm:h-4 sm:w-6"
 							/>
-							<span className="min-w-0 flex-1 text-2xl tracking-[-0.03em] text-white/30 sm:text-[28px]">
+							<span className="min-w-0 flex-1 text-[17px] font-medium tracking-[-0.02em] sm:text-[19px]">
 								{country.name}
 							</span>
-							<span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/30">
-								Soon
+							<span className="font-mono text-[10px] uppercase tracking-[0.12em] text-grayscale-8">
+								Pronto
 							</span>
 						</button>
 					);
@@ -1422,13 +1907,13 @@ function CountrySelect({
 						key={country.value}
 						value={country.value}
 						data-access-field
-						className={`${rowClass} cursor-pointer text-white`}
+						className={`${rowClass} cursor-pointer border-grayscale-4 bg-grayscale-1 text-grayscale-12 shadow-2xs hover:border-grayscale-6 data-checked:border-grayscale-12 data-checked:bg-grayscale-2/70 dark:bg-[#1b1b1a] dark:data-checked:bg-[#232321]`}
 					>
 						<Flag
 							title={country.name}
-							className="h-3.5 w-5 shrink-0 sm:h-4 sm:w-6"
+							className="h-3.5 w-5 shrink-0 rounded-[2px] sm:h-4 sm:w-6"
 						/>
-						<span className="min-w-0 flex-1 text-2xl tracking-[-0.03em] sm:text-[28px]">
+						<span className="min-w-0 flex-1 text-[17px] font-medium tracking-[-0.02em] sm:text-[19px]">
 							{country.name}
 						</span>
 					</Radio.Root>
@@ -1454,13 +1939,11 @@ function InstagramInput({
 	return (
 		<label
 			htmlFor={id}
-			className={`flex h-16 w-full items-center border-b bg-transparent transition-[border-color] duration-200 ${
-				invalid
-					? "border-[#E8A49C]"
-					: "border-white/35 focus-within:border-brand-accent"
+			className={`campo flex h-12 w-full items-center gap-1.5 px-3.5 shadow-[0_1px_2px_rgba(28,22,16,0.03)] sm:h-13 ${
+				invalid ? "campo-invalido shake" : ""
 			}`}
 		>
-			<span className="select-none text-2xl text-white/35 sm:text-[28px]">@</span>
+			<span className="select-none font-mono text-[16px] text-grayscale-8 sm:text-[18px]">@</span>
 			<input
 				id={id}
 				type="text"
@@ -1481,7 +1964,7 @@ function InstagramInput({
 				aria-label="Instagram"
 				aria-invalid={invalid}
 				aria-describedby={describedBy}
-				className="h-16 min-w-0 flex-1 border-0 bg-transparent px-0 text-2xl text-white outline-none placeholder:text-white/35 sm:text-[28px]"
+				className="h-full min-w-0 flex-1 border-0 bg-transparent px-0 text-[16px] text-grayscale-12 outline-none placeholder:text-grayscale-8 sm:text-[17px]"
 			/>
 		</label>
 	);
@@ -1523,10 +2006,8 @@ function LineInput({
 			aria-label={ariaLabel ?? placeholder}
 			aria-invalid={invalid}
 			aria-describedby={describedBy}
-			className={`h-16 w-full border-0 border-b bg-transparent px-0 text-2xl text-white outline-none transition-[border-color] duration-200 placeholder:text-white/35 sm:text-[28px] ${
-				invalid
-					? "border-[#E8A49C] focus:border-[#E8A49C]"
-					: "border-white/35 focus:border-brand-accent"
+			className={`campo h-12 w-full px-3.5 text-[16px] shadow-[0_1px_2px_rgba(28,22,16,0.03)] sm:h-13 sm:text-[17px] ${
+				invalid ? "campo-invalido shake" : ""
 			}`}
 		/>
 	);

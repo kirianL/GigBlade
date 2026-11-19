@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import {
+  isDashboardHostname,
   isLocalHostname,
   isLocalNetworkHostname,
   isMarketingHostname,
@@ -41,6 +42,17 @@ export async function proxy(request: NextRequest) {
   const hostname = normalizeHostname(
     request.headers.get("host") || request.nextUrl.hostname,
   );
+
+  if (isDashboardHostname(hostname)) {
+    const headers = new Headers(request.headers);
+    stripClientTenantHeaders(headers);
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/overview";
+      return NextResponse.redirect(url, 307);
+    }
+    return NextResponse.next({ request: { headers } });
+  }
 
   if (
     isMarketingHostname(hostname) ||

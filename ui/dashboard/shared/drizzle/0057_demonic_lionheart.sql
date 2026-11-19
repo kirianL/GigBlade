@@ -1,1 +1,0 @@
-CREATE INDEX CONCURRENTLY "idx_customer_products_product_customer_c" ON "customer_products" USING btree ("internal_product_id","internal_customer_id" COLLATE "C");

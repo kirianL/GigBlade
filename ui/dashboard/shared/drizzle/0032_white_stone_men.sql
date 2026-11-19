@@ -1,1 +1,0 @@
-ALTER TABLE "features" ADD COLUMN "stripe_meter" jsonb DEFAULT null;

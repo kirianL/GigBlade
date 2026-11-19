@@ -24,6 +24,12 @@ const sharedEnvSchema = z.object({
   CLOUDFLARE_API_TOKEN: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().optional(),
+  TILOPAY_API_KEY: z.string().optional(),
+  TILOPAY_API_USER: z.string().optional(),
+  TILOPAY_API_PASSWORD: z.string().optional(),
+  TILOPAY_MEETING_AMOUNT: z.string().optional(),
+  TILOPAY_MEETING_CURRENCY: z.enum(["USD", "CRC"]).optional(),
+  TILOPAY_WEBHOOK_SECRET: z.string().optional(),
   TENANT_DEV_ID: z.uuid().optional(),
   TENANT_DEV_HOSTNAME: z.string().optional(),
 });
@@ -60,6 +66,14 @@ function envInput() {
     CLOUDFLARE_API_TOKEN: optional(process.env.CLOUDFLARE_API_TOKEN),
     CLOUDFLARE_ACCOUNT_ID: optional(process.env.CLOUDFLARE_ACCOUNT_ID),
     TURNSTILE_SECRET_KEY: optional(process.env.TURNSTILE_SECRET_KEY),
+    TILOPAY_API_KEY: optional(process.env.TILOPAY_API_KEY),
+    TILOPAY_API_USER: optional(process.env.TILOPAY_API_USER),
+    TILOPAY_API_PASSWORD: optional(process.env.TILOPAY_API_PASSWORD),
+    TILOPAY_MEETING_AMOUNT: optional(process.env.TILOPAY_MEETING_AMOUNT),
+    TILOPAY_MEETING_CURRENCY: optional(
+      process.env.TILOPAY_MEETING_CURRENCY?.toUpperCase(),
+    ),
+    TILOPAY_WEBHOOK_SECRET: optional(process.env.TILOPAY_WEBHOOK_SECRET),
     TENANT_DEV_ID: optional(process.env.TENANT_DEV_ID),
     TENANT_DEV_HOSTNAME: optional(process.env.TENANT_DEV_HOSTNAME),
   };

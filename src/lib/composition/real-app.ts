@@ -19,6 +19,11 @@ import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
 import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
 import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
+import {
+  collectBookedMeetingSlots,
+  startTilopayWaitlistCheckout,
+} from "@/application/waitlist/start-tilopay-checkout";
+import { confirmTilopayWaitlistPayment } from "@/application/waitlist/confirm-tilopay-payment";
 import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { CloudflareRegistrar } from "@/infrastructure/cloudflare/registrar";
 import { CloudflareWebAnalytics } from "@/infrastructure/cloudflare/web-analytics";
@@ -32,7 +37,9 @@ import { SupabaseReferralRepository } from "@/infrastructure/supabase/supabase-r
 import { SupabaseSiteVisitStore } from "@/infrastructure/supabase/site-visit-store";
 import { SupabaseTenantRepository } from "@/infrastructure/supabase/tenant-repository";
 import { SupabaseTenantRoutingStore } from "@/infrastructure/supabase/tenant-routing-store";
+import { SupabaseWaitlistPaymentRepository } from "@/infrastructure/supabase/waitlist-payment-repository";
 import { SupabaseWaitlistRepository } from "@/infrastructure/supabase/waitlist-repository";
+import { HttpTilopayGateway } from "@/infrastructure/tilopay/client";
 import { VercelEdgeConfigWriter } from "@/infrastructure/vercel/edge-config-writer";
 import { VercelProjectDomains } from "@/infrastructure/vercel/project-domains";
 import { deleteSiteMedia } from "@/infrastructure/site-media";
@@ -46,6 +53,8 @@ export function createRealApp() {
   const domainRouting = new SupabaseTenantRoutingStore();
   const edgeRouting = new EdgeConfigRoutingStore();
   const waitlist = new SupabaseWaitlistRepository();
+  const waitlistPayments = new SupabaseWaitlistPaymentRepository();
+  const tilopay = new HttpTilopayGateway();
   const visits = new SupabaseSiteVisitStore();
   const panelAuth = new SupabasePanelAuthStore(
     process.env.GIGBLADE_PANEL_PASSWORD?.trim() ||
@@ -59,6 +68,8 @@ export function createRealApp() {
   return {
     tenants,
     routing: domainRouting,
+    tilopay,
+    waitlistPayments,
     edgeConfigWriter,
     registrar: new CloudflareRegistrar(),
     siteAnalytics: new CloudflareWebAnalytics(),
@@ -176,6 +187,25 @@ export function createRealApp() {
     joinWaitlist: (input: unknown, remoteIp?: string | null) =>
       joinWaitlist(waitlist, input, referrals, remoteIp),
     listWaitlist: () => listWaitlist(waitlist),
+    listBookedMeetingSlots: () =>
+      collectBookedMeetingSlots(waitlist, waitlistPayments),
+    startTilopayWaitlistCheckout: (
+      input: unknown,
+      origin: string,
+      remoteIp?: string | null,
+      supersedeOrderNumber?: string | null,
+    ) =>
+      startTilopayWaitlistCheckout(
+        { waitlist, waitlistPayments, tilopay, referrals },
+        { rawInput: input, origin, remoteIp, supersedeOrderNumber },
+      ),
+    confirmTilopayWaitlistPayment: (
+      input: Parameters<typeof confirmTilopayWaitlistPayment>[1],
+    ) =>
+      confirmTilopayWaitlistPayment(
+        { waitlist, waitlistPayments, tilopay, referrals },
+        input,
+      ),
     removeWaitlist: (
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },

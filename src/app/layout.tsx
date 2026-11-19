@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import "../../ui/landing/app/globals.css";
 import "./globals.css";
 import RouteTransition from "@/components/route-transition";
 import { getSiteUrl } from "@/lib/site-url";

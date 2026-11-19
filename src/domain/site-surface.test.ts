@@ -12,6 +12,9 @@ describe("site-surface", () => {
     expect(servesTenantSiteSurface("127.0.0.1")).toBe(false);
     expect(servesTenantSiteSurface("192.168.50.197")).toBe(false);
     expect(servesTenantSiteSurface("gigblades.com")).toBe(false);
+    expect(servesTenantSiteSurface("app.gigblades.com")).toBe(false);
+    expect(servesTenantSiteSurface("app.localhost")).toBe(false);
+    expect(isTenantPreviewHostname("app.localhost")).toBe(false);
     expect(servesTenantSiteSurface("gigblade.com")).toBe(false);
     expect(servesTenantSiteSurface("gigblades.vercel.app")).toBe(false);
   });
@@ -30,6 +33,9 @@ describe("site-surface", () => {
     expect(tenantSiteRewritePath("/contacto")).toBe("/site/contacto");
     expect(tenantSiteRewritePath("/api/tenant")).toBeNull();
     expect(tenantSiteRewritePath("/dashboard")).toBeNull();
+    expect(tenantSiteRewritePath("/overview")).toBeNull();
+    expect(tenantSiteRewritePath("/studio")).toBeNull();
+    expect(tenantSiteRewritePath("/djs")).toBeNull();
     expect(tenantSiteRewritePath("/login")).toBeNull();
     expect(tenantSiteRewritePath("/sign-in")).toBeNull();
     expect(tenantSiteRewritePath("/site")).toBeNull();

@@ -21,6 +21,11 @@ import { joinWaitlist } from "@/application/waitlist/join-waitlist";
 import { listWaitlist } from "@/application/waitlist/list-waitlist";
 import { onboardWaitlistSignup } from "@/application/waitlist/onboard-waitlist";
 import { removeWaitlistSignup } from "@/application/waitlist/remove-waitlist";
+import {
+  collectBookedMeetingSlots,
+  startTilopayWaitlistCheckout,
+} from "@/application/waitlist/start-tilopay-checkout";
+import { confirmTilopayWaitlistPayment } from "@/application/waitlist/confirm-tilopay-payment";
 import { sendDjAccessEmail } from "@/infrastructure/mail/send-dj-access-email";
 import { createTenantRouting, type Tenant } from "@/domain/tenant";
 import { createBooking } from "@/application/bookings/create-booking";
@@ -33,7 +38,9 @@ import { InMemoryReferralRepository } from "@/infrastructure/memory/in-memory-re
 import { InMemorySiteVisitStore } from "@/infrastructure/memory/in-memory-site-visit-store";
 import { InMemoryTenantRepository } from "@/infrastructure/memory/in-memory-tenant-repository";
 import { InMemoryTenantRoutingStore } from "@/infrastructure/memory/in-memory-tenant-routing-store";
+import { InMemoryWaitlistPaymentRepository } from "@/infrastructure/memory/in-memory-waitlist-payment-repository";
 import { InMemoryWaitlistRepository } from "@/infrastructure/memory/in-memory-waitlist-repository";
+import { HttpTilopayGateway } from "@/infrastructure/tilopay/client";
 import { assignPlatformDomain } from "@/application/domains/assign-platform-domain";
 import { listPlatformDomains } from "@/application/domains/list-platform-domains";
 import { removePlatformDomain } from "@/application/domains/remove-platform-domain";
@@ -80,6 +87,10 @@ export function createMemoryApp() {
     }),
   );
   const waitlist = new InMemoryWaitlistRepository();
+  const waitlistPayments = new InMemoryWaitlistPaymentRepository(
+    join(process.cwd(), ".next", "memory-tilopay-orders.json"),
+  );
+  const tilopay = new HttpTilopayGateway();
   const visits = new InMemorySiteVisitStore(
     join(process.cwd(), ".next", "memory-site-visits.json"),
   );
@@ -96,6 +107,8 @@ export function createMemoryApp() {
   return {
     tenants,
     routing,
+    tilopay,
+    waitlistPayments,
     visits,
     panelAuth,
     bookings,
@@ -195,6 +208,25 @@ export function createMemoryApp() {
     joinWaitlist: (input: unknown, remoteIp?: string | null) =>
       joinWaitlist(waitlist, input, referrals, remoteIp),
     listWaitlist: () => listWaitlist(waitlist),
+    listBookedMeetingSlots: () =>
+      collectBookedMeetingSlots(waitlist, waitlistPayments),
+    startTilopayWaitlistCheckout: (
+      input: unknown,
+      origin: string,
+      remoteIp?: string | null,
+      supersedeOrderNumber?: string | null,
+    ) =>
+      startTilopayWaitlistCheckout(
+        { waitlist, waitlistPayments, tilopay, referrals },
+        { rawInput: input, origin, remoteIp, supersedeOrderNumber },
+      ),
+    confirmTilopayWaitlistPayment: (
+      input: Parameters<typeof confirmTilopayWaitlistPayment>[1],
+    ) =>
+      confirmTilopayWaitlistPayment(
+        { waitlist, waitlistPayments, tilopay, referrals },
+        input,
+      ),
     removeWaitlist: (
       actor: Parameters<typeof removeWaitlistSignup>[1],
       input: { id: unknown },

@@ -1,10 +1,6 @@
-import {
-	PLATFORM_DASHBOARD_ORIGIN,
-} from "@/domain/hostname";
+import { PLATFORM_DASHBOARD_ORIGIN } from "@/domain/hostname";
 
-const LOCAL_DASHBOARD_URL = "http://localhost:3001";
-
-/** URL antigua del panel en Vercel; se reemplaza por app.gigblades.com en producción */
+/** URL antigua del panel en Vercel; se reemplaza por el panel integrado en Next.js */
 const LEGACY_DASHBOARD_URLS = new Set([
 	"https://gig-blade.vercel.app",
 	"http://gig-blade.vercel.app",
@@ -24,16 +20,23 @@ function normalizeDashboardUrl(raw: string): string {
 	return value;
 }
 
-export function getDashboardUrl() {
+export function getDashboardOrigin() {
 	const raw = process.env.NEXT_PUBLIC_DASHBOARD_URL?.trim();
-	if (!raw) {
-		return process.env.NODE_ENV === "production"
-			? PLATFORM_DASHBOARD_ORIGIN
-			: LOCAL_DASHBOARD_URL;
+	if (raw && !raw.includes("localhost:3001")) {
+		return normalizeDashboardUrl(raw);
 	}
-	return normalizeDashboardUrl(raw);
+	if (process.env.NODE_ENV === "production") {
+		return PLATFORM_DASHBOARD_ORIGIN;
+	}
+	return "";
+}
+
+export function getDashboardUrl() {
+	const origin = getDashboardOrigin();
+	return origin ? `${origin}/overview` : "/overview";
 }
 
 export function getDashboardSignInUrl() {
-	return `${getDashboardUrl()}/sign-in`;
+	const origin = getDashboardOrigin();
+	return origin ? `${origin}/sign-in` : "/sign-in";
 }

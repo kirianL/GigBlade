@@ -1,0 +1,181 @@
+export type DjStatus = "active" | "trialing" | "canceled";
+
+export type SiteTemplateId = "pista" | "festival" | "after";
+
+export type GigbladeDj = {
+	slug: string;
+	name: string;
+	email: string;
+	domain: string;
+	city: string;
+	template: SiteTemplateId;
+	status: DjStatus;
+	bio: string;
+	instagram: string;
+	createdAt: number;
+};
+
+export const LAST_DJ_STORAGE_KEY = "gigblade.last-dj";
+
+export const DJ_TEMPLATES = [
+	{ id: "pista", label: "Modo claro" },
+	{ id: "festival", label: "Modo oscuro" },
+	{ id: "after", label: "Party" },
+] as const;
+
+export const TEMPLATE_BRAND_COLORS: Record<SiteTemplateId, string> = {
+	pista: "#ffffff",
+	festival: "#000000",
+	after: "#e52b20",
+};
+
+export function djTemplateLabel(id: string) {
+	return DJ_TEMPLATES.find((template) => template.id === id)?.label ?? id;
+}
+
+export const PLAN = {
+	name: "Todo incluido",
+	setupUsd: 120,
+	priceUsd: 30,
+	cadence: "mes",
+	includes: [
+		"Página propia con plantilla para eventos",
+		"Dominio propio (registrado y administrado por GigBlades)",
+		"Hosting, seguridad y performance",
+		"Panel para contenido",
+	],
+	domainNote:
+		"El dominio lo compra el DJ. No va incluido en el pago inicial ni en la mensualidad.",
+} as const;
+
+export const CONCEPT = {
+	what: "Cada DJ que se suma tiene su propia página en internet, con su propio nombre de dominio (por ejemplo djmarco.com), donde la gente puede ver su información y contactarlo. Todos los DJs comparten por detrás la misma base técnica: no hay que armar un sistema nuevo cada vez que entra un cliente.",
+	problem:
+		"Hoy un DJ que quiere verse profesional en internet tiene dos opciones: pagarle a alguien para que le arme una página desde cero (caro y lento), o quedarse dependiendo solo de Instagram. GigBlades publica la página. El dominio lo compra el DJ.",
+	how: [
+		{
+			id: "01",
+			title: "Plan y dominio",
+			detail: "Elige el plan. El dominio lo compra el DJ, aparte.",
+		},
+		{
+			id: "02",
+			title: "Plantilla",
+			detail: "Elige un diseño de plantilla ya armado.",
+		},
+		{
+			id: "03",
+			title: "Contenido",
+			detail: "Carga fotos, biografía y redes sociales.",
+		},
+		{
+			id: "04",
+			title: "Página publicada",
+			detail: "La página queda publicada en su dominio.",
+		},
+	],
+	ops: "Todo el trabajo técnico — que la página funcione rápido, que esté segura, que el dominio esté activo — lo maneja la plataforma, no el DJ.",
+	model: `US$ ${PLAN.setupUsd} para dejar la página lista. Después US$ ${PLAN.priceUsd} al mes cubre la página, la seguridad y el hosting. El dominio lo compra el DJ y no va incluido.`,
+	scale:
+		"El costo de mantener la plataforma es prácticamente el mismo con 1 DJ o con 50. Cuantos más DJs se sumen, menos cuesta cada uno mantener esa base, y más queda de ganancia por cada suscripción nueva. Con pocos DJs activos ya se cubre el costo fijo.",
+} as const;
+
+export const GIGBLADE_DJS: GigbladeDj[] = [];
+
+export function blankDj(slug: string): GigbladeDj {
+	return {
+		slug: slug || "dj",
+		name: slug || "DJ",
+		email: "",
+		domain: "",
+		city: "",
+		template: "after",
+		status: "active",
+		bio: "",
+		instagram: "",
+		createdAt: Date.now(),
+	};
+}
+
+export function djBySlug(slug: string) {
+	return GIGBLADE_DJS.find((dj) => dj.slug === slug) ?? blankDj(slug);
+}
+
+export function djByArtistName(name: string | null) {
+	if (!name) return null;
+	const needle = name.trim().toLowerCase();
+	return (
+		GIGBLADE_DJS.find((dj) => dj.name.toLowerCase() === needle) ??
+		GIGBLADE_DJS.find((dj) => dj.slug === needle) ??
+		null
+	);
+}
+
+const PRODUCTION_SITE_URL = "https://gigblades.com";
+const PRODUCTION_DASHBOARD_URL = "https://app.gigblades.com";
+const IS_PROD = process.env.NODE_ENV === "production";
+
+export function gigbladeDashboardSiteUrl() {
+	if (typeof window !== "undefined") {
+		return window.location.origin;
+	}
+	if (IS_PROD) return PRODUCTION_DASHBOARD_URL;
+	return "http://localhost:3000";
+}
+
+export function gigbladeMarketingSiteUrl() {
+	const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+	if (configured && !(IS_PROD && configured.includes("localhost"))) {
+		return configured;
+	}
+	if (IS_PROD) return PRODUCTION_SITE_URL;
+	return configured || "http://localhost:3000";
+}
+
+export function djPreviewOrigin(slug: string) {
+	let port = "3000";
+	if (typeof window !== "undefined" && window.location.port) {
+		port = window.location.port;
+	}
+	return `http://${slug}.localhost:${port}`;
+}
+
+export function djIntendedDomain(dj: Pick<GigbladeDj, "domain">) {
+	if (!dj.domain || dj.domain.includes("localhost")) return null;
+	return dj.domain;
+}
+
+export function djPublicUrl(dj: Pick<GigbladeDj, "slug" | "domain">) {
+	const publicDomain = djIntendedDomain(dj);
+	if (!publicDomain) return null;
+	return `https://${publicDomain}`;
+}
+
+/** En local abre la plantilla en el sitio de Next. En producción, solo el dominio público. */
+export function djEditorPageUrl(dj: Pick<GigbladeDj, "slug" | "domain">) {
+	return djPublicUrl(dj) ?? (IS_PROD ? null : djPreviewOrigin(dj.slug));
+}
+
+export function djDomainLabel(dj: Pick<GigbladeDj, "domain">) {
+	return djIntendedDomain(dj) ?? "Sin dominio asignado";
+}
+
+export function formatVisitCount(visitors: number) {
+	return visitors === 1 ? "1 visitante" : `${visitors} visitantes`;
+}
+
+export function formatLastVisit(iso: string | null) {
+	if (!iso) return "Sin visitas todavía";
+	return new Date(iso).toLocaleString("es-CR", {
+		dateStyle: "medium",
+		timeStyle: "short",
+	});
+}
+
+export function djInstagramUrl(dj: Pick<GigbladeDj, "instagram">) {
+	return `https://instagram.com/${dj.instagram.replace(/^@/, "")}`;
+}
+
+export function djMailto(dj: Pick<GigbladeDj, "email">) {
+	return `mailto:${dj.email}`;
+}

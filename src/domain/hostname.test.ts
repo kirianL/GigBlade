@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canResolveHostname,
+  isDashboardHostname,
   isLocalNetworkHostname,
   isMarketingHostname,
   isValidPublicHostname,
@@ -61,6 +62,14 @@ describe("hostname", () => {
     expect(isMarketingHostname("www.gigblades.com")).toBe(true);
     expect(isMarketingHostname("gigblade.com")).toBe(true);
     expect(isMarketingHostname("dj.example.com")).toBe(false);
+  });
+
+  it("detecta el subdominio del panel (app.gigblades.com y app.localhost)", () => {
+    expect(isDashboardHostname("app.gigblades.com")).toBe(true);
+    expect(isDashboardHostname("app.localhost")).toBe(true);
+    expect(isDashboardHostname("app.localhost:3000")).toBe(true);
+    expect(isDashboardHostname("gigblades.com")).toBe(false);
+    expect(isDashboardHostname("marco.localhost")).toBe(false);
   });
 
   it("no crea routing para un dominio mal formado", () => {

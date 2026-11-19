@@ -1,1 +1,0 @@
-CREATE INDEX CONCURRENTLY "idx_customer_products_seat_sync" ON "customer_products" USING btree ("id") WHERE "customer_products"."customer_license_link_id" IS NOT NULL;

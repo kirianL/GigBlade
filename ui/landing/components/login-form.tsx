@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import AppLink from "./app-link";
-import { getDashboardUrl } from "@/lib/dashboard-url";
+import { getDashboardOrigin } from "@/lib/dashboard-url";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,8 +20,9 @@ export default function LoginForm() {
 
 	useEffect(() => {
 		try {
-			const dashboard = getDashboardUrl();
-			const origin = new URL(dashboard).origin;
+			const originUrl = getDashboardOrigin();
+			if (!originUrl) return;
+			const origin = new URL(originUrl).origin;
 			if (origin === window.location.origin) return;
 			const link = document.createElement("link");
 			link.rel = "preconnect";
@@ -80,7 +81,7 @@ export default function LoginForm() {
 			}
 			let next: URL;
 			try {
-				next = new URL("/sign-in", getDashboardUrl());
+				next = new URL("/sign-in", getDashboardOrigin() || window.location.origin);
 			} catch {
 				setError(
 					"NEXT_PUBLIC_DASHBOARD_URL no es una URL válida. Usá https://app.gigblades.com (o localhost:3001 en dev).",

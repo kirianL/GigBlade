@@ -30,6 +30,7 @@
       "@/lib/tenant/*": ["./src/lib/tenant/*"],
       "@/lib/env/*": ["./src/lib/env/*"],
       "@/lib/http/*": ["./src/lib/http/*"],
+      "@/panel/*": ["./src/panel/*"],
       "@/*": ["./ui/landing/*"]
     }
   },
@@ -42,7 +43,6 @@
   ],
   "exclude": [
     "node_modules",
-    "ui/dashboard",
     "ui/landing"
   ]
 }

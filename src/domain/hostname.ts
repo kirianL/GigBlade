@@ -47,9 +47,19 @@ export function isLocalNetworkHostname(hostname: string): boolean {
 export const PLATFORM_MARKETING_HOST = "gigblades.com";
 export const PLATFORM_MARKETING_ORIGIN = `https://${PLATFORM_MARKETING_HOST}`;
 
-/** Panel de administración (proyecto Vite en Vercel) */
+/** Panel de administración (servido por el mismo proyecto Next.js en Vercel) */
 export const PLATFORM_DASHBOARD_HOST = "app.gigblades.com";
 export const PLATFORM_DASHBOARD_ORIGIN = `https://${PLATFORM_DASHBOARD_HOST}`;
+
+const DASHBOARD_HOSTS = new Set([
+  PLATFORM_DASHBOARD_HOST,
+  "app.localhost",
+]);
+
+export function isDashboardHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname);
+  return DASHBOARD_HOSTS.has(normalized);
+}
 
 const MARKETING_HOSTS = new Set([
   PLATFORM_MARKETING_HOST,
