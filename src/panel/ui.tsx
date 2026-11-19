@@ -326,7 +326,7 @@ export function SegmentedControl<T extends string>({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "no-scrollbar relative flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto overscroll-x-contain touch-pan-x rounded-lg border border-grayscale-4/70 bg-grayscale-2 p-1 sm:inline-flex dark:border-white/[0.09] dark:bg-[#161614]",
+        "no-scrollbar relative inline-flex w-fit max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto overscroll-x-contain touch-pan-x rounded-lg border border-grayscale-4/70 bg-grayscale-2 p-1 dark:border-white/[0.09] dark:bg-[#161614]",
         className,
       )}
     >
