@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   BOOKING_EVENT_TYPES,
   BOOKING_EVENT_TYPE_LABELS,
@@ -17,6 +17,8 @@ const labelClass =
 
 const fieldClass =
   "w-full max-w-full min-w-0 block rounded-xl border border-[color-mix(in_srgb,var(--site-bg)_22%,var(--site-fg))] bg-[color-mix(in_srgb,var(--site-bg)_8%,var(--site-fg))] px-3.5 py-2.5 text-base sm:text-sm text-[var(--site-bg)] placeholder:text-[color-mix(in_srgb,var(--site-bg)_45%,var(--site-fg))] outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-[var(--site-bg)] transition-colors box-border";
+
+const emptySubscribe = () => () => {};
 
 export type BookingFormProps = {
   slug: string;
@@ -38,12 +40,12 @@ export function BookingForm({
   const [note, setNote] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
-  const [captchaMounted, setCaptchaMounted] = useState(false);
+  const captchaMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const captchaEnabled = Boolean(configuredTurnstileSiteKey());
-
-  useEffect(() => {
-    setCaptchaMounted(true);
-  }, []);
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">(
     "idle",

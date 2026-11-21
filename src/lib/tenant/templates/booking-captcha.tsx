@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 
 import {
   isCaptchaFrameOrigin,
   readCaptchaFrameToken,
 } from "@/domain/captcha-host";
+
+const emptySubscribe = () => () => {};
 
 function captchaFrameLocation(theme: "light" | "dark" | "auto"): { src: string; origin: string } {
   const query = `theme=${encodeURIComponent(theme)}`;
@@ -35,17 +37,24 @@ export function BookingCaptcha({
   onError: () => void;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [frame, setFrame] = useState<{ src: string; origin: string } | null>(null);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const frame = useMemo(
+    () => (mounted ? captchaFrameLocation(theme) : null),
+    [mounted, theme],
+  );
   const onTokenRef = useRef(onToken);
   const onClearRef = useRef(onClear);
   const onErrorRef = useRef(onError);
-  onTokenRef.current = onToken;
-  onClearRef.current = onClear;
-  onErrorRef.current = onError;
 
   useEffect(() => {
-    setFrame(captchaFrameLocation(theme));
-  }, [theme]);
+    onTokenRef.current = onToken;
+    onClearRef.current = onClear;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     if (!frame) return;

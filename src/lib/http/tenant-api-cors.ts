@@ -36,7 +36,7 @@ export function tenantApiCorsHeaders(request: Request): Headers {
     headers.set("Access-Control-Allow-Credentials", "true");
     headers.set("Vary", "Origin");
     headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "content-type, authorization");
+    headers.set("Access-Control-Allow-Headers", "content-type, x-panel-csrf");
   }
   return headers;
 }

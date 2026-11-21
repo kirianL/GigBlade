@@ -1,33 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import AppLink from "./app-link";
 import { CTALines, IconCTADocs, IconCTAStart } from "@/app/constant";
 import SlotLabel from "./slot-label";
-import { getDashboardUrl } from "@/lib/dashboard-url";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 const HeroAurora = dynamic(() => import("./hero-aurora"), { ssr: false });
 
-const getLoggedInHintCookie = () => {
-	if (typeof window === "undefined") return null;
-	return (
-		document.cookie
-			.split("; ")
-			.find((row) => row.startsWith("logged_in_hint="))
-			?.split("=")[1] === "1"
-	);
-};
-
 export default function Hero() {
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const isXl = useMediaQuery("(min-width: 1280px)");
-
-	// Read the hint cookie after mount to avoid SSR/CSR hydration mismatch.
-	useEffect(() => {
-		setIsLoggedIn(getLoggedInHintCookie() === true);
-	}, []);
 
 	return (
 		<div>
@@ -72,7 +54,7 @@ export default function Hero() {
 					style={{ ["--enter" as string]: 2 }}
 				>
 					<div className="w-full md:w-fit md:flex-shrink-0">
-						<AppLink href={isLoggedIn ? getDashboardUrl() : "/acceso"}>
+						<AppLink href="/acceso">
 							<div className="hero-cta-press relative">
 								<div
 									className="relative flex min-h-12 touch-manipulation cursor-pointer items-center justify-between gap-1.5 overflow-hidden bg-brand px-3 py-2 font-sans transition-colors duration-300 md:min-h-0 md:w-50 md:gap-2.5 md:px-4 md:py-3.5 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-brand-hover active:bg-brand-hover"
@@ -80,7 +62,7 @@ export default function Hero() {
 								>
 									<CTALines />
 									<SlotLabel
-										text={isLoggedIn ? "Panel" : "Creá tu página"}
+										text="Creá tu página"
 										hover
 										hoverTint={false}
 										className="relative z-10 whitespace-nowrap text-[12px] font-medium tracking-[-2%] text-white uppercase md:text-base md:normal-case"

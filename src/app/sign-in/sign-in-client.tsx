@@ -9,8 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
-import { acceptPanelToken, authClient, useSession } from "@/panel/auth-client";
-import { isUser, panelHomePath, type PanelUser } from "@/panel/panel-session";
+import { authClient, useSession } from "@/panel/auth-client";
 import { ThemeToggle } from "@/panel/ThemeToggle";
 import { cn } from "@/panel/cn";
 
@@ -19,17 +18,6 @@ const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
 function getSafeNext(raw: string | null): string {
 	if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
 	return raw;
-}
-
-function readUserParam(searchParams: URLSearchParams): PanelUser | undefined {
-	const raw = searchParams.get("user");
-	if (!raw) return undefined;
-	try {
-		const parsed = JSON.parse(raw) as unknown;
-		return isUser(parsed) ? parsed : undefined;
-	} catch {
-		return undefined;
-	}
 }
 
 export default function SignInClient() {
@@ -45,9 +33,6 @@ export default function SignInClient() {
 	const [errorField, setErrorField] = useState<"email" | "password" | "both" | null>(null);
 	const [shaking, setShaking] = useState(false);
 	const [loading, setLoading] = useState(false);
-	const [acceptingToken, setAcceptingToken] = useState(() =>
-		Boolean(searchParams.get("token")),
-	);
 
 	const emailInvalid = errorField === "email" || errorField === "both";
 	const passwordInvalid = errorField === "password" || errorField === "both";
@@ -69,29 +54,7 @@ export default function SignInClient() {
 	};
 
 	useEffect(() => {
-		const token = searchParams.get("token");
-		if (!token) return;
-		let cancelled = false;
-		const knownUser = readUserParam(searchParams);
-		void acceptPanelToken(token, knownUser)
-			.then((next) => {
-				if (cancelled) return;
-				const destination =
-					defaultPath === "/" ? panelHomePath(next.user) : defaultPath;
-				router.replace(destination);
-			})
-			.catch(() => {
-				if (cancelled) return;
-				setError("Esa sesión ya no sirve. Entrá de nuevo.");
-				setAcceptingToken(false);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [defaultPath, router, searchParams]);
-
-	useEffect(() => {
-		if (isPending || acceptingToken || !session) return;
+		if (isPending || !session) return;
 		const user = session.user as { role?: string; slug?: string };
 		const home =
 			user.role === "dj" && user.slug
@@ -100,7 +63,7 @@ export default function SignInClient() {
 					? "/overview"
 					: defaultPath;
 		router.replace(home);
-	}, [acceptingToken, defaultPath, isPending, router, session]);
+	}, [defaultPath, isPending, router, session]);
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -183,11 +146,7 @@ export default function SignInClient() {
 						</p>
 					</div>
 
-					{acceptingToken ? (
-						<div className="py-8 text-center text-[13px] text-grayscale-9">
-							Validando sesión…
-						</div>
-					) : (
+					{
 						<form onSubmit={handleSubmit} noValidate className="space-y-3.5">
 							<div className="space-y-1.5">
 								<label
@@ -289,7 +248,7 @@ export default function SignInClient() {
 								/>
 							</button>
 						</form>
-					)}
+					}
 
 					<div className="flex items-center gap-3">
 						<span className="h-px flex-1 bg-grayscale-4/70 dark:bg-grayscale-4/45" />

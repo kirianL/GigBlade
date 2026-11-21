@@ -27,7 +27,7 @@ export function GenerateDjPasswordButton({
 
 	const generate = async () => {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			toast.error("Entrá de nuevo para generar una contraseña.");
 			return;
 		}
@@ -37,7 +37,6 @@ export function GenerateDjPasswordButton({
 				slug,
 				email,
 				name,
-				token: session.token,
 			});
 			setGenerated({ email: next.email, password: next.password });
 			setOpen(true);

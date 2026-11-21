@@ -123,14 +123,14 @@ function DeleteSignupButton({
 
 	const remove = async () => {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			setError("Entrá de nuevo para eliminar una solicitud.");
 			return;
 		}
 		setLoading(true);
 		setError(null);
 		try {
-			await deleteWaitlistSignup({ id: signup.id, token: session.token });
+			await deleteWaitlistSignup({ id: signup.id });
 			setOpen(false);
 			toast.success(`Se eliminó a ${signup.artistName}.`);
 			onDeleted(signup.id);
@@ -214,7 +214,7 @@ function CreatePageButton({
 
 	const create = async () => {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			setError("Entrá de nuevo para crear la página.");
 			return;
 		}
@@ -223,7 +223,6 @@ function CreatePageButton({
 		try {
 			const next = await onboardWaitlistSignup({
 				id: signup.id,
-				token: session.token,
 			});
 			setCreated({
 				email: next.email,

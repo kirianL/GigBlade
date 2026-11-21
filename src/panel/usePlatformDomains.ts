@@ -19,7 +19,7 @@ export function usePlatformDomains() {
   const isPlatform = session?.user.role === "platform";
   const query = useQuery({
     queryKey: PLATFORM_DOMAINS_QUERY_KEY,
-    queryFn: () => fetchPlatformDomains(session?.token),
+    queryFn: () => fetchPlatformDomains(),
     enabled: isPlatform,
     retry: false,
     staleTime: 60_000,
@@ -33,7 +33,6 @@ export function usePlatformDomains() {
       assignPlatformDomain({
         slug: input.slug,
         domain: input.domain,
-        token: session?.token,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -47,7 +46,6 @@ export function usePlatformDomains() {
     mutationFn: (domain: string) =>
       verifyPlatformDomain({
         domain,
-        token: session?.token,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -61,7 +59,6 @@ export function usePlatformDomains() {
     mutationFn: (domain: string) =>
       checkDomainDns({
         domain,
-        token: session?.token,
       }),
   });
 
@@ -70,7 +67,6 @@ export function usePlatformDomains() {
       deletePlatformDomain({
         domain: input.domain,
         slug: input.slug,
-        token: session?.token,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({

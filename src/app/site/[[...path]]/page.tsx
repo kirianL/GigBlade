@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { notFound } from "next/navigation";
 
 import JsonLd from "@/components/json-ld";
@@ -20,12 +21,11 @@ export default async function TenantSitePage({
   }
 
   const site = await loadTenantSite();
-  const Template = getSiteTemplateRenderer(site.templateId);
 
   return (
     <>
       <JsonLd data={tenantStructuredData(site)} />
-      <Template site={site} />
+      {createElement(getSiteTemplateRenderer(site.templateId), { site })}
     </>
   );
 }

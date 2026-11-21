@@ -1,6 +1,9 @@
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
 import {
+  assertTrustedOrigin,
+  createCsrfToken,
+  panelCsrfSetCookie,
   panelSessionSetCookie,
   readJsonBody,
 } from "@/lib/http/panel-request";
@@ -25,6 +28,7 @@ export async function POST(request: Request) {
   const startedAt = performance.now();
 
   try {
+    assertTrustedOrigin(request);
     assertCombinedRateLimit({
       ip: clientIp(request),
       host: requestHost(request),
@@ -33,16 +37,23 @@ export async function POST(request: Request) {
     });
     const body = await readJsonBody(request);
     const session = await getApp().loginPanel(body);
-    const response = jsonWithTenantCors(request, session, {
-      requestId,
-      durationMs: performance.now() - startedAt,
-    });
+    const csrfToken = createCsrfToken();
+    const response = jsonWithTenantCors(
+      request,
+      { user: session.user, csrfToken },
+      {
+        requestId,
+        durationMs: performance.now() - startedAt,
+      },
+    );
     const headers = new Headers(response.headers);
+    headers.set("Cache-Control", "no-store");
     headers.append(
       "Set-Cookie",
       panelSessionSetCookie(request, session.token),
     );
-    headers.append("Set-Cookie", "logged_in_hint=1; Path=/; Max-Age=2592000; SameSite=Lax");
+    headers.append("Set-Cookie", panelCsrfSetCookie(request, csrfToken));
+    headers.append("Set-Cookie", "logged_in_hint=; Path=/; Max-Age=0; SameSite=Lax");
     return new Response(response.body, {
       status: response.status,
       headers,

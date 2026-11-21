@@ -61,11 +61,11 @@ export default function LoginForm() {
 		try {
 			const response = await fetch("/api/panel/login", {
 				method: "POST",
+				credentials: "include",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({ email: nextEmail, password }),
 			});
 			const body = (await response.json().catch(() => null)) as {
-				token?: string;
 				user?: {
 					email?: string;
 					name?: string;
@@ -74,27 +74,24 @@ export default function LoginForm() {
 				};
 				message?: string;
 			} | null;
-			if (!response.ok || !body?.token) {
+			if (!response.ok || !body?.user?.email) {
 				setError(body?.message || "El correo o la contraseña no coinciden.");
 				setSubmitting(false);
 				return;
 			}
 			let next: URL;
 			try {
-				next = new URL("/sign-in", getDashboardOrigin() || window.location.origin);
+				const targetPath =
+					body.user.role === "dj" && body.user.slug
+						? `/studio?dj=${encodeURIComponent(body.user.slug)}`
+						: "/overview";
+				next = new URL(targetPath, getDashboardOrigin() || window.location.origin);
 			} catch {
 				setError(
 					"NEXT_PUBLIC_DASHBOARD_URL no es una URL válida. Usá https://app.gigblades.com (o localhost:3001 en dev).",
 				);
 				setSubmitting(false);
 				return;
-			}
-			next.searchParams.set("token", body.token);
-			if (body.user?.email && body.user.name && body.user.role) {
-				next.searchParams.set("user", JSON.stringify(body.user));
-			}
-			if (body.user?.role === "dj" && body.user.slug) {
-				next.searchParams.set("next", `/studio?dj=${body.user.slug}`);
 			}
 			window.location.assign(next.toString());
 		} catch {

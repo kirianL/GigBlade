@@ -56,7 +56,7 @@ export function CreateDjButton({
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			setError("Entrá de nuevo para agregar un DJ.");
 			return;
 		}
@@ -67,7 +67,6 @@ export function CreateDjButton({
 				name: name.trim(),
 				email: email.trim(),
 				slug: slug.trim(),
-				token: session.token,
 			});
 			onCreated?.(next.site);
 			setCreated({

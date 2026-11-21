@@ -1,7 +1,7 @@
 import { djPreviewOrigin, gigbladeMarketingSiteUrl } from "@/panel/concept";
 import {
 	clearPanelAuthSession,
-	readPanelAuthSession,
+	getPanelCsrfToken,
 } from "@/panel/panel-session";
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -217,6 +217,16 @@ export async function fetchPublicSite(
 	}
 }
 
+const MUTABLE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function withCsrfHeader(method: string | undefined, headers: Headers) {
+	if (!MUTABLE_METHODS.has((method ?? "GET").toUpperCase())) return;
+	const csrf = getPanelCsrfToken();
+	if (csrf) {
+		headers.set("x-panel-csrf", csrf);
+	}
+}
+
 export async function savePublicSite(
 	slug: string,
 	input: SiteContentPatch,
@@ -224,14 +234,14 @@ export async function savePublicSite(
 ): Promise<PublicSite> {
 	const timeout = withTimeout(signal);
 	try {
-		const session = readPanelAuthSession();
+		const headers = new Headers({
+			"content-type": "application/json",
+		});
+		withCsrfHeader("PATCH", headers);
 		const response = await fetch(tenantApi(slug), {
 			method: "PATCH",
 			credentials: "include",
-			headers: {
-				"content-type": "application/json",
-				...(session?.token ? { authorization: `Bearer ${session.token}` } : {}),
-			},
+			headers,
 			body: JSON.stringify(input),
 			signal: timeout.signal,
 		});
@@ -299,16 +309,10 @@ export async function fetchPlatformSiteHealth(
 ): Promise<PlatformSiteHealthResult> {
 	const timeout = withTimeout(signal, 30_000);
 	try {
-		const session = readPanelAuthSession();
-		const headers = new Headers();
-		if (session?.token) {
-			headers.set("authorization", `Bearer ${session.token}`);
-		}
 		const response = await fetch(
 			`${platformApiOrigin()}/api/platform/site-health`,
 			{
 				credentials: "include",
-				headers,
 				signal: timeout.signal,
 			},
 		);
@@ -356,14 +360,8 @@ export async function fetchPlatformWaitlist(
 ): Promise<WaitlistSignup[]> {
 	const timeout = withTimeout(signal);
 	try {
-		const session = readPanelAuthSession();
-		const headers = new Headers();
-		if (session?.token) {
-			headers.set("authorization", `Bearer ${session.token}`);
-		}
 		const response = await fetch(`${platformApiOrigin()}/api/platform/waitlist`, {
 			credentials: "include",
-			headers,
 			signal: timeout.signal,
 		});
 		const body = (await readJson(response)) as
@@ -397,14 +395,8 @@ export async function fetchPlatformSites(
 ): Promise<PlatformSite[]> {
 	const timeout = withTimeout(signal);
 	try {
-		const session = readPanelAuthSession();
-		const headers = new Headers();
-		if (session?.token) {
-			headers.set("authorization", `Bearer ${session.token}`);
-		}
 		const response = await fetch(`${platformApiOrigin()}/api/platform/sites`, {
 			credentials: "include",
-			headers,
 			signal: timeout.signal,
 		});
 		const body = (await readJson(response)) as
@@ -442,8 +434,8 @@ export type PanelUser = {
 };
 
 export type PanelLoginResult = {
-	token: string;
 	user: PanelUser;
+	csrfToken: string;
 };
 
 export type GeneratedDjPassword = {
@@ -455,7 +447,7 @@ export type GeneratedDjPassword = {
 
 async function panelFetch(
 	path: string,
-	init: RequestInit & { token?: string; timeoutMs?: number },
+	init: RequestInit & { timeoutMs?: number },
 ) {
 	const timeout = withTimeout(undefined, init.timeoutMs);
 	try {
@@ -467,10 +459,7 @@ async function panelFetch(
 		) {
 			headers.set("content-type", "application/json");
 		}
-		const token = init.token || readPanelAuthSession()?.token;
-		if (token) {
-			headers.set("authorization", `Bearer ${token}`);
-		}
+		withCsrfHeader(init.method, headers);
 		const response = await fetch(`${platformApiOrigin()}${path}`, {
 			...init,
 			credentials: "include",
@@ -507,36 +496,21 @@ export async function loginPanelAccount(input: {
 		method: "POST",
 		body: JSON.stringify(input),
 		timeoutMs: 8000,
-	})) as PanelLoginResult;
-	if (!body?.token || !body.user?.email) {
+	})) as Partial<PanelLoginResult>;
+	if (!body?.user?.email || !body.csrfToken) {
 		throw new Error("No se pudo entrar.");
 	}
-	return body;
+	return { user: body.user, csrfToken: body.csrfToken };
 }
 
-export async function readPanelAccount(token: string): Promise<PanelUser> {
-	const body = (await panelFetch("/api/panel/session", {
-		method: "GET",
-		token,
-		timeoutMs: 8000,
-	})) as { user?: PanelUser };
-	if (!body?.user?.email) {
-		throw new Error("La sesión no es válida.");
-	}
-	return body.user;
-}
-
-export async function readPanelCookieSession(): Promise<{
-	user: PanelUser;
-	token: string;
-} | null> {
+export async function readPanelCookieSession(): Promise<PanelLoginResult | null> {
 	try {
 		const body = (await panelFetch("/api/panel/session", {
 			method: "GET",
 			timeoutMs: 8000,
-		})) as { user?: PanelUser; token?: string };
-		if (!body?.user?.email || !body.token) return null;
-		return { user: body.user, token: body.token };
+		})) as Partial<PanelLoginResult>;
+		if (!body?.user?.email || !body.csrfToken) return null;
+		return { user: body.user, csrfToken: body.csrfToken };
 	} catch {
 		return null;
 	}
@@ -557,11 +531,9 @@ export async function generateDjPassword(input: {
 	slug: string;
 	email: string;
 	name: string;
-	token: string;
 }): Promise<GeneratedDjPassword> {
 	const body = (await panelFetch("/api/panel/password", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({
 			slug: input.slug,
 			email: input.email,
@@ -577,13 +549,11 @@ export async function generateDjPassword(input: {
 
 export async function deleteWaitlistSignup(input: {
 	id: string;
-	token: string;
 }): Promise<{ id: string }> {
 	const body = (await panelFetch(
 		`/api/platform/waitlist?id=${encodeURIComponent(input.id)}`,
 		{
 			method: "DELETE",
-			token: input.token,
 			timeoutMs: 15000,
 		},
 	)) as { id?: string };
@@ -595,13 +565,11 @@ export async function deleteWaitlistSignup(input: {
 
 export async function deleteDj(input: {
 	slug: string;
-	token: string;
 }): Promise<{ slug: string }> {
 	const body = (await panelFetch(
 		`/api/platform/sites?slug=${encodeURIComponent(input.slug)}`,
 		{
 			method: "DELETE",
-			token: input.token,
 			timeoutMs: 15000,
 		},
 	)) as { slug?: string };
@@ -623,11 +591,9 @@ export async function createDj(input: {
 	name: string;
 	email: string;
 	slug: string;
-	token: string;
 }): Promise<CreatedDj> {
 	const body = (await panelFetch("/api/platform/sites", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({
 			name: input.name,
 			email: input.email,
@@ -643,11 +609,9 @@ export async function createDj(input: {
 
 export async function onboardWaitlistSignup(input: {
 	id: string;
-	token: string;
 }): Promise<CreatedDj & { emailed: boolean }> {
 	const body = (await panelFetch("/api/platform/waitlist", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({ id: input.id }),
 		timeoutMs: 15000,
 	})) as Partial<CreatedDj & { emailed?: boolean }>;
@@ -660,14 +624,12 @@ export async function onboardWaitlistSignup(input: {
 export async function uploadSitePhoto(input: {
 	slug: string;
 	file: File;
-	token: string;
 }): Promise<string> {
 	const formData = new FormData();
 	formData.set("slug", input.slug);
 	formData.set("file", input.file);
 	const body = (await panelFetch("/api/panel/site-photo", {
 		method: "POST",
-		token: input.token,
 		body: formData,
 		timeoutMs: 30000,
 	})) as { url?: string };
@@ -691,14 +653,12 @@ export type PublicBooking = {
 
 export async function fetchDjBookings(input: {
 	slug: string;
-	token: string;
 	signal?: AbortSignal;
 }): Promise<PublicBooking[]> {
 	const body = (await panelFetch(
 		`/api/panel/bookings?slug=${encodeURIComponent(input.slug)}`,
 		{
 			method: "GET",
-			token: input.token,
 			timeoutMs: 15000,
 		},
 	)) as { bookings?: PublicBooking[] };
@@ -709,11 +669,9 @@ export async function updateBookingStatus(input: {
 	id: string;
 	status: "pending" | "confirmed" | "declined";
 	slug: string;
-	token: string;
 }): Promise<PublicBooking> {
 	const body = (await panelFetch("/api/panel/bookings", {
 		method: "PATCH",
-		token: input.token,
 		body: JSON.stringify({
 			id: input.id,
 			status: input.status,
@@ -785,12 +743,9 @@ export type DomainDnsScanResult = {
 	recommendedRecords: DomainDnsRecord[];
 };
 
-export async function fetchPlatformDomains(
-	token?: string,
-): Promise<DomainAutomationDetail[]> {
+export async function fetchPlatformDomains(): Promise<DomainAutomationDetail[]> {
 	const body = (await panelFetch("/api/platform/domains", {
 		method: "GET",
-		token,
 		timeoutMs: 15000,
 	})) as { domains?: DomainAutomationDetail[] };
 	return body?.domains ?? [];
@@ -798,11 +753,9 @@ export async function fetchPlatformDomains(
 
 export async function checkDomainDns(input: {
 	domain: string;
-	token?: string;
 }): Promise<DomainDnsScanResult> {
 	const body = (await panelFetch("/api/platform/domains/check", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({ domain: input.domain }),
 		timeoutMs: 15000,
 	})) as { scan?: DomainDnsScanResult };
@@ -815,11 +768,9 @@ export async function checkDomainDns(input: {
 export async function assignPlatformDomain(input: {
 	slug: string;
 	domain: string;
-	token?: string;
 }): Promise<DomainAutomationDetail> {
 	const body = (await panelFetch("/api/platform/domains", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({ slug: input.slug, domain: input.domain }),
 		timeoutMs: 15000,
 	})) as { domain?: DomainAutomationDetail };
@@ -831,11 +782,9 @@ export async function assignPlatformDomain(input: {
 
 export async function verifyPlatformDomain(input: {
 	domain: string;
-	token?: string;
 }): Promise<DomainAutomationDetail> {
 	const body = (await panelFetch("/api/platform/domains/verify", {
 		method: "POST",
-		token: input.token,
 		body: JSON.stringify({ domain: input.domain }),
 		timeoutMs: 15000,
 	})) as { domain?: DomainAutomationDetail };
@@ -848,11 +797,9 @@ export async function verifyPlatformDomain(input: {
 export async function deletePlatformDomain(input: {
 	domain: string;
 	slug?: string;
-	token?: string;
 }): Promise<{ success: boolean; hostname: string }> {
 	const body = (await panelFetch("/api/platform/domains", {
 		method: "DELETE",
-		token: input.token,
 		body: JSON.stringify({ domain: input.domain, slug: input.slug }),
 		timeoutMs: 15000,
 	})) as { success?: boolean; hostname?: string };

@@ -24,14 +24,14 @@ export function DeleteDjButton({
 
 	const remove = async () => {
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			setError("Entrá de nuevo para eliminar un DJ.");
 			return;
 		}
 		setLoading(true);
 		setError(null);
 		try {
-			await deleteDj({ slug, token: session.token });
+			await deleteDj({ slug });
 			setOpen(false);
 			toast.success(`Se eliminó a ${name}.`);
 			onDeleted?.(slug);

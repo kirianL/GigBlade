@@ -8,7 +8,6 @@ export type PanelUser = {
 };
 
 export type PanelAuthSession = {
-	token: string;
 	user: PanelUser;
 };
 
@@ -28,9 +27,8 @@ export function readPanelAuthSession(): PanelAuthSession | null {
 			window.localStorage.getItem(PANEL_SESSION_KEY) ?? "",
 		) as unknown;
 		if (typeof parsed !== "object" || parsed === null) return null;
-		const row = parsed as Partial<PanelAuthSession>;
-		if (typeof row.token !== "string") return null;
-		const user = row.user;
+		const row = parsed as Record<string, unknown>;
+		const user = row.user as Partial<PanelUser> | undefined;
 		if (
 			typeof user !== "object" ||
 			user === null ||
@@ -40,14 +38,28 @@ export function readPanelAuthSession(): PanelAuthSession | null {
 		) {
 			return null;
 		}
-		return { token: row.token, user };
+		const clean: PanelAuthSession = {
+			user: {
+				email: user.email,
+				name: user.name,
+				role: user.role,
+				...(typeof user.slug === "string" ? { slug: user.slug } : {}),
+			},
+		};
+		if ("token" in row) {
+			window.localStorage.setItem(PANEL_SESSION_KEY, JSON.stringify(clean));
+		}
+		return clean;
 	} catch {
 		return null;
 	}
 }
 
 export function writePanelAuthSession(session: PanelAuthSession) {
-	window.localStorage.setItem(PANEL_SESSION_KEY, JSON.stringify(session));
+	window.localStorage.setItem(
+		PANEL_SESSION_KEY,
+		JSON.stringify({ user: session.user }),
+	);
 }
 
 export function clearPanelAuthSession() {

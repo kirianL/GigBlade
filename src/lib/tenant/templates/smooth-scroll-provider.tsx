@@ -6,8 +6,34 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
+
+type LenisStore = {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => Lenis | null;
+  set: (instance: Lenis | null) => void;
+};
+
+function createLenisStore(): LenisStore {
+  let instance: Lenis | null = null;
+  const listeners = new Set<() => void>();
+
+  return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getSnapshot: () => instance,
+    set(next) {
+      instance = next;
+      for (const listener of listeners) listener();
+    },
+  };
+}
 
 const LenisContext = createContext<Lenis | null>(null);
 
@@ -20,7 +46,12 @@ export function SmoothScrollProvider({
 }: {
   children: ReactNode;
 }) {
-  const [lenis, setLenis] = useState<Lenis | null>(null);
+  const [store] = useState(createLenisStore);
+  const lenis = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    () => null,
+  );
 
   useEffect(() => {
     // Detect reduced motion preference
@@ -58,7 +89,7 @@ export function SmoothScrollProvider({
       autoRaf: false,
     });
 
-    setLenis(instance);
+    store.set(instance);
 
     let rafId: number;
     function raf(time: number) {
@@ -70,9 +101,9 @@ export function SmoothScrollProvider({
     return () => {
       cancelAnimationFrame(rafId);
       instance.destroy();
-      setLenis(null);
+      store.set(null);
     };
-  }, []);
+  }, [store]);
 
   return (
     <LenisContext.Provider value={lenis}>

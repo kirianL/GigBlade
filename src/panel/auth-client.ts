@@ -4,19 +4,17 @@ import { useEffect, useState } from "react";
 import {
 	clearPanelAuthSession,
 	clearPanelSignedOut,
-	isUser,
 	markPanelSignedOut,
 	PANEL_SESSION_EVENT,
 	readPanelAuthSession,
+	setPanelCsrfToken,
 	wasPanelSignedOut,
 	writePanelAuthSession,
 	type PanelAuthSession,
-	type PanelUser,
 } from "@/panel/panel-session";
 import {
 	clearRemotePanelSession,
 	loginPanelAccount,
-	readPanelAccount,
 	readPanelCookieSession,
 } from "@/panel/site-api";
 
@@ -34,7 +32,7 @@ function toAuthSession(session: PanelAuthSession) {
 			slug: session.user.slug,
 		},
 		session: {
-			id: session.token.slice(0, 16),
+			id: session.user.email,
 			userId: session.user.email,
 			expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 		},
@@ -44,7 +42,7 @@ function toAuthSession(session: PanelAuthSession) {
 let sessionRevalidated = false;
 let revalidatePromise: Promise<PanelAuthSession | null> | null = null;
 
-/** Sesión recién validada en login o token: evita un segundo GET /session al entrar. */
+/** Sesión recién validada en login: evita un segundo GET /session al entrar. */
 export function markPanelSessionTrusted() {
 	sessionRevalidated = true;
 	revalidatePromise = null;
@@ -58,20 +56,20 @@ function revalidateSessionOnce(
 	revalidatePromise = (async () => {
 		try {
 			if (wasPanelSignedOut()) return null;
-			if (!local?.token) {
-				const remote = await readPanelCookieSession();
-				if (wasPanelSignedOut()) return null;
-				if (remote) writePanelAuthSession(remote);
-				return remote;
-			}
-			const user = await readPanelAccount(local.token);
+			const remote = await readPanelCookieSession();
 			if (wasPanelSignedOut()) return null;
-			const next = { token: local.token, user };
+			if (!remote) {
+				clearPanelAuthSession();
+				return null;
+			}
+			setPanelCsrfToken(remote.csrfToken);
+			const next: PanelAuthSession = { user: remote.user };
 			if (
-				user.email !== local.user.email ||
-				user.role !== local.user.role ||
-				user.name !== local.user.name ||
-				user.slug !== local.user.slug
+				!local ||
+				remote.user.email !== local.user.email ||
+				remote.user.role !== local.user.role ||
+				remote.user.name !== local.user.name ||
+				remote.user.slug !== local.user.slug
 			) {
 				writePanelAuthSession(next);
 			}
@@ -161,8 +159,10 @@ export const signIn = {
 		password: string;
 	}) => {
 		try {
-			const session = await loginPanelAccount({ email, password });
+			const result = await loginPanelAccount({ email, password });
+			const session: PanelAuthSession = { user: result.user };
 			clearPanelSignedOut();
+			setPanelCsrfToken(result.csrfToken);
 			writePanelAuthSession(session);
 			markPanelSessionTrusted();
 			return { data: toAuthSession(session), error: null };
@@ -199,19 +199,3 @@ export const authClient = {
 		return stored ? ok(toAuthSession(stored)) : { data: null, error: null };
 	},
 };
-
-export async function acceptPanelToken(token: string, knownUser?: PanelUser) {
-	if (knownUser && isUser(knownUser)) {
-		const session = { token, user: knownUser };
-		clearPanelSignedOut();
-		writePanelAuthSession(session);
-		markPanelSessionTrusted();
-		return session;
-	}
-	const user = await readPanelAccount(token);
-	const session = { token, user };
-	clearPanelSignedOut();
-	writePanelAuthSession(session);
-	markPanelSessionTrusted();
-	return session;
-}

@@ -206,7 +206,7 @@ export default function DjContentPage() {
 		if (files.length === 0) return;
 
 		const session = readPanelAuthSession();
-		if (!session?.token) {
+		if (!session) {
 			setPhotoError("Iniciá sesión de nuevo para subir fotos.");
 			return;
 		}
@@ -222,7 +222,6 @@ export default function DjContentPage() {
 				const url = await uploadSitePhoto({
 					slug: dj.slug,
 					file: optimized,
-					token: session.token,
 				});
 				uploadedUrls.push(url);
 			}
@@ -250,7 +249,7 @@ export default function DjContentPage() {
 		if (!file || !targetId) return;
 
 		const session = readPanelAuthSession();
-		if (!session?.token) return;
+		if (!session) return;
 		setPhotoUploading(true);
 		setPhotoError("");
 		try {
@@ -258,7 +257,6 @@ export default function DjContentPage() {
 			const url = await uploadSitePhoto({
 				slug: dj.slug,
 				file: optimized,
-				token: session.token,
 			});
 			patch(
 				"photos",

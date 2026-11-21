@@ -33,7 +33,7 @@ export function prefetchPanelRoute(pathname: string, queryClient: QueryClient) {
 	if (pathname === "/domains") {
 		void queryClient.prefetchQuery({
 			queryKey: PLATFORM_DOMAINS_QUERY_KEY,
-			queryFn: () => fetchPlatformDomains(session.token),
+			queryFn: () => fetchPlatformDomains(),
 			staleTime: 60_000,
 		});
 	}

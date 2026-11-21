@@ -1,8 +1,14 @@
 import { getApp } from "@/lib/composition/app";
 import { errorResponse } from "@/lib/http/errors";
 import {
+  assertPanelCsrf,
+  assertTrustedOrigin,
+  createCsrfToken,
+  panelCsrfClearCookie,
+  panelCsrfSetCookie,
   panelSessionClearCookie,
-  readBearerToken,
+  readPanelCsrfCookie,
+  readPanelSessionToken,
 } from "@/lib/http/panel-request";
 import { createRequestId } from "@/lib/http/request-id";
 import {
@@ -20,29 +26,60 @@ export async function GET(request: Request) {
   const startedAt = performance.now();
 
   try {
-    const token = readBearerToken(request);
+    const token = readPanelSessionToken(request);
     const user = await getApp().readPanelSession(token);
-    return jsonWithTenantCors(
+    const existingCsrf = readPanelCsrfCookie(request);
+    const csrfToken = existingCsrf || createCsrfToken();
+
+    const response = jsonWithTenantCors(
       request,
-      { user, token },
+      { user, csrfToken },
       { requestId, durationMs: performance.now() - startedAt },
     );
+    const headers = new Headers(response.headers);
+    headers.set("Cache-Control", "no-store");
+    headers.append("Vary", "Cookie");
+    if (!existingCsrf) {
+      headers.append("Set-Cookie", panelCsrfSetCookie(request, csrfToken));
+    }
+    return new Response(response.body, {
+      status: response.status,
+      headers,
+    });
   } catch (error) {
-    return withTenantCors(request, errorResponse(error, requestId));
+    const response = withTenantCors(request, errorResponse(error, requestId));
+    const headers = new Headers(response.headers);
+    headers.set("Cache-Control", "no-store");
+    return new Response(response.body, {
+      status: response.status,
+      headers,
+    });
   }
 }
 
 export async function DELETE(request: Request) {
   const requestId = createRequestId();
   try {
-    const token = readBearerToken(request);
-    await getApp().logoutPanel(token);
-  } catch {
-    // Sin token vigente igual se borra la cookie.
+    assertTrustedOrigin(request);
+    let token: string | null = null;
+    try {
+      token = readPanelSessionToken(request);
+    } catch {
+      token = null;
+    }
+    if (token) {
+      assertPanelCsrf(request);
+      await getApp().logoutPanel(token);
+    }
+  } catch (error) {
+    return withTenantCors(request, errorResponse(error, requestId));
   }
+
   const response = jsonWithTenantCors(request, { ok: true }, { requestId });
   const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "no-store");
   headers.append("Set-Cookie", panelSessionClearCookie(request));
+  headers.append("Set-Cookie", panelCsrfClearCookie(request));
   headers.append("Set-Cookie", "logged_in_hint=; Path=/; Max-Age=0; SameSite=Lax");
   return new Response(response.body, {
     status: response.status,

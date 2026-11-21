@@ -55,9 +55,12 @@ export function TurnstileWidget({
   const onErrorRef = useRef(onError);
   const [loaded, setLoaded] = useState(false);
   const siteKey = configuredTurnstileSiteKey();
-  onSuccessRef.current = onSuccess;
-  onExpireRef.current = onExpire;
-  onErrorRef.current = onError;
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onExpireRef.current = onExpire;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     if (!siteKey) return;

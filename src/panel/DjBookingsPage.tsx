@@ -101,14 +101,13 @@ export default function DjBookingsPage() {
 	const reloadBookings = useCallback(
 		async (options?: { showLoading?: boolean }) => {
 			const showLoading = options?.showLoading ?? false;
-			const token = session?.token;
-			if (!token) {
+			if (!session) {
 				if (showLoading) setLoading(false);
 				return;
 			}
 			if (showLoading) setLoading(true);
 			try {
-				const data = await fetchDjBookings({ slug: dj.slug, token });
+				const data = await fetchDjBookings({ slug: dj.slug });
 				if (!isMountedRef.current) return;
 				const known = knownBookingIdsRef.current;
 				if (known.size > 0) {
@@ -129,14 +128,13 @@ export default function DjBookingsPage() {
 				}
 			}
 		},
-		[dj.slug, session?.token],
+		[dj.slug, session],
 	);
 
 	useEffect(() => {
 		isMountedRef.current = true;
 		knownBookingIdsRef.current = new Set();
-		const token = session?.token;
-		if (!token) {
+		if (!session) {
 			const id = window.setTimeout(() => setLoading(false), 0);
 			return () => {
 				window.clearTimeout(id);
@@ -144,7 +142,7 @@ export default function DjBookingsPage() {
 			};
 		}
 		let cancelled = false;
-		void fetchDjBookings({ slug: dj.slug, token })
+		void fetchDjBookings({ slug: dj.slug })
 			.then((data) => {
 				if (cancelled || !isMountedRef.current) return;
 				knownBookingIdsRef.current = new Set(data.map((b) => b.id));
@@ -162,10 +160,10 @@ export default function DjBookingsPage() {
 			cancelled = true;
 			isMountedRef.current = false;
 		};
-	}, [dj.slug, session?.token]);
+	}, [dj.slug, session]);
 
 	useEffect(() => {
-		if (!session?.token) return;
+		if (!session) return;
 		const intervalId = window.setInterval(() => {
 			void reloadBookings();
 		}, 8_000);
@@ -181,13 +179,13 @@ export default function DjBookingsPage() {
 			document.removeEventListener("visibilitychange", refreshIfActive);
 			window.removeEventListener("focus", refreshIfActive);
 		};
-	}, [reloadBookings, session?.token]);
+	}, [reloadBookings, session]);
 
 	async function handleStatusChange(
 		bookingId: string,
 		newStatus: "pending" | "confirmed" | "declined",
 	) {
-		if (!session?.token) {
+		if (!session) {
 			toast.error("Iniciá sesión para modificar el estado.");
 			return;
 		}
@@ -197,7 +195,6 @@ export default function DjBookingsPage() {
 				id: bookingId,
 				status: newStatus,
 				slug: dj.slug,
-				token: session.token,
 			});
 			setBookings((prev) =>
 				prev.map((b) =>
