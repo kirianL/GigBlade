@@ -16,7 +16,7 @@ import { logPlatformEvent } from "@/lib/http/log";
 const TILOPAY_BASE_URL = "https://app.tilopay.com";
 const LOGIN_CACHE_TTL_MS = 20 * 60 * 60 * 1000;
 const HTTP_TIMEOUT_MS = 15_000;
-const DEFAULT_MEETING_AMOUNT = 10;
+const DEFAULT_MEETING_AMOUNT = 120;
 
 type TilopayCredentials = {
   apiKey: string;

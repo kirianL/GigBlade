@@ -62,7 +62,10 @@ export default function Footer() {
 		>
 			<div className="relative z-10 col-start-1 row-start-1 flex w-full flex-col">
 				<div className="relative flex min-h-[300px] w-full flex-col justify-between md:min-h-[400px]">
-					<div className="pointer-events-none absolute right-0 bottom-0 left-0 z-0 h-[300px] bg-[url('/images/footer/footerbg.svg')] bg-cover bg-bottom bg-no-repeat opacity-70 sm:h-[550px] sm:bg-contain lg:h-[400px]" />
+					<div
+						className="pointer-events-none absolute right-0 bottom-0 left-0 z-0 h-[300px] bg-cover bg-bottom bg-no-repeat opacity-70 sm:h-[550px] sm:bg-contain lg:h-[400px]"
+						style={{ backgroundImage: "url('/images/footer/footerbg.svg')" }}
+					/>
 
 					<div className="relative z-10 flex flex-col justify-between gap-10 pt-8 pr-4 pb-16 pl-4.5 sm:pr-8 md:gap-16 md:pt-24 md:pb-16 lg:flex-row lg:gap-8 lg:pr-12 xl:pl-[90px]">
 						<div className="flex max-w-sm flex-col">

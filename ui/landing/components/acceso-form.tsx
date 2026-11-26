@@ -315,9 +315,9 @@ export default function AccesoForm({
   );
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({
     required: false,
-    amount: 10,
+    amount: 120,
     currency: "USD",
-    amountFormatted: "US$ 10",
+    amountFormatted: "US$ 120",
   });
   const [tilopaySession, setTilopaySession] =
     useState<TilopayCheckoutSession | null>(null);
