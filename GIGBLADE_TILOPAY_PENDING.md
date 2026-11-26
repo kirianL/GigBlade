@@ -19,7 +19,8 @@ Fuentes revisadas: `README.md`, `ui/landing/lib/seo.ts` (`ORG_NAME = "GigBlades"
 ## 2. Configuración real del cobro en Tilopay
 
 - **Confirmado por el solicitante:** el cargo cobrado en la reserva de la reunión de bienvenida es de **US$ 120**, y corresponde al pago inicial publicado para dejar la página lista. No es un cargo distinto ni un anticipo de la mensualidad.
-- El código conserva un valor por defecto de **10** en USD/CRC (`src/infrastructure/tilopay/client.ts:19,51-62`). Ese valor actúa solo como respaldo de configuración y **no debe declararse** como precio comercial.
+- El valor por defecto del código se alineó a **120** en USD/CRC (`src/infrastructure/tilopay/client.ts:19,51-62`) y puede sobrescribirse por variables de entorno. Ya no existe el valor 10 en el código.
+- En el despliegue revisado, `GET /api/waitlist` devolvió `payment.required: false`, porque las credenciales de Tilopay aún no están configuradas. El paso de pago no aparece mientras tanto, lo cual es coherente con la aprobación pendiente.
 - Pendiente de evidencia documental: captura o exportación de la configuración de producción (`TILOPAY_MEETING_AMOUNT`, `TILOPAY_MEETING_CURRENCY`) donde conste el importe de US$ 120.
 - Si la cuenta de Tilopay está en modo **producción (live)** o **sandbox/pruebas**. El cliente consulta `/api/v1/login`, `/api/v1/loginSdk` y `/api/v1/consult` en `https://app.tilopay.com`, pero el entorno devuelto por la transacción no está documentado ni se observó en una operación real.
 - Credenciales y `key` de Tilopay: deliberadamente no se incluyen en el expediente.
@@ -31,7 +32,7 @@ Fuentes revisadas: `README.md`, `ui/landing/lib/seo.ts` (`ORG_NAME = "GigBlades"
 | Landing y `/pricing` (`ui/landing/lib/plan-items.ts`, `faq-items.ts`, `constant.tsx`) | US$ 120 una vez + US$ 30/mes | Página, panel, hosting y seguridad; dominio aparte | Oferta publicada. US$ 120 confirmado como cargo cobrado; US$ 30/mes sin cobro recurrente integrado |
 | Confirmación del solicitante | US$ 120 | Pago de la reserva de reunión / pago inicial | Vigente |
 | `docs/reporte-avance-15-dias.md:23` | US$ 65/mes | Definición del día 1 del plan | Posiblemente obsoleta; no declarar |
-| `src/infrastructure/tilopay/client.ts:19` | 10 (USD/CRC configurable) | Valor por defecto del código | Respaldo técnico; no declarar como precio |
+| `src/infrastructure/tilopay/client.ts:19` | 120 (USD/CRC configurable) | Valor por defecto del código | Alineado al precio confirmado; sobrescribible por entorno |
 
 La facturación recurrente de la mensualidad aparece explícitamente **fuera de alcance** en `docs/reporte-avance-15-dias.md:7,333,342,348`. Si Tilopay solicita el detalle del cargo, declarar **un único pago inicial de US$ 120** y el dominio como concepto adicional comprado por el cliente.
 
@@ -49,13 +50,13 @@ La facturación recurrente de la mensualidad aparece explícitamente **fuera de 
 
 ## 6. Capturas que requieren autenticación
 
-Las siguientes pantallas existen en el código pero no fueron capturadas porque no se dispone de una cuenta de prueba autorizada. No se intentó eludir ningún control de acceso:
+Las siguientes pantallas existen en el código pero no se incluyen como captura en el expediente. No se intentó eludir ningún control de acceso:
 
 - Panel de plataforma: resumen, DJs, contrataciones, lista de espera, referidos, finanzas, dominios, estado de páginas y plan (`src/panel/PanelSidebar.tsx:96-115`).
 - Estudio del DJ: «Mi página», «Contenido», «Dominio propio», «Contrataciones» y «Visitas» (`src/panel/PanelSidebar.tsx:117-126`).
 - Perfil público real de un DJ alojado en su propio hostname.
 
-Se capturó únicamente la pantalla pública de inicio de sesión (`https://app.gigblades.com/sign-in`). Se intentó además levantar un entorno local de desarrollo con la cuenta de prueba definida en el propio código (`src/lib/composition/memory-app.ts:97-100`), pero el servidor devuelve error 500 por un problema preexistente en `src/app/globals.css:2852` (`Module not found: Can't resolve '&#x27;/images/footer/footerbg.svg&'`). No se modificó el código fuente para generar evidencia. Para completar esta sección, proporcione credenciales de una cuenta de prueba autorizada o exporte las capturas desde una sesión legítima, sin datos personales reales.
+Se capturó únicamente la pantalla pública de inicio de sesión (`https://app.gigblades.com/sign-in`). El acceso al panel sí se verificó en un entorno local con la cuenta de prueba definida en el propio código (`src/lib/composition/memory-app.ts:97-100`): `GET /sign-in 200`, `POST /api/panel/login 200` y redirección a `/overview 200`. El bloqueo previo, un error 500 causado por la clase `bg-[url('/images/footer/footerbg.svg')]` en `ui/landing/components/footer.tsx:65`, quedó corregido. La captura de la sesión autenticada se descartó porque mostraba datos operativos reales del panel. Para incluir evidencia visual de esas pantallas, proporcione capturas tomadas desde una sesión legítima y sin datos personales.
 
 ## 7. Presencia digital adicional
 
